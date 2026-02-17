@@ -1,0 +1,267 @@
+{
+  "products": [
+    {
+      "id": "1",
+      "name": "Crochet Keychain",
+      "description": "Handmade crochet keychain with cute design",
+      "price": "50",
+      "category": "Accessories & Bouquet",
+      "images": [
+        "/img/keychain/1.jpg",
+        "/img/keychain/2.jpg",
+        "/img/keychain/3.jpg",
+        "/img/keychain/4.jpg",
+        "/img/keychain/5.jpg",
+        "/img/keychain/6.jpg",
+        "/img/keychain/7.jpg",
+        "/img/keychain/8.jpg",
+        "/img/keychain/9.jpg",
+        "/img/keychain/10.jpg",
+        "/img/keychain/11.jpg",
+        "/img/keychain/12.jpg"
+      ]
+    },
+    {
+      "id": "2",
+      "name": "Crochet Tote Bags",
+      "description": "Stylish crochet tote bag for everyday use",
+      "price": "200",
+      "category": "Bags",
+      "images": [
+        "/img/bag/1.jpg",
+        "/img/bag/2.jpg",
+        "/img/bag/3.jpg",
+        "/img/bag/4.jpg",
+        "/img/bag/5.jpg",
+        "/img/bag/6.jpg"
+      ]
+    },
+    {
+      "id": "3",
+      "name": "Crochet Scarf",
+      "description": "Warm and cozy crochet scarf",
+      "price": "150",
+      "category": "Clothing",
+      "images": [
+        "/img/scarf/1.jpg",
+        "/img/scarf/2.jpg",
+        "/img/scarf/3.jpg",
+        "/img/scarf/4.jpg",
+        "/img/scarf/5.jpg"
+      ]
+    },
+    {
+      "id": "4",
+      "name": "Crochet Coasters",
+      "description": "Set of 4 decorative crochet coasters",
+      "price": "200",
+      "category": "Home Decor",
+      "images": [
+        "/img/coaster/1.jpg",
+        "/img/coaster/2.jpg",
+        "/img/coaster/3.jpg",
+        "/img/coaster/4.jpg",
+        "/img/coaster/5.jpg",
+        "/img/coaster/6.jpg"
+      ]
+    },
+    {
+      "id": "5",
+      "name": "Crochet Headband & Bandana",
+      "description": "Lightweight crochet headbands designed for comfort and a cute, casual look",
+      "price": "50",
+      "category": "Accessories & Bouquet",
+      "images": [
+        "/img/headband/1.jpg",
+        "/img/headband/2.jpg",
+        "/img/headband/3.jpg",
+        "/img/headband/4.jpg",
+        "/img/headband/5.jpg",
+        "/img/headband/6.jpg",
+        "/img/headband/7.jpg",
+        "/img/headband/8.jpg",
+        "/img/headband/9.jpg"
+      ]
+    },
+    {
+      "id": "6",
+      "name": "Crochet Bouquet",
+      "description": "A handmade crochet bouquet that lasts forever—beautiful, meaningful, and perfect for any occasion",
+      "price": "200",
+      "category": "Accessories & Bouquet",
+      "images": [
+        "/img/flower/1.jpg",
+        "/img/flower/2.jpg",
+        "/img/flower/3.jpg",
+        "/img/flower/4.jpg",
+        "/img/flower/5.jpg",
+        "/img/flower/6.jpg",
+        "/img/flower/7.jpg",
+        "/img/flower/8.jpg",
+        "/img/flower/9.jpg",
+        "/img/flower/10.jpg",
+        "/img/flower/11.jpg"
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "id": "1770531605105",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812"
+      },
+      "items": [
+        {
+          "id": "2",
+          "name": "Crochet Tote Bags",
+          "price": 200,
+          "quantity": 2,
+          "selectedImage": "/img/bag/3.jpg"
+        },
+        {
+          "id": "1",
+          "name": "Crochet Keychain",
+          "price": 50,
+          "quantity": 2,
+          "selectedImage": "/img/keychain/7.jpg"
+        }
+      ],
+      "total": 500,
+      "createdAt": "2026-02-08T06:20:05.105Z",
+      "status": "Delivered"
+    },
+    {
+      "id": "1770537121888",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": "kindly giftwrap this, thank you!"
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "5",
+          "name": "Crochet Headband & Bandana",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/headband/3.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-02-08T07:52:01.888Z",
+      "status": "Shipped"
+    },
+    {
+      "id": "1771123090127",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": "i want the pink one"
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "1",
+          "name": "Crochet Keychain",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/keychain/7.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-02-15T02:38:10.127Z",
+      "status": "Cancelled"
+    },
+    {
+      "id": "1771131856655",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "1",
+          "name": "Crochet Keychain",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/keychain/2.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-02-15T05:04:16.655Z",
+      "status": "Cancelled"
+    },
+    {
+      "id": "1771322082906",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "1",
+          "name": "Crochet Keychain",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/keychain/5.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-02-17T09:54:42.906Z",
+      "status": "Cancelled"
+    }
+  ]
+}
