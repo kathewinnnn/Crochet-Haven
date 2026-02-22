@@ -578,8 +578,10 @@ const Cart = () => {
   const [error, setError] = useState('');
 
   const safeCart = Array.isArray(cart) ? cart : [];
-  const uniqueCount = safeCart.length;
-  const total = safeCart.reduce((sum, item) => {
+  // Sort cart items by addedAt (latest first)
+  const sortedCart = [...safeCart].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const uniqueCount = sortedCart.length;
+  const total = sortedCart.reduce((sum, item) => {
     const price = parseFloat(item?.price) || 0;
     const qty = item?.quantity || 1;
     return sum + price * qty;
@@ -588,7 +590,7 @@ const Cart = () => {
   const fmt = (p) => (isNaN(parseFloat(p)) ? '0.00' : parseFloat(p).toFixed(2));
 
   const handleCheckout = () => {
-    if (safeCart.length === 0) { setError('Your cart is empty. Please add items before checkout.'); return; }
+    if (sortedCart.length === 0) { setError('Your cart is empty. Please add items before checkout.'); return; }
     setError('');
     navigate('/user/checkout');
   };
@@ -623,7 +625,7 @@ const Cart = () => {
 
         {/* ── BODY ── */}
         <div className="ch-cart-body">
-          {safeCart.length === 0 ? (
+          {sortedCart.length === 0 ? (
             <div className="ch-cart-empty">
               <span className="ch-empty-icon">🛒</span>
               <div className="ch-empty-title">Your cart is empty</div>
@@ -639,7 +641,7 @@ const Cart = () => {
                   <h2>Cart Items</h2>
                   <span className="ch-item-count-badge">{uniqueCount} {uniqueCount === 1 ? 'product' : 'products'}</span>
                 </div>
-                {safeCart.map(item => (
+                {sortedCart.map(item => (
                   <div key={item.id} className="ch-cart-item">
                     <div className="ch-item-img">
                       {item.selectedImage ? <img src={item.selectedImage} alt={item.name} /> : <span>🎁</span>}

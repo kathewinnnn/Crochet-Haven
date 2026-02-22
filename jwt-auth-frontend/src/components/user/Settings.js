@@ -53,7 +53,6 @@ const styles = `
   }
 
   .ch-logo-block { display: flex; align-items: center; gap: 16px; text-decoration: none; }
-
   .ch-logo-yarn { font-size: 2.2rem; animation: sway 4s ease-in-out infinite; display: inline-block; transform-origin: bottom center; }
 
   @keyframes sway {
@@ -135,7 +134,6 @@ const styles = `
     width: 100%;
   }
 
-  /* ─── LAYOUT ─── */
   .ch-settings-layout {
     display: grid;
     grid-template-columns: 220px 1fr;
@@ -229,9 +227,34 @@ const styles = `
   .ch-setting-item:hover { background: #fef9f5; }
 
   .ch-setting-info { flex: 1; padding-right: 20px; }
-
   .ch-setting-info h4 { font-size: 0.9rem; font-weight: 700; color: var(--charcoal); margin-bottom: 4px; }
   .ch-setting-info p { font-size: 0.78rem; color: var(--muted); font-weight: 300; line-height: 1.5; }
+
+  /* ─── 2FA status badge shown next to toggle ─── */
+  .ch-2fa-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ch-2fa-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  .ch-2fa-badge.enabled {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+  }
+
+  .ch-2fa-badge.pending {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+  }
 
   /* Toggle */
   .ch-toggle {
@@ -268,17 +291,45 @@ const styles = `
   .ch-toggle input:checked + .ch-toggle-track { background: var(--rose); }
   .ch-toggle input:checked + .ch-toggle-track::before { transform: translateX(22px); }
 
-  /* 2FA setup panel */
+  /* ─── 2FA SETUP PANEL ─── */
   .ch-twofa-panel {
     padding: 24px;
     background: var(--cream);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
-    animation: ch-fade-in 0.25s ease;
+    animation: ch-fade-in 0.3s ease;
   }
 
   .ch-twofa-panel h4 { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--charcoal); margin-bottom: 6px; }
-  .ch-twofa-panel p { font-size: 0.82rem; color: var(--muted); font-weight: 300; margin-bottom: 18px; }
+  .ch-twofa-panel p { font-size: 0.82rem; color: var(--muted); font-weight: 300; margin-bottom: 18px; line-height: 1.6; }
+
+  /* Pending notice shown when toggle is ON but setup not done yet */
+  .ch-twofa-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  .ch-twofa-notice-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+  .ch-twofa-notice-text h5 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 3px;
+  }
+
+  .ch-twofa-notice-text p {
+    font-size: 0.76rem;
+    color: #b45309;
+    margin-bottom: 0;
+    font-weight: 300;
+  }
 
   .ch-twofa-methods { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 
@@ -318,7 +369,7 @@ const styles = `
   .ch-twofa-input:focus { outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(232,114,138,0.1); }
   .ch-twofa-input.code { text-align: center; letter-spacing: 10px; font-size: 1.2rem; font-family: 'Playfair Display', serif; }
 
-  .ch-twofa-error { font-size: 0.78rem; color: #dc2626; margin-bottom: 10px; }
+  .ch-twofa-error { font-size: 0.78rem; color: #dc2626; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
 
   .ch-twofa-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -356,7 +407,7 @@ const styles = `
 
   .ch-twofa-btn.secondary:hover { border-color: var(--muted); color: var(--charcoal); }
 
-  /* Toast */
+  /* ─── TOAST ─── */
   .ch-toast-container {
     position: fixed;
     top: 20px;
@@ -366,6 +417,7 @@ const styles = `
     flex-direction: column;
     gap: 10px;
     max-width: 360px;
+    width: calc(100% - 40px);
   }
 
   .ch-toast {
@@ -375,7 +427,7 @@ const styles = `
     padding: 14px 16px;
     background: var(--warm-white);
     border-radius: 4px;
-    box-shadow: 0 8px 32px rgba(44,36,32,0.14);
+    box-shadow: 0 8px 32px rgba(44,36,12,0.14);
     animation: ch-toast-in 0.35s ease;
     position: relative;
     overflow: hidden;
@@ -384,27 +436,24 @@ const styles = `
   @keyframes ch-toast-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
 
   .ch-toast-success { border-left: 3px solid var(--sage); }
-  .ch-toast-error { border-left: 3px solid #ef4444; }
-  .ch-toast-info { border-left: 3px solid var(--rose); }
+  .ch-toast-error   { border-left: 3px solid #ef4444; }
+  .ch-toast-info    { border-left: 3px solid var(--rose); }
 
   .ch-toast-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: #fff; flex-shrink: 0; }
   .ch-toast-success .ch-toast-icon { background: var(--sage); }
-  .ch-toast-error .ch-toast-icon { background: #ef4444; }
-  .ch-toast-info .ch-toast-icon { background: var(--rose); }
+  .ch-toast-error   .ch-toast-icon { background: #ef4444; }
+  .ch-toast-info    .ch-toast-icon { background: var(--rose); }
 
   .ch-toast-msg { font-size: 0.88rem; color: var(--charcoal); line-height: 1.5; flex: 1; }
-
   .ch-toast-close { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.2s ease; flex-shrink: 0; }
   .ch-toast-close:hover { color: var(--charcoal); }
 
   .ch-toast-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--border); }
   .ch-toast-bar-fill { height: 100%; width: 100%; animation: ch-drain 5s linear forwards; }
-
   @keyframes ch-drain { to { width: 0%; } }
-
   .ch-toast-success .ch-toast-bar-fill { background: var(--sage); }
-  .ch-toast-error .ch-toast-bar-fill { background: #ef4444; }
-  .ch-toast-info .ch-toast-bar-fill { background: var(--rose); }
+  .ch-toast-error   .ch-toast-bar-fill { background: #ef4444; }
+  .ch-toast-info    .ch-toast-bar-fill { background: var(--rose); }
 
   /* ─── FOOTER ─── */
   .ch-footer {
@@ -439,8 +488,13 @@ const styles = `
 
   @media (max-width: 580px) {
     .ch-setting-item { flex-direction: column; align-items: flex-start; gap: 14px; }
-    .ch-toggle { align-self: flex-end; }
+    .ch-2fa-status { align-self: flex-end; }
     .ch-twofa-methods { flex-direction: column; }
+    .ch-settings-body { padding: 24px 16px 48px; }
+    .ch-header-inner { padding: 18px 16px; }
+    .ch-page-banner { padding: 32px 16px; }
+    .ch-banner-title { font-size: 1.7rem; }
+    .ch-footer { padding: 22px 16px; }
   }
 `;
 
@@ -479,12 +533,13 @@ const UserSettings = () => {
   const [activeSection, setActiveSection] = useState("account");
 
   // 2FA state
+  // show2FA = the setup panel is open (toggle is ON but setup not yet completed)
   const [show2FA, setShow2FA] = useState(false);
   const [twoFAMethod, setTwoFAMethod] = useState('sms');
   const [twoFAPhone, setTwoFAPhone] = useState('');
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
-  const [twoFAStep, setTwoFAStep] = useState(1);
+  const [twoFAStep, setTwoFAStep] = useState(1); // 1 = send code, 2 = verify code
   const [twoFAError, setTwoFAError] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -495,10 +550,48 @@ const UserSettings = () => {
 
   const removeToast = useCallback((id) => setToasts(p => p.filter(t => t.id !== id)), []);
 
+  // Generic toggle for non-2FA settings
   const toggle = (key) => {
-    if (key === 'twoFactorAuth' && !settings.twoFactorAuth) { setShow2FA(true); return; }
     setSettings(p => ({ ...p, [key]: !p[key] }));
     addToast("success", `${key.replace(/([A-Z])/g, ' $1').trim()} updated`);
+  };
+
+  // ── 2FA toggle logic ──────────────────────────────────────────────────────
+  // Behavior:
+  //   OFF → ON : toggle turns ON immediately (track turns pink), setup panel opens
+  //   ON  → OFF: toggle turns OFF immediately, setup panel closes, state resets
+  //   If user cancels setup: toggle turns back OFF, panel closes
+  // ──────────────────────────────────────────────────────────────────────────
+  const handle2FAToggle = () => {
+    if (!settings.twoFactorAuth) {
+      // OFF → ON: enable toggle right away, then show setup panel
+      setSettings(p => ({ ...p, twoFactorAuth: true }));
+      setShow2FA(true);
+      reset2FAForm();
+    } else {
+      // ON → OFF: disable and close everything
+      setSettings(p => ({ ...p, twoFactorAuth: false }));
+      setShow2FA(false);
+      reset2FAForm();
+      addToast("info", "Two-Factor Authentication disabled");
+    }
+  };
+
+  const reset2FAForm = () => {
+    setTwoFAStep(1);
+    setTwoFAMethod('sms');
+    setTwoFAPhone('');
+    setTwoFAEmail('');
+    setVerifyCode('');
+    setTwoFAError('');
+  };
+
+  // Cancel during setup → revert toggle back to OFF
+  const cancel2FA = () => {
+    setSettings(p => ({ ...p, twoFactorAuth: false }));
+    setShow2FA(false);
+    reset2FAForm();
+    addToast("info", "2FA setup cancelled");
   };
 
   const handleSend2FA = async () => {
@@ -514,10 +607,17 @@ const UserSettings = () => {
         body: JSON.stringify({ method: twoFAMethod, phone: twoFAPhone, backupEmail: twoFAEmail }),
       });
       const data = await res.json();
-      if (res.ok) { setTwoFAStep(2); addToast("success", `Code sent to ${data.destination}`); }
-      else setTwoFAError(data.message);
-    } catch { setTwoFAError('Failed to send verification code'); }
-    finally { setSending(false); }
+      if (res.ok) {
+        setTwoFAStep(2);
+        addToast("success", `Code sent to ${data.destination}`);
+      } else {
+        setTwoFAError(data.message);
+      }
+    } catch {
+      setTwoFAError('Failed to send verification code');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleVerify2FA = async () => {
@@ -533,35 +633,35 @@ const UserSettings = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setSettings(p => ({ ...p, twoFactorAuth: true }));
+        // Setup completed — close the panel, keep toggle ON
         setShow2FA(false);
-        setTwoFAStep(1);
-        setVerifyCode('');
-        setTwoFAPhone('');
-        setTwoFAEmail('');
+        reset2FAForm();
         addToast("success", "Two-Factor Authentication enabled!");
-      } else setTwoFAError(data.message);
-    } catch { setTwoFAError('Failed to verify code'); }
-    finally { setSending(false); }
+      } else {
+        setTwoFAError(data.message);
+      }
+    } catch {
+      setTwoFAError('Failed to verify code');
+    } finally {
+      setSending(false);
+    }
   };
 
-  const cancel2FA = () => { setShow2FA(false); setTwoFAStep(1); setTwoFAMethod('sms'); setTwoFAPhone(''); setTwoFAEmail(''); setVerifyCode(''); setTwoFAError(''); };
-
   const navItems = [
-    { key: "account", icon: "🔔", label: "Account" },
+    { key: "account",  icon: "🔔", label: "Account" },
     { key: "security", icon: "🔒", label: "Security" },
-    { key: "privacy", icon: "🛡️", label: "Privacy" },
+    { key: "privacy",  icon: "🛡️", label: "Privacy" },
   ];
 
   const accountSettings = [
     { key: "emailNotifications", title: "Email Notifications", desc: "Receive order updates and promotions via email" },
-    { key: "pushNotifications", title: "Push Notifications", desc: "Get notified about new products and updates" },
-    { key: "newsletter", title: "Newsletter", desc: "Subscribe to our weekly newsletter for tips and deals" },
+    { key: "pushNotifications",  title: "Push Notifications",  desc: "Get notified about new products and updates" },
+    { key: "newsletter",         title: "Newsletter",          desc: "Subscribe to our weekly newsletter for tips and deals" },
   ];
 
   const privacySettings = [
-    { key: "profileVisibility", title: "Profile Visibility", desc: "Make your profile visible to other users" },
-    { key: "showOrderHistory", title: "Show Order History", desc: "Display past orders on your public profile" },
+    { key: "profileVisibility", title: "Profile Visibility",   desc: "Make your profile visible to other users" },
+    { key: "showOrderHistory",  title: "Show Order History",   desc: "Display past orders on your public profile" },
   ];
 
   return (
@@ -599,7 +699,11 @@ const UserSettings = () => {
             {/* Sidebar */}
             <nav className="ch-settings-nav">
               {navItems.map(item => (
-                <button key={item.key} className={`ch-snav-item${activeSection === item.key ? ' active' : ''}`} onClick={() => setActiveSection(item.key)}>
+                <button
+                  key={item.key}
+                  className={`ch-snav-item${activeSection === item.key ? ' active' : ''}`}
+                  onClick={() => setActiveSection(item.key)}
+                >
                   <span className="ch-snav-icon">{item.icon}</span>
                   {item.label}
                 </button>
@@ -609,7 +713,7 @@ const UserSettings = () => {
             {/* Main panel */}
             <main className="ch-settings-main">
 
-              {/* Account */}
+              {/* ── Account ── */}
               {activeSection === "account" && (
                 <div className="ch-settings-panel">
                   <div className="ch-panel-head">
@@ -631,7 +735,7 @@ const UserSettings = () => {
                 </div>
               )}
 
-              {/* Security */}
+              {/* ── Security ── */}
               {activeSection === "security" && (
                 <div className="ch-settings-panel">
                   <div className="ch-panel-head">
@@ -639,58 +743,118 @@ const UserSettings = () => {
                     <div className="ch-panel-sub">Protect your account with additional security measures</div>
                   </div>
 
-                  {/* 2FA toggle */}
+                  {/* 2FA row */}
                   <div className="ch-setting-item">
                     <div className="ch-setting-info">
                       <h4>Two-Factor Authentication</h4>
-                      <p>Add an extra layer of security to your account</p>
+                      <p>
+                        Add an extra layer of security to your account.
+                        {settings.twoFactorAuth && show2FA && (
+                          <> <span style={{ color: "#b45309", fontWeight: 600 }}>Setup in progress — complete below to activate.</span></>
+                        )}
+                        {settings.twoFactorAuth && !show2FA && (
+                          <> <span style={{ color: "#065f46", fontWeight: 600 }}>Active and protecting your account.</span></>
+                        )}
+                      </p>
                     </div>
-                    <label className="ch-toggle">
-                      <input type="checkbox" checked={settings.twoFactorAuth} onChange={() => toggle('twoFactorAuth')} aria-label="Two-factor authentication" />
-                      <span className="ch-toggle-track" />
-                    </label>
+
+                    {/* Toggle + optional badge */}
+                    <div className="ch-2fa-status">
+                      {settings.twoFactorAuth && show2FA && (
+                        <span className="ch-2fa-badge pending">Setup Pending</span>
+                      )}
+                      {settings.twoFactorAuth && !show2FA && (
+                        <span className="ch-2fa-badge enabled">Enabled</span>
+                      )}
+                      <label className="ch-toggle">
+                        <input
+                          type="checkbox"
+                          checked={settings.twoFactorAuth}
+                          onChange={handle2FAToggle}
+                          aria-label="Two-factor authentication"
+                        />
+                        <span className="ch-toggle-track" />
+                      </label>
+                    </div>
                   </div>
 
-                  {/* 2FA setup */}
-                  {show2FA && (
+                  {/* 2FA setup panel — only visible when toggle is ON and setup not yet done */}
+                  {settings.twoFactorAuth && show2FA && (
                     <div className="ch-twofa-panel">
+
+                      {/* Pending notice */}
+                      <div className="ch-twofa-notice">
+                        <span className="ch-twofa-notice-icon">⚠️</span>
+                        <div className="ch-twofa-notice-text">
+                          <h5>Setup Required</h5>
+                          <p>2FA is enabled but not yet active. Complete the setup below to start protecting your account.</p>
+                        </div>
+                      </div>
+
                       {twoFAStep === 1 ? (
                         <>
                           <h4>📱 Setup Two-Factor Authentication</h4>
                           <p>Choose how you want to receive verification codes:</p>
                           <div className="ch-twofa-methods">
-                            {[{ val: 'sms', label: '📱 SMS (Mobile Number)' }, { val: 'email', label: '📧 Backup Email' }].map(m => (
-                              <label key={m.val} className={`ch-twofa-method${twoFAMethod === m.val ? ' selected' : ''}`} onClick={() => setTwoFAMethod(m.val)}>
+                            {[
+                              { val: 'sms',   label: '📱 SMS (Mobile Number)' },
+                              { val: 'email', label: '📧 Backup Email' },
+                            ].map(m => (
+                              <label
+                                key={m.val}
+                                className={`ch-twofa-method${twoFAMethod === m.val ? ' selected' : ''}`}
+                                onClick={() => { setTwoFAMethod(m.val); setTwoFAError(''); }}
+                              >
                                 <input type="radio" name="twoFAMethod" value={m.val} checked={twoFAMethod === m.val} onChange={() => {}} />
                                 {m.label}
                               </label>
                             ))}
                           </div>
+
                           {twoFAMethod === 'sms'
-                            ? <input type="tel" className="ch-twofa-input" placeholder="+63 912 345 6789" value={twoFAPhone} onChange={e => setTwoFAPhone(e.target.value)} />
-                            : <input type="email" className="ch-twofa-input" placeholder="backup@email.com" value={twoFAEmail} onChange={e => setTwoFAEmail(e.target.value)} />
+                            ? <input type="tel"   className="ch-twofa-input" placeholder="+63 912 345 6789"  value={twoFAPhone} onChange={e => { setTwoFAPhone(e.target.value); setTwoFAError(''); }} />
+                            : <input type="email" className="ch-twofa-input" placeholder="backup@email.com" value={twoFAEmail} onChange={e => { setTwoFAEmail(e.target.value); setTwoFAError(''); }} />
                           }
-                          {twoFAError && <div className="ch-twofa-error">{twoFAError}</div>}
+
+                          {twoFAError && <div className="ch-twofa-error">⚠ {twoFAError}</div>}
+
                           <div className="ch-twofa-actions">
                             <button className="ch-twofa-btn secondary" onClick={cancel2FA}>Cancel</button>
-                            <button className="ch-twofa-btn primary" onClick={handleSend2FA} disabled={sending}><span>{sending ? 'Sending…' : 'Send Verification Code'}</span></button>
+                            <button className="ch-twofa-btn primary" onClick={handleSend2FA} disabled={sending}>
+                              <span>{sending ? 'Sending…' : 'Send Verification Code'}</span>
+                            </button>
                           </div>
                         </>
                       ) : (
                         <>
                           <h4>🔐 Enter Verification Code</h4>
-                          <p>Enter the 6-digit code sent to your {twoFAMethod === 'sms' ? 'mobile number' : 'backup email'}</p>
-                          <input type="text" className="ch-twofa-input code" placeholder="— — — — — —" maxLength={6} value={verifyCode} onChange={e => setVerifyCode(e.target.value)} />
-                          {twoFAError && <div className="ch-twofa-error">{twoFAError}</div>}
+                          <p>
+                            Enter the 6-digit code sent to your{' '}
+                            {twoFAMethod === 'sms' ? `mobile number (${twoFAPhone})` : `backup email (${twoFAEmail})`}.
+                          </p>
+                          <input
+                            type="text"
+                            className="ch-twofa-input code"
+                            placeholder="——————"
+                            maxLength={6}
+                            value={verifyCode}
+                            onChange={e => { setVerifyCode(e.target.value.replace(/\D/g, '')); setTwoFAError(''); }}
+                          />
+
+                          {twoFAError && <div className="ch-twofa-error">⚠ {twoFAError}</div>}
+
                           <div className="ch-twofa-actions">
-                            <button className="ch-twofa-btn secondary" onClick={() => setTwoFAStep(1)}>Back</button>
-                            <button className="ch-twofa-btn primary" onClick={handleVerify2FA} disabled={sending}><span>{sending ? 'Verifying…' : 'Verify & Enable 2FA'}</span></button>
+                            <button className="ch-twofa-btn secondary" onClick={() => { setTwoFAStep(1); setTwoFAError(''); }}>Back</button>
+                            <button className="ch-twofa-btn primary" onClick={handleVerify2FA} disabled={sending}>
+                              <span>{sending ? 'Verifying…' : 'Verify & Activate 2FA'}</span>
+                            </button>
                           </div>
                         </>
                       )}
                     </div>
                   )}
 
+                  {/* Login Alerts */}
                   <div className="ch-setting-item">
                     <div className="ch-setting-info">
                       <h4>Login Alerts</h4>
@@ -704,7 +868,7 @@ const UserSettings = () => {
                 </div>
               )}
 
-              {/* Privacy */}
+              {/* ── Privacy ── */}
               {activeSection === "privacy" && (
                 <div className="ch-settings-panel">
                   <div className="ch-panel-head">

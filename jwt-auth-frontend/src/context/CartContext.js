@@ -28,12 +28,12 @@ export const CartProvider = ({ children }) => {
         // Increment quantity
         return prevCart.map(item => 
           item && item.id === product.id 
-            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            ? { ...item, quantity: (item.quantity || 1) + 1, addedAt: Date.now() }
             : item
         );
       }
-      // Add new item with quantity 1
-      return [...prevCart, { ...product, quantity: 1 }];
+      // Add new item with quantity 1 and timestamp
+      return [...prevCart, { ...product, quantity: 1, addedAt: Date.now() }];
     });
   };
 

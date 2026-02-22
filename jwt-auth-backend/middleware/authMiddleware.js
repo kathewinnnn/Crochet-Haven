@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = "mySecretKey";
+const SECRET_KEY = process.env.JWT_SECRET || "mySecretKey";
 function verifyToken(req, res, next) {
 const authHeader = req.headers["authorization"];
 const token = authHeader && authHeader.split(" ")[1]; // Bearer token

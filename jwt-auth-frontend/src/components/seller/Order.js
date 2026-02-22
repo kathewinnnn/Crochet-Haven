@@ -753,6 +753,9 @@ const Order = () => {
   }
 
   const filteredOrders = statusFilter === "All" ? orders : orders.filter((o) => o.status === statusFilter);
+  
+  // Sort orders by createdAt (latest first)
+  const sortedOrders = [...filteredOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
     <>
@@ -816,7 +819,7 @@ const Order = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.length === 0 ? (
+              {sortedOrders.length === 0 ? (
                 <tr>
                   <td colSpan="9">
                     <div className="ch-orders-empty">
@@ -826,7 +829,7 @@ const Order = () => {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.flatMap((order) => {
+                sortedOrders.flatMap((order) => {
                   const items = order.items || [];
                   return items.map((item, itemIndex) => {
                     const isFirst = itemIndex === 0;
@@ -900,13 +903,13 @@ const Order = () => {
 
         {/* Mobile Cards */}
         <div className="ch-order-cards">
-          {filteredOrders.length === 0 ? (
+          {sortedOrders.length === 0 ? (
             <div className="ch-orders-empty">
               <span className="ch-orders-empty-emoji">📦</span>
               No orders found.
             </div>
           ) : (
-            filteredOrders.map((order) => (
+            sortedOrders.map((order) => (
               <div key={order.id} className="ch-order-card">
                 <div className="ch-order-card-head">
                   <span className="ch-order-card-id">Order #{order.id.slice(-6)}</span>

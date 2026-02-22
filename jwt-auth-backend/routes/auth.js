@@ -1,201 +1,140 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const router = express.Router();
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const fs = require("fs");
+const path = require("path");
 
-let users = [
-  { id: 1, username: "admin", password: "admin123", role: "admin", name: "Katherine Guzman", email: "kathewinnnn@gmail.com", phone: "+63 962 955 6678", bio: "Yarn yarn?", storeName: "Yarniverse", location: "Pilar, Abra", avatar: "https://via.placeholder.com/150" },
-  { id: 2, username: "user", password: "user123", role: "user", name: "Regular User", email: "user@test.com", phone: "", bio: "", storeName: "", location: "", avatar: "https://via.placeholder.com/150" },
-  { id: 3, username: "katherine", password: "katherine123", role: "seller", name: "Katherine Guzman", email: "katherine@gmail.com", phone: "+63 962 955 6678", bio: "Passionate seller of handmade crafts and unique items.", storeName: "Yarniverse", location: "Abra, Philippines", avatar: "https://via.placeholder.com/150" }
-];
+const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
+const dbPath = path.join(__dirname, "../db.json");
 
-let userIdCounter = 3;
-const SECRET_KEY = "mySecretKey";
-
-// REGISTER ROUTE
-router.post("/register", (req, res) => {
-  const { username, email, password } = req.body;
-  
-  // Check if user already exists
-  const existingUser = users.find(u => u.username === username || u.email === email);
-  if (existingUser) {
-    return res.status(400).json({ message: "Username or email already exists" });
+// ── Helpers ──────────────────────────────────────────────────────────
+const readDb = () => {
+  try {
+    const raw = fs.readFileSync(dbPath, "utf8");
+    console.log("📂 Raw db.json contents:", raw); // DEBUG
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.users)) {
+      console.log("⚠️  No users array found — initializing empty array");
+      parsed.users = [];
+      // Write it back immediately so the file is fixed
+      fs.writeFileSync(dbPath, JSON.stringify(parsed, null, 2));
+    }
+    return parsed;
+  } catch (err) {
+    console.error("❌ Error reading db.json:", err.message);
+    // If file is missing/corrupt, create it fresh
+    const fresh = { users: [], products: [], orders: [] };
+    fs.writeFileSync(dbPath, JSON.stringify(fresh, null, 2));
+    return fresh;
   }
-  
-  // Create new user
-  const newUser = {
-    id: userIdCounter++,
-    username,
-    email,
-    password,
-    role: "user"
-  };
-  
-  users.push(newUser);
-  res.status(201).json({ message: "User registered successfully" });
+};
+
+const writeDb = (data) => {
+  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+};
+
+// ── POST /api/auth/register ──────────────────────────────────────────
+router.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    console.log("📝 Register attempt:", { username, email }); // DEBUG
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const db = readDb();
+    console.log("👥 Current users in db:", db.users.map(u => ({ username: u.username, email: u.email }))); // DEBUG
+
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check username
+    const usernameTaken = db.users.some(
+      (u) => u.username.trim().toLowerCase() === normalizedUsername
+    );
+    console.log(`🔍 Username "${normalizedUsername}" taken?`, usernameTaken); // DEBUG
+
+    if (usernameTaken) {
+      return res.status(400).json({ message: "Username is already taken" });
+    }
+
+    // Check email
+    const emailTaken = db.users.some(
+      (u) => u.email.trim().toLowerCase() === normalizedEmail
+    );
+    console.log(`🔍 Email "${normalizedEmail}" taken?`, emailTaken); // DEBUG
+
+    if (emailTaken) {
+      return res.status(400).json({ message: "Email is already registered" });
+    }
+
+    // Create user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = {
+      id: Date.now().toString(),
+      username: username.trim(),
+      email: email.trim(),
+      password: hashedPassword,
+      role: "user",
+      createdAt: new Date().toISOString(),
+    };
+
+    db.users.push(newUser);
+    writeDb(db);
+
+    console.log(`✅ New user created: ${newUser.username} (${newUser.email})`);
+    return res.status(201).json({ message: "Registration successful" });
+
+  } catch (err) {
+    console.error("❌ Register error:", err);
+    return res.status(500).json({ message: "Server error during registration" });
+  }
 });
 
-// LOGIN ROUTE
-router.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find(
-    u => u.username === username && u.password === password
-  );
-  
-  if (!user) {
-    return res.status(401).json({ message: "User not Registered" });
-  }
-  
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    SECRET_KEY,
-    { expiresIn: "1h" }
-  );
-  res.json({ token });
-});
+// ── POST /api/auth/login ─────────────────────────────────────────────
+router.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
-// USER DASHBOARD ROUTE
-router.get("/dashboard", verifyToken, (req, res) => {
-  res.json({ message: `Welcome, ${req.user.username}!` });
-});
-// ADMIN PANEL ROUTE
-router.get("/admin", verifyToken, isAdmin, (req, res) => {
-  res.json({ message: `Hello Admin ${req.user.username}` });
-});
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
 
-// GET USER PROFILE ROUTE
-router.get("/profile", verifyToken, (req, res) => {
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  const { password, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
-});
+    const db = readDb();
 
-// UPDATE USER PROFILE ROUTE
-router.put("/profile", verifyToken, (req, res) => {
-  const userIndex = users.findIndex(u => u.id === req.user.id);
-  if (userIndex === -1) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  
-  const { name, email, phone, bio, storeName, location, avatar } = req.body;
-  
-  users[userIndex] = {
-    ...users[userIndex],
-    name,
-    email,
-    phone,
-    bio,
-    storeName,
-    location,
-    avatar
-  };
-  
-  const { password, ...userWithoutPassword } = users[userIndex];
-  res.json(userWithoutPassword);
-});
+    const user = db.users.find(
+      (u) => u.username.trim().toLowerCase() === username.trim().toLowerCase()
+    );
 
-// CHANGE PASSWORD ROUTE
-router.put("/change-password", verifyToken, (req, res) => {
-  const userIndex = users.findIndex(u => u.id === req.user.id);
-  if (userIndex === -1) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  
-  const { currentPassword, newPassword } = req.body;
-  
-  // Verify current password
-  if (users[userIndex].password !== currentPassword) {
-    return res.status(400).json({ message: "Current password is incorrect" });
-  }
-  
-  // Update password
-  users[userIndex].password = newPassword;
-  
-  res.json({ message: "Password changed successfully" });
-});
+    if (!user) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
 
-// SETUP 2FA ROUTE
-router.post("/setup-2fa", verifyToken, (req, res) => {
-  const userIndex = users.findIndex(u => u.id === req.user.id);
-  if (userIndex === -1) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  
-  const { method, phone, backupEmail } = req.body;
-  
-  // Generate a 6-digit verification code
-  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  // Store 2FA settings
-  users[userIndex].twoFactorAuth = {
-    enabled: true,
-    method: method, // 'sms' or 'email'
-    phone: method === 'sms' ? phone : users[userIndex].phone,
-    backupEmail: method === 'email' ? backupEmail : users[userIndex].backupEmail,
-    verificationCode: verificationCode,
-    verified: false
-  };
-  
-  // In production, send the verification code via SMS or email
-  console.log(`2FA Verification Code for ${users[userIndex].username}: ${verificationCode}`);
-  
-  res.json({ 
-    message: "Verification code sent",
-    method: method,
-    destination: method === 'sms' ? phone : backupEmail
-  });
-});
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
 
-// VERIFY 2FA ROUTE
-router.post("/verify-2fa", verifyToken, (req, res) => {
-  const userIndex = users.findIndex(u => u.id === req.user.id);
-  if (userIndex === -1) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  
-  const { verificationCode } = req.body;
-  
-  if (!users[userIndex].twoFactorAuth) {
-    return res.status(400).json({ message: "2FA not setup" });
-  }
-  
-  if (users[userIndex].twoFactorAuth.verificationCode !== verificationCode) {
-    return res.status(400).json({ message: "Invalid verification code" });
-  }
-  
-  // Mark as verified
-  users[userIndex].twoFactorAuth.verified = true;
-  
-  res.json({ message: "2FA enabled successfully" });
-});
+    const token = jwt.sign(
+      {
+        id:       user.id,
+        username: user.username,
+        email:    user.email,
+        role:     user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-// GET 2FA STATUS ROUTE
-router.get("/2fa-status", verifyToken, (req, res) => {
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  
-  res.json({
-    enabled: user.twoFactorAuth?.enabled || false,
-    verified: user.twoFactorAuth?.verified || false,
-    method: user.twoFactorAuth?.method || null
-  });
-});
+    console.log(`✅ User logged in: ${user.username} (role: ${user.role})`);
+    return res.json({ token });
 
-// DISABLE 2FA ROUTE
-router.post("/disable-2fa", verifyToken, (req, res) => {
-  const userIndex = users.findIndex(u => u.id === req.user.id);
-  if (userIndex === -1) {
-    return res.status(404).json({ message: "User not found" });
+  } catch (err) {
+    console.error("❌ Login error:", err);
+    return res.status(500).json({ message: "Server error during login" });
   }
-  
-  delete users[userIndex].twoFactorAuth;
-  
-  res.json({ message: "2FA disabled successfully" });
 });
 
 module.exports = router;

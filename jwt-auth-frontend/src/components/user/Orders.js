@@ -553,25 +553,28 @@ const Orders = () => {
       if (!res.ok) throw new Error("Failed to fetch orders");
       const data = await res.json();
 
-      const mapped = data.map(order => {
-        const trackStatus = order.tracking?.status || null;
-        const uiStatus = trackStatus === 'out_for_delivery' ? 'out_for_delivery' : mapStatus(order.status);
-        let eta = order.estimatedDelivery || null;
-        if (!eta && uiStatus === 'to_receive') { const d = new Date(order.createdAt); d.setDate(d.getDate() + 5); eta = d.toISOString(); }
-        if (!eta && uiStatus === 'out_for_delivery') eta = new Date().toISOString();
+      const mapped = data
+        .map(order => {
+          const trackStatus = order.tracking?.status || null;
+          const uiStatus = trackStatus === 'out_for_delivery' ? 'out_for_delivery' : mapStatus(order.status);
+          let eta = order.estimatedDelivery || null;
+          if (!eta && uiStatus === 'to_receive') { const d = new Date(order.createdAt); d.setDate(d.getDate() + 5); eta = d.toISOString(); }
+          if (!eta && uiStatus === 'out_for_delivery') eta = new Date().toISOString();
 
-        return {
-          id: `ORD-${new Date(order.createdAt).getFullYear()}-${order.id.slice(-3).padStart(3, '0')}`,
-          backendId: order.id,
-          date: order.createdAt.split('T')[0],
-          status: uiStatus,
-          tracking: order.tracking || null,
-          estimatedDelivery: eta,
-          paymentStatus: "paid",
-          total: order.total,
-          items: order.items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.selectedImage || null }))
-        };
-      });
+          return {
+            id: `ORD-${new Date(order.createdAt).getFullYear()}-${order.id.slice(-3).padStart(3, '0')}`,
+            backendId: order.id,
+            date: order.createdAt.split('T')[0],
+            createdAt: order.createdAt, // Keep original for sorting
+            status: uiStatus,
+            tracking: order.tracking || null,
+            estimatedDelivery: eta,
+            paymentStatus: "paid",
+            total: order.total,
+            items: order.items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.selectedImage || null }))
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort latest first
       setOrders(mapped);
     } catch (err) {
       setError("Failed to load orders. Please try again.");
