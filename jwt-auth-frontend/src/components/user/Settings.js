@@ -532,14 +532,12 @@ const UserSettings = () => {
   const [toasts, setToasts] = useState([]);
   const [activeSection, setActiveSection] = useState("account");
 
-  // 2FA state
-  // show2FA = the setup panel is open (toggle is ON but setup not yet completed)
   const [show2FA, setShow2FA] = useState(false);
   const [twoFAMethod, setTwoFAMethod] = useState('sms');
   const [twoFAPhone, setTwoFAPhone] = useState('');
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
-  const [twoFAStep, setTwoFAStep] = useState(1); // 1 = send code, 2 = verify code
+  const [twoFAStep, setTwoFAStep] = useState(1); 
   const [twoFAError, setTwoFAError] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -550,18 +548,11 @@ const UserSettings = () => {
 
   const removeToast = useCallback((id) => setToasts(p => p.filter(t => t.id !== id)), []);
 
-  // Generic toggle for non-2FA settings
   const toggle = (key) => {
     setSettings(p => ({ ...p, [key]: !p[key] }));
     addToast("success", `${key.replace(/([A-Z])/g, ' $1').trim()} updated`);
   };
 
-  // ── 2FA toggle logic ──────────────────────────────────────────────────────
-  // Behavior:
-  //   OFF → ON : toggle turns ON immediately (track turns pink), setup panel opens
-  //   ON  → OFF: toggle turns OFF immediately, setup panel closes, state resets
-  //   If user cancels setup: toggle turns back OFF, panel closes
-  // ──────────────────────────────────────────────────────────────────────────
   const handle2FAToggle = () => {
     if (!settings.twoFactorAuth) {
       // OFF → ON: enable toggle right away, then show setup panel
@@ -743,7 +734,6 @@ const UserSettings = () => {
                     <div className="ch-panel-sub">Protect your account with additional security measures</div>
                   </div>
 
-                  {/* 2FA row */}
                   <div className="ch-setting-item">
                     <div className="ch-setting-info">
                       <h4>Two-Factor Authentication</h4>
