@@ -654,11 +654,11 @@ const Cart = () => {
                     <div className="ch-item-controls">
                       <span className="ch-item-price">₱{fmt(item.price * (item.quantity || 1))}</span>
                       <div className="ch-qty-strip">
-                        <button className="ch-qty-strip-btn" onClick={() => decrementQuantity(item.id)} disabled={item.quantity <= 1}>−</button>
+                        <button className="ch-qty-strip-btn" onClick={() => decrementQuantity(item.id, item.selectedImage)} disabled={item.quantity <= 1}>−</button>
                         <span className="ch-qty-strip-val">{item.quantity || 1}</span>
-                        <button className="ch-qty-strip-btn" onClick={() => incrementQuantity(item.id)}>+</button>
+                        <button className="ch-qty-strip-btn" onClick={() => incrementQuantity(item.id, item.selectedImage)}>+</button>
                       </div>
-                      <button className="ch-remove-btn" onClick={() => removeFromCart(item.id)}>Remove</button>
+                      <button className="ch-remove-btn" onClick={() => removeFromCart(item.id, item.selectedImage)}>Remove</button>
                     </div>
                   </div>
                 ))}

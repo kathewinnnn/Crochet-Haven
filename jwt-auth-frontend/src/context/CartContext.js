@@ -22,12 +22,14 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product) => {
     setCart(prevCart => {
-      // Check if product already exists in cart
-      const existingItem = prevCart.find(item => item && item.id === product.id);
+      // Check if product already exists in cart (by both id AND selectedImage)
+      const existingItem = prevCart.find(item => 
+        item && item.id === product.id && item.selectedImage === product.selectedImage
+      );
       if (existingItem) {
         // Increment quantity
         return prevCart.map(item => 
-          item && item.id === product.id 
+          item && item.id === product.id && item.selectedImage === product.selectedImage
             ? { ...item, quantity: (item.quantity || 1) + 1, addedAt: Date.now() }
             : item
         );
@@ -37,22 +39,22 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const incrementQuantity = (productId) => {
+  const incrementQuantity = (productId, selectedImage) => {
     setCart(prevCart => {
       return prevCart.map(item =>
-        item && item.id === productId
+        item && item.id === productId && item.selectedImage === selectedImage
           ? { ...item, quantity: item.quantity + 1 }
           : item
       );
     });
   };
 
-  const decrementQuantity = (productId) => {
+  const decrementQuantity = (productId, selectedImage) => {
     setCart(prevCart => {
-      const item = prevCart.find(item => item && item.id === productId);
+      const item = prevCart.find(item => item && item.id === productId && item.selectedImage === selectedImage);
       if (item && item.quantity > 1) {
         return prevCart.map(item =>
-          item && item.id === productId
+          item && item.id === productId && item.selectedImage === selectedImage
             ? { ...item, quantity: item.quantity - 1 }
             : item
         );
@@ -61,9 +63,9 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = (productId, selectedImage) => {
     setCart(prevCart => {
-      return prevCart.filter(item => item && item.id !== productId);
+      return prevCart.filter(item => item && !(item.id === productId && item.selectedImage === selectedImage));
     });
   };
 
