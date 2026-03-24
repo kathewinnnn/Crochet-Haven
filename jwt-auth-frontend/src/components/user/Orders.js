@@ -523,7 +523,7 @@ const Orders = () => {
             status: uiStatus,
             tracking: order.tracking || null,
             estimatedDelivery: eta,
-            paymentStatus: "paid",
+            paymentMethod: order.paymentMethod,
             total: order.total,
             items: order.items.map(i => ({
               id: i.id,
@@ -669,7 +669,7 @@ const Orders = () => {
                   </div>
                   <div className="ch-order-status-group">
                     <span className="ch-status-pill" style={{ backgroundColor: statusColor(order.status) }}>{statusLabel(order.status)}</span>
-                    {order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') && (
+                    {(order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') && (
                       <span className="ch-pay-badge paid">Paid</span>
                     )}
                     {(order.status === 'to_receive' || order.status === 'out_for_delivery') && order.estimatedDelivery && (

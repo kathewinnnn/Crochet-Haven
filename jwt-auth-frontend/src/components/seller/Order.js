@@ -888,8 +888,8 @@ const Order = () => {
                         </td>
                         <td>
                           {isFirst && (
-                            <span className={`ch-payment-badge ${order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'ch-payment-paid' : 'ch-payment-unpaid'}`}>
-                              {order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'Paid' : order.paymentMethod || 'COD'}
+                            <span className={`ch-payment-badge ${order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card' ? 'ch-payment-paid' : 'ch-payment-unpaid'}`}>
+                              {order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card' ? 'Paid' : order.paymentMethod || 'COD'}
                             </span>
                           )}
                         </td>
@@ -939,8 +939,8 @@ const Order = () => {
                 </div>
                 <div className="ch-order-card-head" style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)'}}>
                   <span className="ch-order-card-id" style={{fontSize: '0.7rem'}}>Payment</span>
-                  <span className={`ch-payment-badge ${order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'ch-payment-paid' : 'ch-payment-unpaid'}`}>
-                    {order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'Paid' : order.paymentMethod || 'COD'}
+                  <span className={`ch-payment-badge ${order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card' ? 'ch-payment-paid' : 'ch-payment-unpaid'}`}>
+                    {order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card' ? 'Paid' : order.paymentMethod || 'COD'}
                   </span>
                 </div>
                 <div className="ch-order-card-body">
