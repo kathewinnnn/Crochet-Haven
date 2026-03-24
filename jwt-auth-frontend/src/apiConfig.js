@@ -11,7 +11,7 @@ const getApiUrl = () => {
   if (isProduction) {
     // TODO: Replace with your deployed backend URL when hosting
     // Example: "https://your-backend.onrender.com"
-    return "http://localhost:5000"; // Change this to your production URL
+    return "https://jwt-auth-backend-7fmj.onrender.com"; // Change this to your production URL
   }
   
   return "http://localhost:5000";
