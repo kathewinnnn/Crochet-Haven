@@ -16,9 +16,42 @@ export const CartProvider = ({ children }) => {
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
+  // Track selected items for checkout
+  const [selectedItems, setSelectedItems] = useState(() => {
+    const savedSelected = localStorage.getItem('selectedItems');
+    return savedSelected ? JSON.parse(savedSelected) : [];
+  });
+
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
+  }, [selectedItems]);
+
+  const toggleSelected = (productId, selectedImage) => {
+    setSelectedItems(prev => {
+      const key = `${productId}-${selectedImage}`;
+      if (prev.includes(key)) {
+        return prev.filter(k => k !== key);
+      }
+      return [...prev, key];
+    });
+  };
+
+  const selectAll = () => {
+    const allKeys = cart.map(item => `${item.id}-${item.selectedImage}`);
+    setSelectedItems(allKeys);
+  };
+
+  const deselectAll = () => {
+    setSelectedItems([]);
+  };
+
+  const getSelectedItems = () => {
+    return cart.filter(item => selectedItems.includes(`${item.id}-${item.selectedImage}`));
+  };
 
   const addToCart = (product) => {
     setCart(prevCart => {
@@ -71,6 +104,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCart([]);
+    setSelectedItems([]);
   };
 
   // Total items (sum of quantities)
@@ -87,7 +121,12 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     clearCart,
     incrementQuantity,
-    decrementQuantity
+    decrementQuantity,
+    selectedItems,
+    toggleSelected,
+    selectAll,
+    deselectAll,
+    getSelectedItems
   };
 
   return (

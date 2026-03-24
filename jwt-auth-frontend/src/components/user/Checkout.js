@@ -595,7 +595,7 @@ const checkoutStyles = `
 `;
 
 const Checkout = () => {
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, selectedItems, getSelectedItems } = useCart();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '', email: '', phone: '', address: '', city: '', zipCode: '',
@@ -605,7 +605,8 @@ const Checkout = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const safeCart = Array.isArray(cart) ? cart : [];
+  // Use selected items from cart instead of all cart items
+  const safeCart = selectedItems.length > 0 ? getSelectedItems() : (Array.isArray(cart) ? cart : []);
 
   const total = safeCart.reduce((sum, item) => {
     const price = item?.price ? parseFloat(item.price) : 0;

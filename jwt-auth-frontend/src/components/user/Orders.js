@@ -669,9 +669,6 @@ const Orders = () => {
                   </div>
                   <div className="ch-order-status-group">
                     <span className="ch-status-pill" style={{ backgroundColor: statusColor(order.status) }}>{statusLabel(order.status)}</span>
-                    {(order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') && (
-                      <span className="ch-pay-badge paid">Paid</span>
-                    )}
                     {(order.status === 'to_receive' || order.status === 'out_for_delivery') && order.estimatedDelivery && (
                       <span className="ch-order-eta">
                         {order.status === 'out_for_delivery' ? `Out for delivery — ${fmtDate(order.estimatedDelivery)}` : `Est. delivery: ${fmtDate(order.estimatedDelivery)}`}
@@ -700,8 +697,8 @@ const Orders = () => {
                   <div className="ch-order-total-row">
                     <span className="ch-order-total-lbl">Total:</span>
                     <span className="ch-order-total-amt">{fmt(order.total)}</span>
-                    <span className={`ch-pay-badge ${order.paymentStatus}`}>
-                      {order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "refunded" ? "Refunded" : "Pending"}
+                    <span className={`ch-pay-badge ${order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card' ? 'paid' : 'pending'}`}>
+                      {order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card' ? 'Paid' : 'COD'}
                     </span>
                   </div>
                   <div className="ch-order-actions">

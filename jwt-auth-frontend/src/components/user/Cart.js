@@ -282,6 +282,20 @@ const styles = `
     border-radius: 20px;
   }
 
+  .ch-select-all-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .ch-select-all-wrap input {
+    accent-color: var(--rose);
+    cursor: pointer;
+  }
+
   /* ─── CART ITEM ─── */
   .ch-cart-item {
     display: flex;
@@ -294,6 +308,19 @@ const styles = `
 
   .ch-cart-item:last-child { border-bottom: none; }
   .ch-cart-item:hover { background: #fef9f5; }
+
+  .ch-item-checkbox {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: var(--rose);
+    flex-shrink: 0;
+  }
+
+  .ch-item-checkbox:checked {
+    background-color: var(--rose);
+    border-color: var(--rose);
+  }
 
   .ch-item-img {
     width: 90px;
@@ -573,7 +600,7 @@ const styles = `
 `;
 
 const Cart = () => {
-  const { cart, removeFromCart, incrementQuantity, decrementQuantity } = useCart();
+  const { cart, removeFromCart, incrementQuantity, decrementQuantity, selectedItems, toggleSelected, selectAll, deselectAll, getSelectedItems } = useCart();
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
@@ -581,16 +608,22 @@ const Cart = () => {
   // Sort cart items by addedAt (latest first)
   const sortedCart = [...safeCart].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
   const uniqueCount = sortedCart.length;
-  const total = sortedCart.reduce((sum, item) => {
+
+  // Calculate total based on selected items
+  const selectedCart = getSelectedItems();
+  const selectedCount = selectedCart.length;
+  const total = selectedCart.reduce((sum, item) => {
     const price = parseFloat(item?.price) || 0;
     const qty = item?.quantity || 1;
     return sum + price * qty;
   }, 0);
 
+  const allSelected = selectedItems.length === uniqueCount && uniqueCount > 0;
+
   const fmt = (p) => (isNaN(parseFloat(p)) ? '0.00' : parseFloat(p).toFixed(2));
 
   const handleCheckout = () => {
-    if (sortedCart.length === 0) { setError('Your cart is empty. Please add items before checkout.'); return; }
+    if (selectedCount === 0) { setError('Please select at least one item to checkout.'); return; }
     setError('');
     navigate('/user/checkout');
   };
@@ -638,11 +671,27 @@ const Cart = () => {
               {/* Items */}
               <div className="ch-items-panel">
                 <div className="ch-items-panel-head">
-                  <h2>Cart Items</h2>
-                  <span className="ch-item-count-badge">{uniqueCount} {uniqueCount === 1 ? 'product' : 'products'}</span>
+                  <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                    <h2>Cart Items</h2>
+                    <span className="ch-item-count-badge">{uniqueCount} {uniqueCount === 1 ? 'product' : 'products'}</span>
+                  </div>
+                  <label className="ch-select-all-wrap">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => allSelected ? deselectAll() : selectAll()}
+                    />
+                    {allSelected ? 'Deselect All' : 'Select All'}
+                  </label>
                 </div>
                 {sortedCart.map(item => (
                   <div key={item.id} className="ch-cart-item">
+                    <input
+                      type="checkbox"
+                      className="ch-item-checkbox"
+                      checked={selectedItems.includes(`${item.id}-${item.selectedImage}`)}
+                      onChange={() => toggleSelected(item.id, item.selectedImage)}
+                    />
                     <div className="ch-item-img">
                       {item.selectedImage ? <img src={item.selectedImage} alt={item.name} /> : <span>🎁</span>}
                     </div>
@@ -668,7 +717,7 @@ const Cart = () => {
               <div className="ch-summary-panel">
                 <div className="ch-summary-title">Order Summary</div>
                 <div className="ch-summary-row">
-                  <span>Subtotal ({uniqueCount} {uniqueCount === 1 ? 'item' : 'items'})</span>
+                  <span>Subtotal ({selectedCount} {selectedCount === 1 ? 'item' : 'items'})</span>
                   <span>₱{fmt(total)}</span>
                 </div>
                 <div className="ch-summary-row">
