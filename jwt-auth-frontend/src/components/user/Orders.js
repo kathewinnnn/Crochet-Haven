@@ -240,11 +240,40 @@ const styles = `
     .ch-order-item { flex-wrap: wrap; }
     .ch-item-img { width: 56px; height: 56px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-page { margin-left: 220px; }
+    .ch-header-inner { padding: 24px 30px; }
+    .ch-page-banner { padding: 36px 30px; }
+    .ch-banner-title { font-size: 2rem; }
+    .ch-orders-body { padding: 36px 30px 60px; }
+    .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+    .ch-buyagain-modal, .ch-chat-modal { max-width: 100%; }
+  }
+ 
+  @media (max-width: 768px) {
+    .ch-page { margin-left: 0; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-logo-yarn { font-size: 1.8rem; }
+    .ch-logo-text { font-size: 1.3rem; }
+    .ch-tagline { display: none; }
+    .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; }
+    .ch-page-banner { padding: 28px 16px; }
+    .ch-banner-title { font-size: 1.7rem; }
+    .ch-orders-body { padding: 24px 16px 48px; }
+    .ch-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    .ch-tab { flex-shrink: 0; padding: 8px 14px; font-size: 0.78rem; }
+    .ch-order-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .ch-order-foot { flex-direction: column; gap: 14px; align-items: flex-start; }
+    .ch-order-actions { flex-wrap: wrap; }
+    .ch-order-item { flex-wrap: wrap; }
+    .ch-item-img { width: 56px; height: 56px; }
+    .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+    .ch-buyagain-modal, .ch-chat-modal { max-width: 100%; }
+    .ch-buyagain-footer { flex-wrap: wrap; }
+  }
 `;
 
-// ─── Buy Again Modal ───────────────────────────────────────────────────────────
-// ✅ Receives the full products map from the parent (fetched once on mount)
-// so description + category are always available when adding to cart.
 const BuyAgainModal = ({ order, onClose, onAddedToCart, navigate, addToCart, productsMap }) => {
   const [addedKeys, setAddedKeys] = useState(new Set());
   const [allAdded, setAllAdded] = useState(false);

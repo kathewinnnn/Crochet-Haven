@@ -1140,6 +1140,46 @@ const styles = `
     .ch-footer { padding: 22px 16px; }
     .ch-del-step3 { padding: 44px 24px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-page { margin-left: 220px; }
+    .ch-header-inner { padding: 24px 30px; }
+    .ch-page-banner { padding: 36px 30px; }
+    .ch-banner-title { font-size: 2rem; }
+    .ch-profile-body { padding: 36px 30px 60px; }
+    .ch-profile-layout { grid-template-columns: 1fr; }
+    .ch-profile-aside { position: static; }
+    .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+  }
+ 
+  @media (max-width: 768px) {
+    .ch-page { margin-left: 0; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-logo-yarn { font-size: 1.8rem; }
+    .ch-logo-text { font-size: 1.3rem; }
+    .ch-tagline { display: none; }
+    .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; }
+    .ch-page-banner { padding: 28px 16px; }
+    .ch-banner-title { font-size: 1.7rem; }
+    .ch-profile-body { padding: 20px 16px 48px; }
+    .ch-profile-layout { grid-template-columns: 1fr; }
+    .ch-profile-aside { position: static; flex-direction: column; padding-left: 0; }
+    .ch-info-grid { grid-template-columns: 1fr; }
+    .ch-info-item { border-right: none; }
+    .ch-form-row { grid-template-columns: 1fr; }
+    .ch-section-head { flex-direction: column; gap: 12px; }
+    .ch-danger { flex-direction: column; text-align: center; }
+    .ch-del-step1 { padding: 28px 20px; }
+    .ch-del-step2-header { padding: 18px 20px; }
+    .ch-del-step2-body { padding: 18px 20px; }
+    .ch-del-step2-actions { flex-direction: column; }
+    .ch-del-step1-actions { flex-direction: column; }
+    .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+  }
+ 
+  @media (max-width: 400px) {
+    .ch-profile-body { padding: 16px 12px 40px; }
+  }
 `;
 
 /* ─── Toast ─── */

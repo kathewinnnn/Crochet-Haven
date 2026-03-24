@@ -497,6 +497,40 @@ const styles = `
     .ch-banner-title { font-size: 1.7rem; }
     .ch-footer { padding: 22px 16px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-page { margin-left: 220px; }
+    .ch-header-inner { padding: 24px 30px; }
+    .ch-page-banner { padding: 36px 30px; }
+    .ch-banner-title { font-size: 2rem; }
+    .ch-settings-body { padding: 36px 30px 60px; }
+    .ch-settings-layout { grid-template-columns: 1fr; }
+    .ch-settings-nav { position: static; display: flex; overflow-x: auto; }
+    .ch-snav-item { flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); }
+    .ch-snav-item:last-child { border-right: none; }
+    .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+  }
+ 
+  @media (max-width: 768px) {
+    .ch-page { margin-left: 0; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-logo-yarn { font-size: 1.8rem; }
+    .ch-logo-text { font-size: 1.3rem; }
+    .ch-tagline { display: none; }
+    .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; }
+    .ch-page-banner { padding: 28px 16px; }
+    .ch-banner-title { font-size: 1.7rem; }
+    .ch-settings-body { padding: 20px 16px 48px; }
+    .ch-settings-layout { grid-template-columns: 1fr; }
+    .ch-settings-nav { position: static; display: flex; overflow-x: auto; padding-bottom: 4px; }
+    .ch-snav-item { flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); padding: 10px 14px; font-size: 0.82rem; }
+    .ch-snav-item:last-child { border-right: none; }
+    .ch-snav-item.active::before { top: 0; bottom: auto; left: 20%; right: 20%; width: auto; height: 3px; border-radius: 0 0 2px 2px; }
+    .ch-setting-item { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .ch-2fa-status { align-self: flex-end; }
+    .ch-twofa-methods { flex-direction: column; }
+    .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+  }
 `;
 
 /* ─── Toast Component ─── */

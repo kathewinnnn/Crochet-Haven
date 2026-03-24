@@ -951,6 +951,46 @@ const sharedStyles = `
     .ch-select-body { padding: 28px 24px; }
     .ch-banner-title { font-size: 1.8rem; }
   }
+
+   @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-page { margin-left: 220px; }
+    .ch-header-inner, .ch-page-banner, .ch-products-body { padding-left: 30px; padding-right: 30px; }
+    .ch-banner-title { font-size: 2rem; }
+    .ch-intro-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .ch-intro-stats { border-left: none; border-top: 1px solid var(--border); padding-top: 16px; width: 100%; justify-content: space-around; }
+    .ch-intro-stat { border-right: none; padding: 0 16px; }
+    .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+  }
+ 
+  @media (max-width: 768px) {
+    .ch-page { margin-left: 0; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-logo-yarn { font-size: 1.8rem; }
+    .ch-logo-text { font-size: 1.3rem; }
+    .ch-tagline { display: none; }
+    .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; }
+    .ch-page-banner { padding: 28px 16px; }
+    .ch-banner-title { font-size: 1.7rem; }
+    .ch-products-body { padding: 28px 16px 48px; }
+    .ch-intro-bar { padding: 16px; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .ch-intro-stats { border-left: none; border-top: 1px solid var(--border); padding-top: 12px; width: 100%; display: flex; justify-content: space-around; }
+    .ch-intro-stat { border-right: none; padding: 0 12px; }
+    .ch-intro-stat-num { font-size: 1.4rem; }
+    .ch-section-label { margin-top: 32px; }
+    .ch-section-title { font-size: 1.3rem; }
+    .ch-product-card { flex: 0 0 200px; }
+    .ch-qv-details { padding: 20px; }
+    .ch-qv-actions { flex-direction: column; }
+    .ch-qv-name { font-size: 1.3rem; }
+    .ch-select-body { padding: 20px; }
+    .ch-banner-title { font-size: 1.7rem; }
+    .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+  }
+ 
+  @media (max-width: 480px) {
+    .ch-product-card { flex: 0 0 175px; }
+    .ch-image-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 `;
 
 const Products = () => {

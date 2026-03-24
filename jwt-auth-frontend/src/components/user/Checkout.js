@@ -592,6 +592,29 @@ const checkoutStyles = `
     .ch-co-form-row { grid-template-columns: 1fr; }
     .ch-co-header-eyebrow { display: none; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-co-page { margin-left: 220px; }
+    .ch-co-header-inner { padding: 28px 30px; }
+    .ch-co-main { padding: 40px 30px 60px; }
+    .ch-co-grid { grid-template-columns: 1fr; }
+    .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 30px; }
+  }
+ 
+  @media (max-width: 768px) {
+    .ch-co-page { margin-left: 0; }
+    .ch-co-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-co-logo-yarn { font-size: 1.8rem; }
+    .ch-co-logo-text { font-size: 1.3rem; }
+    .ch-co-tagline { display: none; }
+    .ch-co-header-eyebrow { display: none; }
+    .ch-co-main { padding: 24px 16px 48px; }
+    .ch-co-grid { grid-template-columns: 1fr; }
+    .ch-co-form-row { grid-template-columns: 1fr; }
+    .ch-co-card-body { padding: 18px; }
+    .ch-co-card-head { padding: 16px 18px; }
+    .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+  }
 `;
 
 const Checkout = () => {

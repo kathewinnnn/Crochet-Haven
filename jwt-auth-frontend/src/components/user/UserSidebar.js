@@ -31,7 +31,6 @@ const sidebarStyles = `
     font-family: 'Lato', sans-serif;
   }
 
-  /* Subtle grain texture */
   .ch-sidebar::before {
     content: '';
     position: absolute;
@@ -41,7 +40,6 @@ const sidebarStyles = `
     z-index: 0;
   }
 
-  /* Accent glow top-right */
   .ch-sidebar::after {
     content: '';
     position: absolute;
@@ -290,6 +288,66 @@ const sidebarStyles = `
     box-shadow: 0 4px 16px rgba(232,114,138,0.3);
   }
 
+  /* ─── HAMBURGER BUTTON (mobile only) ─── */
+  .ch-hamburger {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 200;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--sb-bg);
+    border: 1px solid var(--sb-border);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .ch-hamburger:hover { background: rgba(232,114,138,0.15); border-color: rgba(232,114,138,0.4); }
+
+  .ch-hamburger-bar {
+    width: 20px;
+    height: 2px;
+    background: rgba(255,255,255,0.82);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    transform-origin: center;
+  }
+
+  .ch-hamburger.open .ch-hamburger-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .ch-hamburger.open .ch-hamburger-bar:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  .ch-hamburger.open .ch-hamburger-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* ─── MOBILE OVERLAY ─── */
+  .ch-sb-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+    animation: ch-overlay-in 0.2s ease;
+  }
+
+  @keyframes ch-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   /* ─── MODAL ─── */
   .ch-sb-modal-backdrop {
     position: fixed;
@@ -394,7 +452,6 @@ const sidebarStyles = `
   .ch-sb-modal-confirm:hover::after { transform: translateX(0); }
   .ch-sb-modal-confirm span { position: relative; z-index: 1; }
 
-  /* Logout spinner */
   .ch-sb-spinner {
     width: 44px;
     height: 44px;
@@ -415,6 +472,36 @@ const sidebarStyles = `
   }
 
   .ch-sb-spinning-sub { font-size: 0.82rem; color: #8a7a74; font-weight: 300; }
+
+  /* ─── RESPONSIVE ─── */
+
+  /* Tablet (768px - 1024px): sidebar stays but slightly narrower, content adjusts */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    :root { --sb-width: 220px; }
+  }
+
+  /* Mobile (≤768px): hamburger shows, sidebar becomes a drawer */
+  @media (max-width: 768px) {
+    .ch-hamburger {
+      display: flex;
+    }
+
+    .ch-sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 280px;
+      z-index: 150;
+    }
+
+    .ch-sidebar.mobile-open {
+      transform: translateX(0);
+      box-shadow: 8px 0 40px rgba(0,0,0,0.4);
+    }
+
+    .ch-sb-overlay {
+      display: block;
+    }
+  }
 `;
 
 const UserSidebar = () => {
@@ -423,6 +510,7 @@ const UserSidebar = () => {
   const [showAccount, setShowAccount] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const cancelButtonRef = useRef(null);
   const { totalItems } = useCart();
 
@@ -441,13 +529,36 @@ const UserSidebar = () => {
     }, 1500);
   };
 
+  const handleNavClick = (path) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === "Escape" && showLogoutModal && !isLoggingOut) setShowLogoutModal(false);
+      if (e.key === "Escape") {
+        if (showLogoutModal && !isLoggingOut) setShowLogoutModal(false);
+        if (mobileOpen) setMobileOpen(false);
+      }
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [showLogoutModal, isLoggingOut]);
+  }, [showLogoutModal, isLoggingOut, mobileOpen]);
 
   useEffect(() => {
     if (showLogoutModal && !isLoggingOut && cancelButtonRef.current) cancelButtonRef.current.focus();
@@ -469,11 +580,28 @@ const UserSidebar = () => {
   return (
     <>
       <style>{sidebarStyles}</style>
-      <aside className="ch-sidebar">
+
+      {/* Hamburger button (mobile only) */}
+      <button
+        className={`ch-hamburger${mobileOpen ? ' open' : ''}`}
+        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+      >
+        <span className="ch-hamburger-bar" />
+        <span className="ch-hamburger-bar" />
+        <span className="ch-hamburger-bar" />
+      </button>
+
+      {/* Overlay (mobile) */}
+      {mobileOpen && (
+        <div className="ch-sb-overlay" onClick={() => setMobileOpen(false)} />
+      )}
+
+      <aside className={`ch-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="ch-sb-inner">
 
           {/* Logo */}
-          <div className="ch-sb-logo" onClick={() => navigate("/user")}>
+          <div className="ch-sb-logo" onClick={() => handleNavClick("/user")}>
             <img
               src="/img/ch.png"
               alt="Crochet Haven"
@@ -495,7 +623,7 @@ const UserSidebar = () => {
               <div
                 key={item.path}
                 className={`ch-sb-item${isActive(item.path) ? ' active' : ''}`}
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavClick(item.path)}
               >
                 <span className="ch-sb-icon">{item.icon}</span>
                 <span className="ch-sb-label">{item.label}</span>
@@ -520,7 +648,7 @@ const UserSidebar = () => {
                 <div
                   key={item.path}
                   className={`ch-sb-sub-item${isActive(item.path) ? ' active' : ''}`}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => handleNavClick(item.path)}
                 >
                   <div className="ch-sb-sub-dot" />
                   {item.label}
