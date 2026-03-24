@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-
+import API_BASE_URL from '../../apiConfig';
 const orderStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Lato:wght@300;400;700&display=swap');
 
@@ -616,7 +616,7 @@ const orderStyles = `
 
 const statusClass = (status) => {
   const map = { pending: "ch-status-pending", processing: "ch-status-processing", shipped: "ch-status-shipped", delivered: "ch-status-delivered", cancelled: "ch-status-cancelled" };
-  return map[(status || "").toLowerCase()] || "ch-status-pending";
+  return map[(status || "").toLowerCase()] || "ch-status-processing";
 };
 
 const Order = () => {
@@ -666,7 +666,7 @@ const Order = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch("http://localhost:5000/orders");
+      const response = await fetch(`${API_BASE_URL}/orders`);
       if (response.ok) {
         const data = await response.json();
         setOrders(data);
@@ -688,7 +688,7 @@ const Order = () => {
   const updateStatus = async (id, status) => {
     if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
     try {
-      const response = await fetch(`http://localhost:5000/orders/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/orders/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -705,7 +705,7 @@ const Order = () => {
   const confirmCancel = async () => {
     const { orderId } = cancelModal;
     try {
-      const response = await fetch(`http://localhost:5000/orders/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Cancelled" }),
@@ -794,7 +794,7 @@ const Order = () => {
 
         {/* Filters */}
         <div className="ch-order-filters">
-          {["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled"].map((s) => (
+          {["All", "Processing", "Shipped", "Delivered", "Cancelled"].map((s) => (
             <button key={s} className={`ch-filter-btn ${statusFilter === s ? "active" : ""}`}
               onClick={() => setStatusFilter(s)}>
               {s}
@@ -866,7 +866,7 @@ const Order = () => {
                         <td>
                           {isFirst && (
                             <span className={`ch-status-badge ${statusClass(order.status)}`}>
-                              {order.status || "Pending"}
+                              {order.status || "Processing"}
                             </span>
                           )}
                         </td>
@@ -880,11 +880,10 @@ const Order = () => {
                         <td>
                           {isFirst && order.status?.toLowerCase() !== "cancelled" && (
                             <select
-                              value={order.status || "Pending"}
+                              value={order.status || "Processing"}
                               onChange={(e) => updateStatus(order.id, e.target.value)}
                               className="ch-status-select"
                             >
-                              <option value="Pending">Pending</option>
                               <option value="Processing">Processing</option>
                               <option value="Shipped">Shipped</option>
                               <option value="Delivered">Delivered</option>
@@ -913,7 +912,7 @@ const Order = () => {
               <div key={order.id} className="ch-order-card">
                 <div className="ch-order-card-head">
                   <span className="ch-order-card-id">Order #{order.id.slice(-6)}</span>
-                  <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Pending"}</span>
+                  <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Processing"}</span>
                 </div>
                 <div className="ch-order-card-body">
                   <p><span>Customer: </span>{order.customer?.fullName}</p>
@@ -937,8 +936,7 @@ const Order = () => {
                 {order.status?.toLowerCase() !== "cancelled" && (
                   <div className="ch-order-card-actions">
                     <label>Update:</label>
-                    <select value={order.status || "Pending"} onChange={(e) => updateStatus(order.id, e.target.value)} className="ch-status-select">
-                      <option value="Pending">Pending</option>
+                    <select value={order.status || "Processing"} onChange={(e) => updateStatus(order.id, e.target.value)} className="ch-status-select">
                       <option value="Processing">Processing</option>
                       <option value="Shipped">Shipped</option>
                       <option value="Delivered">Delivered</option>

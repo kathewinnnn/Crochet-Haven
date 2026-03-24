@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import API_BASE_URL from '../../apiConfig';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -517,7 +518,7 @@ const ChToast = ({ toast, onClose }) => {
   );
 };
 
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 const UserSettings = () => {
   const [settings, setSettings] = useState({

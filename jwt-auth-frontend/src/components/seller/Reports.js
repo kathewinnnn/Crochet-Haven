@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-
+import API_BASE_URL from '../../apiConfig';
 const reportStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Lato:wght@300;400;700&display=swap');
 
@@ -405,7 +405,7 @@ const Reports = () => {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch("http://localhost:5000/orders");
+      const response = await fetch(`${API_BASE_URL}/orders`);
       const orders = await response.json();
 
       const completedOrders = orders.filter(

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
+import API_BASE_URL from '../../apiConfig';
 
-const API_URL = "http://localhost:5000/api/auth";
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 const settingsStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Lato:wght@300;400;700&display=swap');

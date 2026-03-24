@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import API_BASE_URL from '../../apiConfig';
 
-const API_URL = "http://localhost:5000/products";
+const API_URL = `${API_BASE_URL}/products`;
 
 const dashStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Lato:wght@300;400;700&display=swap');
@@ -417,7 +418,7 @@ const Dashboard = () => {
     try {
       const [productsRes, ordersRes] = await Promise.allSettled([
         axios.get(API_URL),
-        fetch("http://localhost:5000/orders").then((r) => r.json()),
+        fetch(`${API_BASE_URL}/orders`).then((r) => r.json()),
       ]);
       if (productsRes.status === "fulfilled") setProducts(productsRes.value.data);
       if (ordersRes.status === "fulfilled") setOrders(ordersRes.value);

@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import AdminPanel from "./pages/AdminPanel";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminRoute from "./components/AdminRoute";
 import { CartProvider } from "./context/CartContext";
@@ -58,26 +56,6 @@ element={
 <Route path="profile" element={<Profile />} />
 <Route path="settings" element={<UserSettings />} />
 </Route>
-
-{/* Private Routes */}
-<Route
-path="/dashboard"
-element={
-<PrivateRoute>
-<Dashboard />
-</PrivateRoute>
-}
-/>
-
-{/* Admin Routes */}
-<Route
-path="/admin"
-element={
-<AdminRoute>
-<AdminPanel />
-</AdminRoute>
-}
-/>
 
 {/* Seller Routes */}
 <Route

@@ -1,6 +1,4 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
+import API_BASE_URL from '../apiConfig';
 
 /* ─────────────────────────────────────────────
    Post-registration full-screen transition overlay
@@ -273,7 +271,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      await axios.post("http://localhost:5000/api/auth/register", {
+      await axios.post(`${API_BASE_URL}/api/auth/register`, {
         username: formData.username,
         email: formData.email,
         password: formData.password,
