@@ -2,10 +2,10 @@ services:
   - type: web
     name: jwt-auth-backend
     env: node
-    rootDir: ./
+    rootDir: jwt-auth-backend
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_VERSION
         value: 18

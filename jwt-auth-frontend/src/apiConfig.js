@@ -21,7 +21,7 @@ const getApiUrl = () => {
   }
   
   // Default production URL (Render.com)
-  return "https://jwt-auth-backend-7fmj.onrender.com";
+  return "https://crochet-haven-r62p.onrender.com";
 };
 
 export const API_BASE_URL = getApiUrl();
