@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
 const dbPath = path.join(__dirname, "../db.json");
@@ -134,6 +135,56 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("❌ Login error:", err);
     return res.status(500).json({ message: "Server error during login" });
+  }
+});
+
+// ── GET /api/auth/profile ─────────────────────────────────────────
+router.get("/profile", verifyToken, (req, res) => {
+  try {
+    const db = readDb();
+    const user = db.users.find((u) => u.id === req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Return user profile data (excluding password)
+    const { password, ...userProfile } = user;
+    return res.json(userProfile);
+  } catch (err) {
+    console.error("❌ Get profile error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ── PUT /api/auth/profile ─────────────────────────────────────────
+router.put("/profile", verifyToken, async (req, res) => {
+  try {
+    const { name, phone, bio, storeName, location } = req.body;
+    const db = readDb();
+    
+    const userIndex = db.users.findIndex((u) => u.id === req.user.id);
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Update user profile fields
+    db.users[userIndex] = {
+      ...db.users[userIndex],
+      name: name || "",
+      phone: phone || "",
+      bio: bio || "",
+      storeName: storeName || "",
+      location: location || "",
+    };
+    
+    writeDb(db);
+    
+    const { password, ...updatedProfile } = db.users[userIndex];
+    return res.json(updatedProfile);
+  } catch (err) {
+    console.error("❌ Update profile error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

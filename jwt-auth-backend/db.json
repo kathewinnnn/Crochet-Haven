@@ -6,7 +6,12 @@
       "email": "admin@admin.com",
       "password": "$2b$10$PWU6Tqe8YvEnfK1rI6dAVeENC7wTre1tVza0866ZqGsLigFult5OW",
       "role": "admin",
-      "createdAt": "2024-01-01T00:00:00.000Z"
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "name": "Admin User",
+      "phone": "1234567890",
+      "bio": "Store owner",
+      "storeName": "Crochet Haven",
+      "location": "Manila"
     },
     {
       "id": "1771755466175",
