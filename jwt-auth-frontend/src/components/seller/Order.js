@@ -361,6 +361,21 @@ const orderStyles = `
   .ch-status-delivered { background: rgba(138, 171, 142, 0.2); color: #4a8a50; }
   .ch-status-cancelled { background: rgba(192, 57, 43, 0.1); color: #c0392b; }
 
+  /* Payment badges */
+  .ch-payment-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .ch-payment-paid { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+  .ch-payment-unpaid { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+
   /* Status select */
   .ch-status-select {
     padding: 7px 10px;
@@ -814,6 +829,7 @@ const Order = () => {
                 <th>Total</th>
                 <th>Date</th>
                 <th>Status</th>
+                <th>Payment</th>
                 <th>Notes</th>
                 <th>Actions</th>
               </tr>
@@ -821,7 +837,7 @@ const Order = () => {
             <tbody>
               {sortedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="9">
+                  <td colSpan="10">
                     <div className="ch-orders-empty">
                       <span className="ch-orders-empty-emoji">📦</span>
                       No orders found.
@@ -872,6 +888,13 @@ const Order = () => {
                         </td>
                         <td>
                           {isFirst && (
+                            <span className={`ch-payment-badge ${order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'ch-payment-paid' : 'ch-payment-unpaid'}`}>
+                              {order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'Paid' : order.paymentMethod || 'COD'}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {isFirst && (
                             <span className="ch-order-note">
                               {order.customer?.orderNote || "—"}
                             </span>
@@ -913,6 +936,12 @@ const Order = () => {
                 <div className="ch-order-card-head">
                   <span className="ch-order-card-id">Order #{order.id.slice(-6)}</span>
                   <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Processing"}</span>
+                </div>
+                <div className="ch-order-card-head" style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)'}}>
+                  <span className="ch-order-card-id" style={{fontSize: '0.7rem'}}>Payment</span>
+                  <span className={`ch-payment-badge ${order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'ch-payment-paid' : 'ch-payment-unpaid'}`}>
+                    {order.paymentMethod && (order.paymentMethod === 'gcash' || order.paymentMethod === 'paymaya' || order.paymentMethod === 'card') ? 'Paid' : order.paymentMethod || 'COD'}
+                  </span>
                 </div>
                 <div className="ch-order-card-body">
                   <p><span>Customer: </span>{order.customer?.fullName}</p>

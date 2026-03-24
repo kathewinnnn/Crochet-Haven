@@ -341,7 +341,7 @@
       ],
       "total": 200,
       "createdAt": "2026-02-22T10:22:42.928Z",
-      "status": "Pending"
+      "status": "Shipped"
     },
     {
       "id": "1772071786292",
@@ -387,7 +387,7 @@
       ],
       "total": 250,
       "createdAt": "2026-02-26T02:09:46.292Z",
-      "status": "Delivered"
+      "status": "Processing"
     }
   ]
 }
