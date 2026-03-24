@@ -160,7 +160,7 @@ router.get("/profile", verifyToken, (req, res) => {
 // ── PUT /api/auth/profile ─────────────────────────────────────────
 router.put("/profile", verifyToken, async (req, res) => {
   try {
-    const { name, phone, bio, storeName, location } = req.body;
+    const { name, phone, bio, storeName, location, avatar } = req.body;
     const db = readDb();
     
     const userIndex = db.users.findIndex((u) => u.id === req.user.id);
@@ -168,7 +168,7 @@ router.put("/profile", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Update user profile fields
+    // Update user profile fields (including avatar if provided)
     db.users[userIndex] = {
       ...db.users[userIndex],
       name: name || "",
@@ -176,6 +176,7 @@ router.put("/profile", verifyToken, async (req, res) => {
       bio: bio || "",
       storeName: storeName || "",
       location: location || "",
+      avatar: avatar || "",
     };
     
     writeDb(db);
