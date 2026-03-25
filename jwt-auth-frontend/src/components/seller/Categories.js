@@ -21,7 +21,7 @@ const catStyles = `
     --border: rgba(212, 115, 94, 0.15);
   }
 
-     /* ─── HEADER ─── */
+  /* ─── HEADER ─── */
   .ch-header {
     position: relative;
     padding: 0;
@@ -45,11 +45,7 @@ const catStyles = `
     margin-top: 10px;
   }
 
-  .ch-logo-block {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+  .ch-logo-block { display: flex; align-items: center; gap: 16px; }
 
   .ch-logo-yarn {
     font-size: 2.8rem;
@@ -72,9 +68,7 @@ const catStyles = `
     line-height: 1;
   }
 
-  .ch-logo-text span {
-    color: var(--rose);
-  }
+  .ch-logo-text span { color: var(--rose); }
 
   .ch-tagline {
     font-size: 0.78rem;
@@ -92,9 +86,7 @@ const catStyles = `
     min-height: 100vh;
   }
 
-  .ch-cats-header {
-    margin-bottom: 44px;
-  }
+  .ch-cats-header { margin-bottom: 44px; }
 
   .ch-cats-eyebrow {
     display: inline-flex;
@@ -128,13 +120,8 @@ const catStyles = `
 
   .ch-cats-title em { font-style: italic; color: var(--rose); }
 
-  .ch-cats-subtitle {
-    font-size: 0.86rem;
-    color: var(--muted);
-    font-weight: 300;
-  }
+  .ch-cats-subtitle { font-size: 0.86rem; color: var(--muted); font-weight: 300; }
 
-  /* Category grid */
   .ch-cat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -154,7 +141,6 @@ const catStyles = `
     box-shadow: 0 20px 56px rgba(44, 36, 32, 0.1);
   }
 
-  /* Carousel */
   .ch-carousel {
     position: relative;
     height: 200px;
@@ -170,9 +156,7 @@ const catStyles = `
     transition: transform 0.4s ease;
   }
 
-  .ch-cat-card:hover .ch-carousel-img {
-    transform: scale(1.04);
-  }
+  .ch-cat-card:hover .ch-carousel-img { transform: scale(1.04); }
 
   .ch-carousel-no-img {
     width: 100%;
@@ -215,11 +199,7 @@ const catStyles = `
     box-shadow: 0 2px 8px rgba(44, 36, 32, 0.12);
   }
 
-  .ch-carousel-btn:hover {
-    background: var(--rose);
-    color: #fff;
-    transform: scale(1.1);
-  }
+  .ch-carousel-btn:hover { background: var(--rose); color: #fff; transform: scale(1.1); }
 
   .ch-carousel-counter {
     position: absolute;
@@ -235,10 +215,7 @@ const catStyles = `
     backdrop-filter: blur(4px);
   }
 
-  /* Card body */
-  .ch-cat-card-body {
-    padding: 22px 22px 20px;
-  }
+  .ch-cat-card-body { padding: 22px 22px 20px; }
 
   .ch-cat-card-name {
     font-family: 'Playfair Display', serif;
@@ -249,11 +226,7 @@ const catStyles = `
     line-height: 1.2;
   }
 
-  .ch-cat-card-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+  .ch-cat-card-meta { display: flex; align-items: center; gap: 12px; }
 
   .ch-cat-card-count {
     display: inline-flex;
@@ -269,13 +242,8 @@ const catStyles = `
     border-radius: 2px;
   }
 
-  .ch-cat-card-images-count {
-    font-size: 0.72rem;
-    color: var(--muted);
-    font-weight: 300;
-  }
+  .ch-cat-card-images-count { font-size: 0.72rem; color: var(--muted); font-weight: 300; }
 
-  /* Product names list */
   .ch-cat-product-list {
     margin-top: 14px;
     border-top: 1px solid var(--border);
@@ -338,14 +306,8 @@ const catStyles = `
     font-weight: 300;
   }
 
-  .ch-empty-emoji {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 12px;
-    opacity: 0.45;
-  }
+  .ch-empty-emoji { font-size: 3rem; display: block; margin-bottom: 12px; opacity: 0.45; }
 
-  /* Category accent colors */
   .ch-cat-card:nth-child(5n+1) .ch-carousel { background: linear-gradient(135deg, #f9e8d5, #f0d0bf); }
   .ch-cat-card:nth-child(5n+2) .ch-carousel { background: linear-gradient(135deg, #fde8ef, #f5ccd8); }
   .ch-cat-card:nth-child(5n+3) .ch-carousel { background: linear-gradient(135deg, #e8f4ea, #d0e8d3); }
@@ -353,12 +315,6 @@ const catStyles = `
   .ch-cat-card:nth-child(5n+5) .ch-carousel { background: linear-gradient(135deg, #fdf4e0, #f5e2b8); }
 
   @keyframes chSpin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 768px) {
-    .ch-cats { padding: 32px 20px; }
-    .ch-cats-title { font-size: 1.8rem; }
-    .ch-cat-grid { grid-template-columns: 1fr; }
-  }
 
   /* ─── FOOTER ─── */
   .ch-footer {
@@ -385,10 +341,35 @@ const catStyles = `
     gap: 8px;
   }
 
-  .ch-footer-copy {
-    font-size: 0.78rem;
-    color: var(--muted);
-    letter-spacing: 0.04em;
+  .ch-footer-copy { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
+
+  /* ─── TABLET (769px – 1024px) ─── */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .ch-header { margin-left: -5%; width: 110%; }
+    .ch-header-inner { padding: 32px 32px 28px; margin-right: 0; }
+    .ch-cats { padding: 36px 32px; }
+    .ch-cats-title { font-size: 1.9rem; }
+    .ch-cat-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .ch-footer { margin-left: -3%; width: 106%; padding: 24px 32px; }
+  }
+
+  /* ─── MOBILE (≤ 768px) ─── */
+  @media (max-width: 768px) {
+    .ch-header { display: none; }
+    .ch-cats { padding: 80px 16px 24px; }
+    .ch-cats-title { font-size: 1.6rem; }
+    .ch-cats-header { margin-bottom: 28px; }
+    .ch-cat-grid { grid-template-columns: 1fr; gap: 14px; }
+    .ch-carousel { height: 160px; }
+    .ch-cat-card-body { padding: 16px 16px 14px; }
+    .ch-footer {
+      margin-left: 0;
+      width: 100%;
+      padding: 20px 16px;
+      flex-direction: column;
+      gap: 6px;
+      text-align: center;
+    }
   }
 `;
 
@@ -405,9 +386,7 @@ const Categories = () => {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchCategories(); }, []);
 
   const fetchCategories = async () => {
     try {
@@ -454,25 +433,22 @@ const Categories = () => {
 
   return (
     <>
-    <header className="ch-header">
-          <div className="ch-header-inner">
-            <div className="ch-logo-block">
-              <span className="ch-logo-yarn">🧶</span>
-              <div>
-                <div className="ch-logo-text">Crochet <span>Haven</span></div>
-                <div className="ch-tagline">Stitched with love, for you</div>
-              </div>
+      <header className="ch-header">
+        <div className="ch-header-inner">
+          <div className="ch-logo-block">
+            <span className="ch-logo-yarn">🧶</span>
+            <div>
+              <div className="ch-logo-text">Crochet <span>Haven</span></div>
+              <div className="ch-tagline">Stitched with love, for you</div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
       <style>{catStyles}</style>
       <div className="ch-cats">
-        {/* Header */}
         <div className="ch-cats-header">
           <p className="ch-cats-eyebrow">Browse</p>
-          <h1 className="ch-cats-title">
-            Product <em>Categories</em>
-          </h1>
+          <h1 className="ch-cats-title">Product <em>Categories</em></h1>
           <p className="ch-cats-subtitle">
             {Object.keys(groupedProducts).length} categories · {Object.values(groupedProducts).reduce((s, p) => s + p.length, 0)} total products
           </p>
@@ -493,61 +469,33 @@ const Categories = () => {
 
               return (
                 <div key={category} className="ch-cat-card">
-                  {/* Carousel */}
                   <div className="ch-carousel">
                     {allImages.length > 0 ? (
                       <>
-                        <img
-                          src={allImages[currentIndex]}
-                          alt={`${category}`}
-                          className="ch-carousel-img"
-                        />
+                        <img src={allImages[currentIndex]} alt={`${category}`} className="ch-carousel-img" />
                         {allImages.length > 1 && (
                           <>
                             <div className="ch-carousel-nav">
-                              <button
-                                className="ch-carousel-btn"
-                                onClick={() => prevImage(category, allImages.length)}
-                                aria-label="Previous"
-                              >
-                                ‹
-                              </button>
-                              <button
-                                className="ch-carousel-btn"
-                                onClick={() => nextImage(category, allImages.length)}
-                                aria-label="Next"
-                              >
-                                ›
-                              </button>
+                              <button className="ch-carousel-btn" onClick={() => prevImage(category, allImages.length)} aria-label="Previous">‹</button>
+                              <button className="ch-carousel-btn" onClick={() => nextImage(category, allImages.length)} aria-label="Next">›</button>
                             </div>
-                            <span className="ch-carousel-counter">
-                              {currentIndex + 1} / {allImages.length}
-                            </span>
+                            <span className="ch-carousel-counter">{currentIndex + 1} / {allImages.length}</span>
                           </>
                         )}
                       </>
                     ) : (
-                      <div className="ch-carousel-no-img">
-                        <span>{emoji}</span>
-                      </div>
+                      <div className="ch-carousel-no-img"><span>{emoji}</span></div>
                     )}
                   </div>
 
-                  {/* Body */}
                   <div className="ch-cat-card-body">
                     <div className="ch-cat-card-name">{category}</div>
                     <div className="ch-cat-card-meta">
-                      <span className="ch-cat-card-count">
-                        {products.length} {products.length === 1 ? "product" : "products"}
-                      </span>
+                      <span className="ch-cat-card-count">{products.length} {products.length === 1 ? "product" : "products"}</span>
                       {allImages.length > 0 && (
-                        <span className="ch-cat-card-images-count">
-                          {allImages.length} image{allImages.length !== 1 ? "s" : ""}
-                        </span>
+                        <span className="ch-cat-card-images-count">{allImages.length} image{allImages.length !== 1 ? "s" : ""}</span>
                       )}
                     </div>
-
-                    {/* Product names */}
                     <div className="ch-cat-product-list">
                       {products.map((p) => (
                         <span key={p.id} className="ch-cat-product-name">
@@ -565,11 +513,10 @@ const Categories = () => {
           )}
         </div>
       </div>
-      {/* ── FOOTER ── */}
-        <footer className="ch-footer">
-          <div className="ch-footer-logo">🧶 Crochet Haven</div>
-          <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
-        </footer>
+      <footer className="ch-footer">
+        <div className="ch-footer-logo">🧶 Crochet Haven</div>
+        <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
+      </footer>
     </>
   );
 };

@@ -22,7 +22,7 @@ const crudStyles = `
     --border: rgba(212, 115, 94, 0.15);
   }
 
-     /* ─── HEADER ─── */
+  /* ─── HEADER ─── */
   .ch-header {
     position: relative;
     padding: 0;
@@ -46,11 +46,7 @@ const crudStyles = `
     margin-top: 10px;
   }
 
-  .ch-logo-block {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+  .ch-logo-block { display: flex; align-items: center; gap: 16px; }
 
   .ch-logo-yarn {
     font-size: 2.8rem;
@@ -73,18 +69,9 @@ const crudStyles = `
     line-height: 1;
   }
 
-  .ch-logo-text span {
-    color: var(--rose);
-  }
+  .ch-logo-text span { color: var(--rose); }
+  .ch-tagline { font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-top: 6px; font-weight: 400; }
 
-  .ch-tagline {
-    font-size: 0.78rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 6px;
-    font-weight: 400;
-  }
   .ch-crud {
     font-family: 'Lato', sans-serif;
     color: var(--charcoal);
@@ -92,9 +79,7 @@ const crudStyles = `
     min-height: 100vh;
   }
 
-  .ch-crud-header {
-    margin-bottom: 40px;
-  }
+  .ch-crud-header { margin-bottom: 40px; }
 
   .ch-crud-eyebrow {
     display: inline-flex;
@@ -108,13 +93,7 @@ const crudStyles = `
     margin-bottom: 10px;
   }
 
-  .ch-crud-eyebrow::before {
-    content: '';
-    display: block;
-    width: 28px;
-    height: 1.5px;
-    background: var(--terracotta);
-  }
+  .ch-crud-eyebrow::before { content: ''; display: block; width: 28px; height: 1.5px; background: var(--terracotta); }
 
   .ch-crud-title {
     font-family: 'Playfair Display', serif;
@@ -127,7 +106,6 @@ const crudStyles = `
 
   .ch-crud-title em { font-style: italic; color: var(--rose); }
 
-  /* ── ADD FORM ── */
   .ch-add-form {
     background: var(--warm-white);
     border: 1px solid var(--border);
@@ -157,16 +135,9 @@ const crudStyles = `
     flex-shrink: 0;
   }
 
-  .ch-form-head-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--charcoal);
-  }
+  .ch-form-head-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 600; color: var(--charcoal); }
 
-  .ch-form-body {
-    padding: 28px;
-  }
+  .ch-form-body { padding: 28px; }
 
   .ch-form-grid {
     display: grid;
@@ -175,19 +146,9 @@ const crudStyles = `
     margin-bottom: 22px;
   }
 
-  .ch-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
+  .ch-form-group { display: flex; flex-direction: column; gap: 7px; }
 
-  .ch-form-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 700;
-  }
+  .ch-form-label { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 
   .ch-form-input {
     padding: 10px 14px;
@@ -203,11 +164,7 @@ const crudStyles = `
     width: 100%;
   }
 
-  .ch-form-input:focus {
-    border-color: var(--rose);
-    box-shadow: 0 0 0 3px rgba(232, 114, 138, 0.1);
-  }
-
+  .ch-form-input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(232, 114, 138, 0.1); }
   .ch-form-input::placeholder { color: var(--muted); opacity: 0.6; }
 
   .ch-form-actions {
@@ -218,12 +175,7 @@ const crudStyles = `
     gap: 14px;
   }
 
-  .ch-form-img-area {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
+  .ch-form-img-area { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
   .ch-img-label {
     display: inline-flex;
@@ -245,16 +197,7 @@ const crudStyles = `
 
   .ch-img-label:hover { border-color: var(--rose); color: var(--rose); }
 
-  .ch-btn-toggle-imgs {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 6px;
-    transition: color 0.15s ease;
-  }
-
+  .ch-btn-toggle-imgs { background: transparent; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 6px; transition: color 0.15s ease; }
   .ch-btn-toggle-imgs:hover { color: var(--rose); }
 
   .ch-btn-add {
@@ -277,41 +220,15 @@ const crudStyles = `
     overflow: hidden;
   }
 
-  .ch-btn-add::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--rose);
-    transform: translateX(-100%);
-    transition: transform 0.28s ease;
-  }
-
+  .ch-btn-add::after { content: ''; position: absolute; inset: 0; background: var(--rose); transform: translateX(-100%); transition: transform 0.28s ease; }
   .ch-btn-add:hover::after { transform: translateX(0); }
   .ch-btn-add span { position: relative; z-index: 1; }
   .ch-btn-add:hover { color: #fff; }
 
-  /* Image previews */
-  .ch-img-preview-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 16px;
-  }
+  .ch-img-preview-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 
-  .ch-img-thumb-wrap {
-    position: relative;
-    width: 88px;
-    height: 88px;
-    border-radius: 3px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-
-  .ch-img-thumb {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+  .ch-img-thumb-wrap { position: relative; width: 88px; height: 88px; border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+  .ch-img-thumb { width: 100%; height: 100%; object-fit: cover; }
 
   .ch-img-thumb-remove {
     position: absolute;
@@ -335,19 +252,9 @@ const crudStyles = `
 
   .ch-img-thumb-remove:hover { background: var(--rose); }
 
-  /* ── PRODUCTS SECTION ── */
-  .ch-products-section {
-    display: flex;
-    flex-direction: column;
-    gap: 36px;
-  }
+  .ch-products-section { display: flex; flex-direction: column; gap: 36px; }
 
-  .ch-cat-group {
-    background: var(--warm-white);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
+  .ch-cat-group { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
 
   .ch-cat-group-head {
     display: flex;
@@ -358,70 +265,22 @@ const crudStyles = `
     background: rgba(253, 246, 236, 0.5);
   }
 
-  .ch-cat-group-name {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--charcoal);
-  }
+  .ch-cat-group-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: var(--charcoal); }
 
-  .ch-cat-group-count {
-    background: rgba(232, 114, 138, 0.1);
-    color: var(--rose);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 4px 10px;
-    border-radius: 2px;
-  }
+  .ch-cat-group-count { background: rgba(232, 114, 138, 0.1); color: var(--rose); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; }
 
-  .ch-product-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1px;
-    background: var(--border);
-  }
+  .ch-product-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1px; background: var(--border); }
 
-  .ch-product-card {
-    background: var(--warm-white);
-    padding: 22px;
-    transition: background 0.15s ease;
-  }
-
+  .ch-product-card { background: var(--warm-white); padding: 22px; transition: background 0.15s ease; }
   .ch-product-card:hover { background: rgba(253, 246, 236, 0.7); }
 
-  .ch-product-card-name {
-    font-family: 'Playfair Display', serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--charcoal);
-    margin-bottom: 6px;
-  }
+  .ch-product-card-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; color: var(--charcoal); margin-bottom: 6px; }
+  .ch-product-card-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.55; margin-bottom: 10px; font-weight: 300; }
+  .ch-product-card-price { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--charcoal); margin-bottom: 16px; }
 
-  .ch-product-card-desc {
-    font-size: 0.8rem;
-    color: var(--muted);
-    line-height: 1.55;
-    margin-bottom: 10px;
-    font-weight: 300;
-  }
+  .ch-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .ch-product-card-price {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--charcoal);
-    margin-bottom: 16px;
-  }
-
-  .ch-card-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .ch-btn-view-img {
+  .ch-btn-view-img, .ch-btn-edit, .ch-btn-delete {
     padding: 7px 14px;
     background: transparent;
     border: 1.5px solid var(--border);
@@ -437,47 +296,10 @@ const crudStyles = `
   }
 
   .ch-btn-view-img:hover { border-color: var(--amber); color: var(--terracotta); }
-
-  .ch-btn-edit {
-    padding: 7px 14px;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 3px;
-    color: var(--muted);
-    font-family: 'Lato', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
   .ch-btn-edit:hover { border-color: var(--rose); color: var(--rose); }
-
-  .ch-btn-delete {
-    padding: 7px 14px;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 3px;
-    color: var(--muted);
-    font-family: 'Lato', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
   .ch-btn-delete:hover { border-color: #c0392b; color: #c0392b; }
 
-  /* Edit form inside card */
-  .ch-edit-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+  .ch-edit-form { display: flex; flex-direction: column; gap: 10px; }
 
   .ch-edit-input {
     padding: 9px 12px;
@@ -494,57 +316,15 @@ const crudStyles = `
 
   .ch-edit-input:focus { border-color: var(--rose); }
 
-  .ch-edit-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
-  }
+  .ch-edit-actions { display: flex; gap: 8px; margin-top: 4px; }
 
-  .ch-btn-save {
-    padding: 8px 18px;
-    background: var(--rose);
-    color: #fff;
-    border: none;
-    border-radius: 3px;
-    font-family: 'Lato', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.18s ease;
-  }
-
+  .ch-btn-save { padding: 8px 18px; background: var(--rose); color: #fff; border: none; border-radius: 3px; font-family: 'Lato', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.18s ease; }
   .ch-btn-save:hover { background: var(--deep-rose); }
 
-  .ch-btn-cancel {
-    padding: 8px 18px;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 3px;
-    color: var(--muted);
-    font-family: 'Lato', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
+  .ch-btn-cancel { padding: 8px 18px; background: transparent; border: 1.5px solid var(--border); border-radius: 3px; color: var(--muted); font-family: 'Lato', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.15s ease; }
   .ch-btn-cancel:hover { border-color: var(--rose); color: var(--rose); }
 
-  /* Modal */
-  .ch-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(44, 36, 32, 0.55);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9998;
-  }
+  .ch-modal-backdrop { position: fixed; inset: 0; background: rgba(44, 36, 32, 0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9998; }
 
   .ch-modal-box {
     background: var(--warm-white);
@@ -559,139 +339,28 @@ const crudStyles = `
     animation: modalIn 0.22s ease;
   }
 
-  @keyframes modalIn {
-    from { opacity: 0; transform: translateY(14px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-  .ch-modal-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--charcoal);
-    margin-bottom: 10px;
-  }
-
-  .ch-modal-desc {
-    font-size: 0.86rem;
-    color: var(--muted);
-    line-height: 1.65;
-    margin-bottom: 28px;
-    font-weight: 300;
-  }
-
+  .ch-modal-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: var(--charcoal); margin-bottom: 10px; }
+  .ch-modal-desc { font-size: 0.86rem; color: var(--muted); line-height: 1.65; margin-bottom: 28px; font-weight: 300; }
   .ch-modal-desc strong { color: var(--charcoal); font-weight: 700; }
-
-  .ch-modal-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-  }
-
-  .ch-modal-img-wrap {
-    position: relative;
-    margin-bottom: 16px;
-  }
-
-  .ch-modal-img {
-    max-width: 100%;
-    max-height: 300px;
-    border-radius: 3px;
-    object-fit: contain;
-    border: 1px solid var(--border);
-  }
-
-  .ch-modal-img-counter {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-
-  .ch-modal-nav {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: 16px;
-  }
-
-  .ch-modal-nav-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    background: transparent;
-    color: var(--charcoal);
-    font-size: 1.1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s ease;
-  }
-
+  .ch-modal-actions { display: flex; gap: 12px; justify-content: center; }
+  .ch-modal-img-wrap { position: relative; margin-bottom: 16px; }
+  .ch-modal-img { max-width: 100%; max-height: 300px; border-radius: 3px; object-fit: contain; border: 1px solid var(--border); }
+  .ch-modal-img-counter { font-size: 0.75rem; color: var(--muted); margin-bottom: 10px; }
+  .ch-modal-nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .ch-modal-nav-btn { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; color: var(--charcoal); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
   .ch-modal-nav-btn:hover { border-color: var(--rose); color: var(--rose); }
 
-  .ch-btn-danger {
-    padding: 11px 24px;
-    background: #c0392b;
-    color: #fff;
-    border: none;
-    border-radius: 3px;
-    font-family: 'Lato', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.18s ease;
-  }
-
+  .ch-btn-danger { padding: 11px 24px; background: #c0392b; color: #fff; border: none; border-radius: 3px; font-family: 'Lato', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.18s ease; }
   .ch-btn-danger:hover { background: #a93226; }
 
-  .ch-btn-neutral {
-    padding: 11px 24px;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 3px;
-    color: var(--muted);
-    font-family: 'Lato', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
+  .ch-btn-neutral { padding: 11px 24px; background: transparent; border: 1.5px solid var(--border); border-radius: 3px; color: var(--muted); font-family: 'Lato', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.15s ease; }
   .ch-btn-neutral:hover { border-color: var(--rose); color: var(--rose); }
 
-  .ch-crud-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    gap: 16px;
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
-  .ch-crud-loader {
-    width: 36px;
-    height: 36px;
-    border: 2.5px solid rgba(232, 114, 138, 0.2);
-    border-top-color: var(--rose);
-    border-radius: 50%;
-    animation: chSpin 0.8s linear infinite;
-  }
-
+  .ch-crud-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 16px; color: var(--muted); font-size: 0.85rem; }
+  .ch-crud-loader { width: 36px; height: 36px; border: 2.5px solid rgba(232, 114, 138, 0.2); border-top-color: var(--rose); border-radius: 50%; animation: chSpin 0.8s linear infinite; }
   @keyframes chSpin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 768px) {
-    .ch-crud { padding: 32px 20px; }
-    .ch-form-grid { grid-template-columns: 1fr; }
-    .ch-product-cards { grid-template-columns: 1fr; }
-  }
 
   /* ─── FOOTER ─── */
   .ch-footer {
@@ -708,20 +377,42 @@ const crudStyles = `
     margin-bottom: -17.5px;
   }
 
-  .ch-footer-logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--charcoal);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .ch-footer-logo { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--charcoal); display: flex; align-items: center; gap: 8px; }
+  .ch-footer-copy { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
+
+  /* ─── TABLET (769px – 1024px) ─── */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .ch-header { margin-left: -5%; width: 110%; }
+    .ch-header-inner { padding: 32px 32px 28px; margin-right: 0; }
+    .ch-crud { padding: 36px 32px; }
+    .ch-crud-title { font-size: 1.9rem; }
+    .ch-form-grid { grid-template-columns: repeat(2, 1fr); }
+    .ch-product-cards { grid-template-columns: repeat(2, 1fr); }
+    .ch-footer { margin-left: -3%; width: 106%; padding: 24px 32px; }
   }
 
-  .ch-footer-copy {
-    font-size: 0.78rem;
-    color: var(--muted);
-    letter-spacing: 0.04em;
+  /* ─── MOBILE (≤ 768px) ─── */
+  @media (max-width: 768px) {
+    .ch-header { display: none; }
+    .ch-crud { padding: 80px 16px 24px; }
+    .ch-crud-title { font-size: 1.6rem; }
+    .ch-form-body { padding: 16px; }
+    .ch-form-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    .ch-form-head { padding: 16px 18px; }
+    .ch-form-actions { flex-direction: column; align-items: stretch; }
+    .ch-btn-add { justify-content: center; }
+    .ch-product-cards { grid-template-columns: 1fr; }
+    .ch-product-card { padding: 16px; }
+    .ch-cat-group-head { padding: 14px 16px; }
+    .ch-modal-box { padding: 28px 20px; }
+    .ch-footer {
+      margin-left: 0;
+      width: 100%;
+      padding: 20px 16px;
+      flex-direction: column;
+      gap: 6px;
+      text-align: center;
+    }
   }
 `;
 
@@ -766,10 +457,7 @@ const CrudApp = () => {
     setProducts(products.filter((p) => p.id !== id));
   };
 
-  const startEditing = (product) => {
-    setEditingProduct(product.id);
-    setEditProduct(product);
-  };
+  const startEditing = (product) => { setEditingProduct(product.id); setEditProduct(product); };
 
   const updateProduct = async (id) => {
     await axios.put(`${API_URL}/${id}`, editProduct);
@@ -780,12 +468,11 @@ const CrudApp = () => {
 
   const handleImgUpload = (files, setter, current) => {
     const promises = Array.from(files).map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        })
+      (file) => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      })
     );
     Promise.all(promises).then((dataUrls) => setter({ ...current, images: [...current.images, ...dataUrls] }));
   };
@@ -810,28 +497,24 @@ const CrudApp = () => {
 
   return (
     <>
-    <header className="ch-header">
-          <div className="ch-header-inner">
-            <div className="ch-logo-block">
-              <span className="ch-logo-yarn">🧶</span>
-              <div>
-                <div className="ch-logo-text">Crochet <span>Haven</span></div>
-                <div className="ch-tagline">Stitched with love, for you</div>
-              </div>
+      <header className="ch-header">
+        <div className="ch-header-inner">
+          <div className="ch-logo-block">
+            <span className="ch-logo-yarn">🧶</span>
+            <div>
+              <div className="ch-logo-text">Crochet <span>Haven</span></div>
+              <div className="ch-tagline">Stitched with love, for you</div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
       <style>{crudStyles}</style>
       <div className="ch-crud">
-        {/* Header */}
         <div className="ch-crud-header">
           <p className="ch-crud-eyebrow">Inventory</p>
-          <h1 className="ch-crud-title">
-            Manage <em>Products</em>
-          </h1>
+          <h1 className="ch-crud-title">Manage <em>Products</em></h1>
         </div>
 
-        {/* ── Add Product Form ── */}
         <div className="ch-add-form">
           <div className="ch-form-head">
             <div className="ch-form-head-icon">✦</div>
@@ -841,28 +524,23 @@ const CrudApp = () => {
             <div className="ch-form-grid">
               <div className="ch-form-group">
                 <label className="ch-form-label">Product ID</label>
-                <input className="ch-form-input" placeholder="e.g. PROD-001"
-                  value={newProduct.id} onChange={(e) => setNewProduct({ ...newProduct, id: e.target.value })} />
+                <input className="ch-form-input" placeholder="e.g. PROD-001" value={newProduct.id} onChange={(e) => setNewProduct({ ...newProduct, id: e.target.value })} />
               </div>
               <div className="ch-form-group">
                 <label className="ch-form-label">Product Name</label>
-                <input className="ch-form-input" placeholder="e.g. Rose Bouquet Amigurumi"
-                  value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} />
+                <input className="ch-form-input" placeholder="e.g. Rose Bouquet Amigurumi" value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} />
               </div>
               <div className="ch-form-group">
                 <label className="ch-form-label">Description</label>
-                <input className="ch-form-input" placeholder="A short description…"
-                  value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} />
+                <input className="ch-form-input" placeholder="A short description…" value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} />
               </div>
               <div className="ch-form-group">
                 <label className="ch-form-label">Price (₱)</label>
-                <input className="ch-form-input" placeholder="0.00" type="number"
-                  value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} />
+                <input className="ch-form-input" placeholder="0.00" type="number" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} />
               </div>
               <div className="ch-form-group">
                 <label className="ch-form-label">Category</label>
-                <select className="ch-form-input" value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}>
+                <select className="ch-form-input" value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}>
                   <option value="">Select category…</option>
                   {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
@@ -873,8 +551,7 @@ const CrudApp = () => {
               <div className="ch-form-img-area">
                 <label className="ch-img-label">
                   🖼 Choose Images{newProduct.images.length > 0 ? ` (${newProduct.images.length})` : ""}
-                  <input type="file" multiple style={{ display: "none" }}
-                    onChange={(e) => handleImgUpload(e.target.files, setNewProduct, newProduct)} />
+                  <input type="file" multiple style={{ display: "none" }} onChange={(e) => handleImgUpload(e.target.files, setNewProduct, newProduct)} />
                 </label>
                 {newProduct.images.length > 0 && (
                   <button className="ch-btn-toggle-imgs" onClick={() => setShowNewImageList(!showNewImageList)}>
@@ -882,9 +559,7 @@ const CrudApp = () => {
                   </button>
                 )}
               </div>
-              <button className="ch-btn-add" onClick={addProduct}>
-                <span>+ Add Product</span>
-              </button>
+              <button className="ch-btn-add" onClick={addProduct}><span>+ Add Product</span></button>
             </div>
 
             {showNewImageList && newProduct.images.length > 0 && (
@@ -892,10 +567,7 @@ const CrudApp = () => {
                 {newProduct.images.map((img, idx) => (
                   <div key={idx} className="ch-img-thumb-wrap">
                     <img src={img} alt={`Preview ${idx + 1}`} className="ch-img-thumb" />
-                    <button className="ch-img-thumb-remove"
-                      onClick={() => setNewProduct({ ...newProduct, images: newProduct.images.filter((_, i) => i !== idx) })}>
-                      ×
-                    </button>
+                    <button className="ch-img-thumb-remove" onClick={() => setNewProduct({ ...newProduct, images: newProduct.images.filter((_, i) => i !== idx) })}>×</button>
                   </div>
                 ))}
               </div>
@@ -903,7 +575,6 @@ const CrudApp = () => {
           </div>
         </div>
 
-        {/* ── Product Groups ── */}
         <div className="ch-products-section">
           {Object.keys(groupedProducts).map((category) => (
             <div key={category} className="ch-cat-group">
@@ -921,25 +592,19 @@ const CrudApp = () => {
                           { key: "description", placeholder: "Description" },
                           { key: "price", placeholder: "Price" },
                         ].map(({ key, placeholder }) => (
-                          <input key={key} className="ch-edit-input" placeholder={placeholder}
-                            value={editProduct[key]}
-                            onChange={(e) => setEditProduct({ ...editProduct, [key]: e.target.value })} />
+                          <input key={key} className="ch-edit-input" placeholder={placeholder} value={editProduct[key]} onChange={(e) => setEditProduct({ ...editProduct, [key]: e.target.value })} />
                         ))}
-                        <select className="ch-edit-input" value={editProduct.category}
-                          onChange={(e) => setEditProduct({ ...editProduct, category: e.target.value })}>
+                        <select className="ch-edit-input" value={editProduct.category} onChange={(e) => setEditProduct({ ...editProduct, category: e.target.value })}>
                           {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
 
-                        {/* Image edit */}
                         <div>
                           <label className="ch-img-label" style={{ display: "inline-flex", cursor: "pointer" }}>
                             🖼 Images {editProduct.images.length > 0 ? `(${editProduct.images.length})` : ""}
-                            <input type="file" multiple style={{ display: "none" }}
-                              onChange={(e) => handleImgUpload(e.target.files, setEditProduct, editProduct)} />
+                            <input type="file" multiple style={{ display: "none" }} onChange={(e) => handleImgUpload(e.target.files, setEditProduct, editProduct)} />
                           </label>
                           {editProduct.images.length > 0 && (
-                            <button className="ch-btn-toggle-imgs" style={{ marginLeft: 8 }}
-                              onClick={() => setShowEditImageList(!showEditImageList)}>
+                            <button className="ch-btn-toggle-imgs" style={{ marginLeft: 8 }} onClick={() => setShowEditImageList(!showEditImageList)}>
                               {showEditImageList ? "🙈" : "👁"}
                             </button>
                           )}
@@ -949,10 +614,7 @@ const CrudApp = () => {
                             {editProduct.images.map((img, idx) => (
                               <div key={idx} className="ch-img-thumb-wrap">
                                 <img src={img} alt="" className="ch-img-thumb" />
-                                <button className="ch-img-thumb-remove"
-                                  onClick={() => setEditProduct({ ...editProduct, images: editProduct.images.filter((_, i) => i !== idx) })}>
-                                  ×
-                                </button>
+                                <button className="ch-img-thumb-remove" onClick={() => setEditProduct({ ...editProduct, images: editProduct.images.filter((_, i) => i !== idx) })}>×</button>
                               </div>
                             ))}
                           </div>
@@ -970,16 +632,10 @@ const CrudApp = () => {
                         <div className="ch-product-card-price">₱{parseFloat(product.price).toFixed(2)}</div>
                         <div className="ch-card-actions">
                           {product.images.length > 0 && (
-                            <button className="ch-btn-view-img"
-                              onClick={() => { setProductToShow(product); setCurrentImageIndex(0); setShowImageModal(true); }}>
-                              View Img
-                            </button>
+                            <button className="ch-btn-view-img" onClick={() => { setProductToShow(product); setCurrentImageIndex(0); setShowImageModal(true); }}>View Img</button>
                           )}
                           <button className="ch-btn-edit" onClick={() => startEditing(product)}>Edit</button>
-                          <button className="ch-btn-delete"
-                            onClick={() => { setProductToDelete(product); setShowDeleteModal(true); }}>
-                            Delete
-                          </button>
+                          <button className="ch-btn-delete" onClick={() => { setProductToDelete(product); setShowDeleteModal(true); }}>Delete</button>
                         </div>
                       </>
                     )}
@@ -990,47 +646,33 @@ const CrudApp = () => {
           ))}
         </div>
 
-        {/* Delete Modal */}
         {showDeleteModal && (
           <div className="ch-modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowDeleteModal(false)}>
             <div className="ch-modal-box">
               <div className="ch-modal-title">Delete Product?</div>
-              <p className="ch-modal-desc">
-                Are you sure you want to delete <strong>"{productToDelete?.name}"</strong>? This cannot be undone.
-              </p>
+              <p className="ch-modal-desc">Are you sure you want to delete <strong>"{productToDelete?.name}"</strong>? This cannot be undone.</p>
               <div className="ch-modal-actions">
                 <button className="ch-btn-neutral" onClick={() => setShowDeleteModal(false)}>Cancel</button>
-                <button className="ch-btn-danger" onClick={() => { deleteProduct(productToDelete.id); setShowDeleteModal(false); }}>
-                  Delete
-                </button>
+                <button className="ch-btn-danger" onClick={() => { deleteProduct(productToDelete.id); setShowDeleteModal(false); }}>Delete</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Image Modal */}
         {showImageModal && productToShow && (
           <div className="ch-modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowImageModal(false)}>
             <div className="ch-modal-box">
               <div className="ch-modal-title">{productToShow.name}</div>
               {productToShow.images.length > 0 ? (
                 <>
-                  <div className="ch-modal-img-counter">
-                    {currentImageIndex + 1} / {productToShow.images.length}
-                  </div>
+                  <div className="ch-modal-img-counter">{currentImageIndex + 1} / {productToShow.images.length}</div>
                   <div className="ch-modal-img-wrap">
                     <img src={productToShow.images[currentImageIndex]} alt={productToShow.name} className="ch-modal-img" />
                   </div>
                   {productToShow.images.length > 1 && (
                     <div className="ch-modal-nav">
-                      <button className="ch-modal-nav-btn"
-                        onClick={() => setCurrentImageIndex((currentImageIndex - 1 + productToShow.images.length) % productToShow.images.length)}>
-                        ‹
-                      </button>
-                      <button className="ch-modal-nav-btn"
-                        onClick={() => setCurrentImageIndex((currentImageIndex + 1) % productToShow.images.length)}>
-                        ›
-                      </button>
+                      <button className="ch-modal-nav-btn" onClick={() => setCurrentImageIndex((currentImageIndex - 1 + productToShow.images.length) % productToShow.images.length)}>‹</button>
+                      <button className="ch-modal-nav-btn" onClick={() => setCurrentImageIndex((currentImageIndex + 1) % productToShow.images.length)}>›</button>
                     </div>
                   )}
                 </>
@@ -1044,11 +686,10 @@ const CrudApp = () => {
           </div>
         )}
       </div>
-      {/* ── FOOTER ── */}
-        <footer className="ch-footer">
-          <div className="ch-footer-logo">🧶 Crochet Haven</div>
-          <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
-        </footer>
+      <footer className="ch-footer">
+        <div className="ch-footer-logo">🧶 Crochet Haven</div>
+        <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
+      </footer>
     </>
   );
 };

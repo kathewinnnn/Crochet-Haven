@@ -21,7 +21,7 @@ const dashStyles = `
     --border: rgba(212, 115, 94, 0.15);
   }
 
-   /* ─── HEADER ─── */
+  /* ─── HEADER ─── */
   .ch-header {
     position: relative;
     padding: 0;
@@ -72,9 +72,7 @@ const dashStyles = `
     line-height: 1;
   }
 
-  .ch-logo-text span {
-    color: var(--rose);
-  }
+  .ch-logo-text span { color: var(--rose); }
 
   .ch-tagline {
     font-size: 0.78rem;
@@ -93,9 +91,7 @@ const dashStyles = `
     position: relative;
   }
 
-  .ch-dash-header {
-    margin-bottom: 44px;
-  }
+  .ch-dash-header { margin-bottom: 44px; }
 
   .ch-dash-eyebrow {
     display: inline-flex;
@@ -127,10 +123,7 @@ const dashStyles = `
     margin-bottom: 8px;
   }
 
-  .ch-dash-title em {
-    font-style: italic;
-    color: var(--rose);
-  }
+  .ch-dash-title em { font-style: italic; color: var(--rose); }
 
   .ch-dash-subtitle {
     font-size: 0.88rem;
@@ -138,7 +131,6 @@ const dashStyles = `
     font-weight: 300;
   }
 
-  /* Stat cards */
   .ch-stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -164,9 +156,7 @@ const dashStyles = `
   .ch-stat-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
   }
 
@@ -175,13 +165,7 @@ const dashStyles = `
   .ch-stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--sage), #c5dfc8); }
   .ch-stat-card:nth-child(4)::before { background: linear-gradient(90deg, var(--amber), #f5d4a0); }
 
-  .ch-stat-card-icon {
-    font-size: 1.6rem;
-    margin-bottom: 16px;
-    display: block;
-    line-height: 1;
-  }
-
+  .ch-stat-card-icon { font-size: 1.6rem; margin-bottom: 16px; display: block; line-height: 1; }
   .ch-stat-card-num {
     font-family: 'Playfair Display', serif;
     font-size: 2.2rem;
@@ -192,7 +176,6 @@ const dashStyles = `
     display: block;
     margin-bottom: 6px;
   }
-
   .ch-stat-card-label {
     font-size: 0.72rem;
     letter-spacing: 0.16em;
@@ -201,7 +184,6 @@ const dashStyles = `
     font-weight: 700;
   }
 
-  /* Product list section */
   .ch-dash-section {
     background: var(--warm-white);
     border: 1px solid var(--border);
@@ -235,15 +217,8 @@ const dashStyles = `
     border-radius: 2px;
   }
 
-  .ch-product-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .ch-product-table thead tr {
-    background: rgba(253, 246, 236, 0.7);
-  }
-
+  .ch-product-table { width: 100%; border-collapse: collapse; }
+  .ch-product-table thead tr { background: rgba(253, 246, 236, 0.7); }
   .ch-product-table th {
     text-align: left;
     padding: 12px 28px;
@@ -254,22 +229,18 @@ const dashStyles = `
     font-weight: 700;
     border-bottom: 1px solid var(--border);
   }
-
   .ch-product-table tbody tr {
     border-bottom: 1px solid rgba(212, 115, 94, 0.08);
     transition: background 0.15s ease;
   }
-
   .ch-product-table tbody tr:last-child { border-bottom: none; }
   .ch-product-table tbody tr:hover { background: rgba(253, 246, 236, 0.6); }
-
   .ch-product-table td {
     padding: 14px 28px;
     font-size: 0.85rem;
     color: var(--charcoal);
     vertical-align: middle;
   }
-
   .ch-product-table td:first-child {
     font-weight: 400;
     max-width: 280px;
@@ -305,12 +276,7 @@ const dashStyles = `
     font-weight: 300;
   }
 
-  .ch-empty-state-emoji {
-    font-size: 2.5rem;
-    display: block;
-    margin-bottom: 12px;
-    opacity: 0.5;
-  }
+  .ch-empty-state-emoji { font-size: 2.5rem; display: block; margin-bottom: 12px; opacity: 0.5; }
 
   .ch-dash-loading {
     display: flex;
@@ -335,13 +301,7 @@ const dashStyles = `
 
   @keyframes chSpin { to { transform: rotate(360deg); } }
 
-  /* Summary row */
-  .ch-cat-summary {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 40px;
-  }
+  .ch-cat-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
 
   .ch-cat-pill {
     display: flex;
@@ -355,25 +315,10 @@ const dashStyles = `
     color: var(--muted);
   }
 
-  .ch-cat-pill-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--rose);
-    flex-shrink: 0;
-  }
+  .ch-cat-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rose); flex-shrink: 0; }
+  .ch-cat-pill strong { color: var(--charcoal); font-weight: 700; }
 
-  .ch-cat-pill strong {
-    color: var(--charcoal);
-    font-weight: 700;
-  }
-
-  @media (max-width: 768px) {
-    .ch-dash { padding: 32px 24px; }
-    .ch-dash-title { font-size: 1.8rem; }
-    .ch-product-table { display: none; }
-  }
-    /* ─── FOOTER ─── */
+  /* ─── FOOTER ─── */
   .ch-footer {
     position: relative;
     z-index: 1;
@@ -398,10 +343,42 @@ const dashStyles = `
     gap: 8px;
   }
 
-  .ch-footer-copy {
-    font-size: 0.78rem;
-    color: var(--muted);
-    letter-spacing: 0.04em;
+  .ch-footer-copy { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
+
+  /* ─── TABLET (769px – 1024px) ─── */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .ch-header { margin-left: -5%; width: 110%; }
+    .ch-header-inner { padding: 32px 32px 28px; margin-right: 0; }
+    .ch-dash { padding: 36px 32px; }
+    .ch-dash-title { font-size: 2rem; }
+    .ch-stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .ch-product-table th:last-child,
+    .ch-product-table td:last-child { display: none; }
+    .ch-footer { margin-left: -3%; width: 106%; padding: 24px 32px; }
+  }
+
+  /* ─── MOBILE (≤ 768px) ─── */
+  @media (max-width: 768px) {
+    .ch-header { display: none; }
+    .ch-dash { padding: 80px 16px 24px; }
+    .ch-dash-title { font-size: 1.6rem; }
+    .ch-dash-subtitle { font-size: 0.82rem; }
+    .ch-stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 28px; }
+    .ch-stat-card { padding: 18px 16px 14px; }
+    .ch-stat-card-num { font-size: 1.5rem; }
+    .ch-cat-summary { gap: 8px; margin-bottom: 24px; }
+    .ch-cat-pill { font-size: 0.72rem; padding: 6px 12px; }
+    .ch-product-table { display: none; }
+    .ch-dash-section-head { padding: 16px 18px; }
+    .ch-dash-section-title { font-size: 1rem; }
+    .ch-footer {
+      margin-left: 0;
+      width: 100%;
+      padding: 20px 16px;
+      flex-direction: column;
+      gap: 6px;
+      text-align: center;
+    }
   }
 `;
 
@@ -410,9 +387,7 @@ const Dashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
@@ -453,29 +428,25 @@ const Dashboard = () => {
 
   return (
     <>
-    <header className="ch-header">
-          <div className="ch-header-inner">
-            <div className="ch-logo-block">
-              <span className="ch-logo-yarn">🧶</span>
-              <div>
-                <div className="ch-logo-text">Crochet <span>Haven</span></div>
-                <div className="ch-tagline">Stitched with love, for you</div>
-              </div>
+      <header className="ch-header">
+        <div className="ch-header-inner">
+          <div className="ch-logo-block">
+            <span className="ch-logo-yarn">🧶</span>
+            <div>
+              <div className="ch-logo-text">Crochet <span>Haven</span></div>
+              <div className="ch-tagline">Stitched with love, for you</div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
       <style>{dashStyles}</style>
       <div className="ch-dash">
-        {/* Header */}
         <div className="ch-dash-header">
           <p className="ch-dash-eyebrow">Overview</p>
-          <h1 className="ch-dash-title">
-            Seller <em>Dashboard</em>
-          </h1>
+          <h1 className="ch-dash-title">Seller <em>Dashboard</em></h1>
           <p className="ch-dash-subtitle">Everything at a glance — your shop, your numbers.</p>
         </div>
 
-        {/* Stat cards */}
         <div className="ch-stat-grid">
           {[
             { icon: "🛍️", num: totalProducts, label: "Total Products" },
@@ -491,7 +462,6 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Category pills */}
         {Object.keys(groupedByCategory).length > 0 && (
           <div className="ch-cat-summary">
             {Object.entries(groupedByCategory).map(([cat, count]) => (
@@ -503,7 +473,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Product table */}
         <div className="ch-dash-section">
           <div className="ch-dash-section-head">
             <span className="ch-dash-section-title">All Products</span>
@@ -529,9 +498,7 @@ const Dashboard = () => {
                 {products.map((product) => (
                   <tr key={product.id}>
                     <td>{product.name}</td>
-                    <td>
-                      <span className="ch-product-cat-tag">{product.category}</span>
-                    </td>
+                    <td><span className="ch-product-cat-tag">{product.category}</span></td>
                     <td className="ch-product-price-cell">₱{parseFloat(product.price).toFixed(2)}</td>
                     <td style={{ fontSize: "0.75rem", color: "var(--muted)" }}>{product.id}</td>
                   </tr>
@@ -541,11 +508,10 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-      {/* ── FOOTER ── */}
-        <footer className="ch-footer">
-          <div className="ch-footer-logo">🧶 Crochet Haven</div>
-          <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
-        </footer>
+      <footer className="ch-footer">
+        <div className="ch-footer-logo">🧶 Crochet Haven</div>
+        <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
+      </footer>
     </>
   );
 };

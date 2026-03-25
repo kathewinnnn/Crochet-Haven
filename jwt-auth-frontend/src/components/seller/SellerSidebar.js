@@ -266,6 +266,126 @@ const sidebarStyles = `
     box-shadow: 0 4px 16px rgba(232,114,138,0.3);
   }
 
+  /* ── Mobile Topbar (hamburger) ── */
+  .ch-mobile-topbar {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--sb-bg);
+    z-index: 200;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--sb-border);
+    font-family: 'Lato', sans-serif;
+  }
+
+  .ch-mobile-topbar-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+
+  .ch-mobile-topbar-brand span { color: var(--sb-rose); }
+
+  .ch-hamburger {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.18s ease;
+  }
+
+  .ch-hamburger:hover { background: var(--sb-surface); }
+
+  .ch-hamburger-line {
+    width: 22px;
+    height: 2px;
+    background: rgba(255,255,255,0.82);
+    border-radius: 2px;
+    transition: all 0.28s ease;
+    transform-origin: center;
+  }
+
+  .ch-hamburger.open .ch-hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .ch-hamburger.open .ch-hamburger-line:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .ch-hamburger.open .ch-hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* Mobile drawer overlay */
+  .ch-mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 149;
+    backdrop-filter: blur(2px);
+    animation: ch-overlay-in 0.22s ease;
+  }
+
+  @keyframes ch-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Mobile drawer */
+  .ch-mobile-drawer {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 260px;
+    height: calc(100vh - 56px);
+    background: var(--sb-bg);
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ch-mobile-drawer.open {
+    transform: translateX(0);
+  }
+
+  .ch-mobile-drawer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ch-mobile-drawer-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
   .ch-ss-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -384,12 +504,115 @@ const sidebarStyles = `
   }
 
   .ch-ss-spinning-sub { font-size: 0.82rem; color: #8a7a74; font-weight: 300; }
+
+  /* ── Responsive breakpoints ── */
+  @media (max-width: 1024px) {
+    /* Tablet: sidebar stays but slightly narrower */
+    .ch-seller-sidebar {
+      width: 200px;
+    }
+    :root {
+      --sb-width: 200px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    /* Mobile: hide fixed sidebar, show topbar + drawer */
+    .ch-seller-sidebar {
+      display: none !important;
+    }
+    .ch-mobile-topbar {
+      display: flex;
+    }
+    .ch-mobile-overlay.visible {
+      display: block;
+    }
+  }
 `;
+
+const NavContent = ({ activePage, setActivePage, showProducts, setShowProducts, onItemClick }) => {
+  const isProductsActive = activePage === "add-product" || activePage === "categories";
+
+  const mainItems = [
+    { id: "dashboard", icon: "📊", label: "Dashboard" },
+    { id: "orders",    icon: "📦", label: "Orders" },
+    { id: "reports",   icon: "📈", label: "Reports" },
+  ];
+
+  const accountItems = [
+    { id: "settings", icon: "⚙️", label: "Settings" },
+    { id: "profile",  icon: "👤", label: "Profile" },
+  ];
+
+  const handleClick = (id) => {
+    setActivePage(id);
+    if (onItemClick) onItemClick();
+  };
+
+  return (
+    <>
+      <div className="ch-ss-section-lbl">Main</div>
+      <nav className="ch-ss-nav">
+        {mainItems.map((item) => (
+          <div
+            key={item.id}
+            className={`ch-ss-item ${activePage === item.id ? "active" : ""}`}
+            onClick={() => handleClick(item.id)}
+          >
+            <span className="ch-ss-icon">{item.icon}</span>
+            <span className="ch-ss-label">{item.label}</span>
+          </div>
+        ))}
+
+        <div
+          className={`ch-ss-item ${isProductsActive ? "active" : ""}`}
+          onClick={() => setShowProducts(!showProducts)}
+        >
+          <span className="ch-ss-icon">🛍️</span>
+          <span className="ch-ss-label">Products</span>
+          <span className={`ch-ss-chevron ${showProducts ? "open" : ""}`}>▶</span>
+        </div>
+
+        <div className={`ch-ss-submenu ${showProducts ? "open" : ""}`}>
+          <div
+            className={`ch-ss-sub-item ${activePage === "add-product" ? "active" : ""}`}
+            onClick={() => handleClick("add-product")}
+          >
+            <div className="ch-ss-sub-dot" />
+            Add Products
+          </div>
+          <div
+            className={`ch-ss-sub-item ${activePage === "categories" ? "active" : ""}`}
+            onClick={() => handleClick("categories")}
+          >
+            <div className="ch-ss-sub-dot" />
+            Categories
+          </div>
+        </div>
+
+        <div className="ch-ss-divider" />
+        <div className="ch-ss-section-lbl" style={{ padding: "8px 2px 8px" }}>Account</div>
+
+        {accountItems.map((item) => (
+          <div
+            key={item.id}
+            className={`ch-ss-item ${activePage === item.id ? "active" : ""}`}
+            onClick={() => handleClick(item.id)}
+          >
+            <span className="ch-ss-icon">{item.icon}</span>
+            <span className="ch-ss-label">{item.label}</span>
+          </div>
+        ))}
+      </nav>
+    </>
+  );
+};
 
 const SellerSidebar = ({ setActivePage, activePage }) => {
   const [showProducts, setShowProducts] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const cancelButtonRef = useRef(null);
   const navigate = useNavigate();
 
@@ -404,36 +627,36 @@ const SellerSidebar = ({ setActivePage, activePage }) => {
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === "Escape" && showLogoutModal && !isLoggingOut) setShowLogoutModal(false);
+      if (e.key === "Escape") {
+        if (mobileOpen) setMobileOpen(false);
+        if (showLogoutModal && !isLoggingOut) setShowLogoutModal(false);
+      }
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [showLogoutModal, isLoggingOut]);
+  }, [showLogoutModal, isLoggingOut, mobileOpen]);
 
   useEffect(() => {
     if (showLogoutModal && !isLoggingOut && cancelButtonRef.current) cancelButtonRef.current.focus();
   }, [showLogoutModal, isLoggingOut]);
 
-  const mainItems = [
-    { id: "dashboard", icon: "📊", label: "Dashboard" },
-    { id: "orders",    icon: "📦", label: "Orders" },
-    { id: "reports",   icon: "📈", label: "Reports" },
-  ];
-
-  const accountItems = [
-    { id: "settings", icon: "⚙️", label: "Settings" },
-    { id: "profile",  icon: "👤", label: "Profile" },
-  ];
-
-  const isProductsActive = activePage === "add-product" || activePage === "categories";
+  // Prevent body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
 
   return (
     <>
       <style>{sidebarStyles}</style>
+
+      {/* ── Desktop / Tablet Sidebar ── */}
       <aside className="ch-seller-sidebar">
         <div className="ch-ss-inner">
-
-          {/* Logo */}
           <div className="ch-ss-logo">
             <img
               src="/img/ch.png"
@@ -448,63 +671,13 @@ const SellerSidebar = ({ setActivePage, activePage }) => {
             </div>
           </div>
 
-          {/* Nav */}
-          <div className="ch-ss-section-lbl">Main</div>
-          <nav className="ch-ss-nav">
-            {mainItems.map((item) => (
-              <div
-                key={item.id}
-                className={`ch-ss-item ${activePage === item.id ? "active" : ""}`}
-                onClick={() => setActivePage(item.id)}
-              >
-                <span className="ch-ss-icon">{item.icon}</span>
-                <span className="ch-ss-label">{item.label}</span>
-              </div>
-            ))}
+          <NavContent
+            activePage={activePage}
+            setActivePage={setActivePage}
+            showProducts={showProducts}
+            setShowProducts={setShowProducts}
+          />
 
-            {/* Products dropdown */}
-            <div
-              className={`ch-ss-item ${isProductsActive ? "active" : ""}`}
-              onClick={() => setShowProducts(!showProducts)}
-            >
-              <span className="ch-ss-icon">🛍️</span>
-              <span className="ch-ss-label">Products</span>
-              <span className={`ch-ss-chevron ${showProducts ? "open" : ""}`}>▶</span>
-            </div>
-
-            <div className={`ch-ss-submenu ${showProducts ? "open" : ""}`}>
-              <div
-                className={`ch-ss-sub-item ${activePage === "add-product" ? "active" : ""}`}
-                onClick={() => setActivePage("add-product")}
-              >
-                <div className="ch-ss-sub-dot" />
-                Add Products
-              </div>
-              <div
-                className={`ch-ss-sub-item ${activePage === "categories" ? "active" : ""}`}
-                onClick={() => setActivePage("categories")}
-              >
-                <div className="ch-ss-sub-dot" />
-                Categories
-              </div>
-            </div>
-
-            <div className="ch-ss-divider" />
-            <div className="ch-ss-section-lbl" style={{ padding: "8px 2px 8px" }}>Account</div>
-
-            {accountItems.map((item) => (
-              <div
-                key={item.id}
-                className={`ch-ss-item ${activePage === item.id ? "active" : ""}`}
-                onClick={() => setActivePage(item.id)}
-              >
-                <span className="ch-ss-icon">{item.icon}</span>
-                <span className="ch-ss-label">{item.label}</span>
-              </div>
-            ))}
-          </nav>
-
-          {/* Logout */}
           <div className="ch-ss-footer">
             <button className="ch-ss-logout" onClick={() => setShowLogoutModal(true)}>
               <span>🚪</span> Logout
@@ -512,6 +685,48 @@ const SellerSidebar = ({ setActivePage, activePage }) => {
           </div>
         </div>
       </aside>
+
+      {/* ── Mobile Topbar ── */}
+      <div className="ch-mobile-topbar">
+        <div className="ch-mobile-topbar-brand">Crochet <span>Haven</span></div>
+        <button
+          className={`ch-hamburger ${mobileOpen ? "open" : ""}`}
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+        >
+          <div className="ch-hamburger-line" />
+          <div className="ch-hamburger-line" />
+          <div className="ch-hamburger-line" />
+        </button>
+      </div>
+
+      {/* Mobile overlay */}
+      <div
+        className={`ch-mobile-overlay ${mobileOpen ? "visible" : ""}`}
+        onClick={() => setMobileOpen(false)}
+      />
+
+      {/* ── Mobile Drawer ── */}
+      <div className={`ch-mobile-drawer ${mobileOpen ? "open" : ""}`}>
+        <div className="ch-mobile-drawer-inner">
+          <NavContent
+            activePage={activePage}
+            setActivePage={setActivePage}
+            showProducts={showProducts}
+            setShowProducts={setShowProducts}
+            onItemClick={() => setMobileOpen(false)}
+          />
+
+          <div className="ch-ss-footer">
+            <button
+              className="ch-ss-logout"
+              onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }}
+            >
+              <span>🚪</span> Logout
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Logout Modal */}
       {showLogoutModal && (

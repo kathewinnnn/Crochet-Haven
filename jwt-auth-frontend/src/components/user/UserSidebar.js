@@ -97,6 +97,11 @@ const sidebarStyles = `
     border: 2px solid var(--sb-rose);
   }
 
+  .ch-sb-brand-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
   .ch-sb-brand {
     font-family: 'Playfair Display', serif;
     font-size: 1.05rem;
@@ -104,6 +109,7 @@ const sidebarStyles = `
     color: #fff;
     line-height: 1;
     letter-spacing: -0.01em;
+    flex: 1;
   }
 
   .ch-sb-brand span { color: var(--sb-rose); }
@@ -114,6 +120,31 @@ const sidebarStyles = `
     text-transform: uppercase;
     color: var(--sb-muted);
     margin-top: 4px;
+  }
+
+  /* Close button — only visible on mobile/tablet inside the logo area */
+  .ch-sb-close {
+    display: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    font-size: 0.9rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0;
+  }
+
+  .ch-sb-close:hover {
+    background: rgba(232,114,138,0.2);
+    border-color: rgba(232,114,138,0.4);
+    color: #fff;
   }
 
   /* ─── SECTION LABEL ─── */
@@ -321,17 +352,6 @@ const sidebarStyles = `
     transform-origin: center;
   }
 
-  .ch-hamburger.open .ch-hamburger-bar:nth-child(1) {
-    transform: translateY(7px) rotate(45deg);
-  }
-  .ch-hamburger.open .ch-hamburger-bar:nth-child(2) {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-  .ch-hamburger.open .ch-hamburger-bar:nth-child(3) {
-    transform: translateY(-7px) rotate(-45deg);
-  }
-
   /* ─── MOBILE OVERLAY ─── */
   .ch-sb-overlay {
     display: none;
@@ -475,16 +495,15 @@ const sidebarStyles = `
 
   /* ─── RESPONSIVE ─── */
 
-  /* Tablet (768px - 1024px): sidebar stays but slightly narrower, content adjusts */
+  /* Tablet (768px - 1024px) */
   @media (max-width: 1024px) and (min-width: 769px) {
     :root { --sb-width: 220px; }
+    .ch-sb-close { display: flex; }
   }
 
   /* Mobile (≤768px): hamburger shows, sidebar becomes a drawer */
   @media (max-width: 768px) {
-    .ch-hamburger {
-      display: flex;
-    }
+    .ch-hamburger { display: flex; }
 
     .ch-sidebar {
       transform: translateX(-100%);
@@ -498,9 +517,8 @@ const sidebarStyles = `
       box-shadow: 8px 0 40px rgba(0,0,0,0.4);
     }
 
-    .ch-sb-overlay {
-      display: block;
-    }
+    .ch-sb-overlay { display: block; }
+    .ch-sb-close { display: flex; }
   }
 `;
 
@@ -581,11 +599,11 @@ const UserSidebar = () => {
     <>
       <style>{sidebarStyles}</style>
 
-      {/* Hamburger button (mobile only) */}
+      {/* Hamburger button (mobile only) — plain ☰ lines, no X animation */}
       <button
-        className={`ch-hamburger${mobileOpen ? ' open' : ''}`}
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+        className="ch-hamburger"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
       >
         <span className="ch-hamburger-bar" />
         <span className="ch-hamburger-bar" />
@@ -600,7 +618,7 @@ const UserSidebar = () => {
       <aside className={`ch-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="ch-sb-inner">
 
-          {/* Logo */}
+          {/* Logo — X close button lives here on mobile/tablet */}
           <div className="ch-sb-logo" onClick={() => handleNavClick("/user")}>
             <img
               src="/img/ch.png"
@@ -609,10 +627,18 @@ const UserSidebar = () => {
               onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
             />
             <div className="ch-sb-logo-fallback" style={{ display: 'none' }}>🧶</div>
-            <div>
+            <div className="ch-sb-brand-wrapper">
               <div className="ch-sb-brand">Crochet <span>Haven</span></div>
               <div className="ch-sb-tagline">Shop Zone</div>
             </div>
+            {/* X close button — only shown on mobile/tablet via CSS */}
+            <button
+              className="ch-sb-close"
+              onClick={(e) => { e.stopPropagation(); setMobileOpen(false); }}
+              aria-label="Close sidebar"
+            >
+              ✕
+            </button>
           </div>
 
           {/* Nav */}
