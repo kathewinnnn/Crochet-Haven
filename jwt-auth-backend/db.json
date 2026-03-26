@@ -170,36 +170,6 @@
   ],
   "orders": [
     {
-      "id": "1770531605105",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812"
-      },
-      "items": [
-        {
-          "id": "2",
-          "name": "Crochet Tote Bags",
-          "price": 200,
-          "quantity": 2,
-          "selectedImage": "/img/bag/3.jpg"
-        },
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 2,
-          "selectedImage": "/img/keychain/7.jpg"
-        }
-      ],
-      "total": 500,
-      "createdAt": "2026-02-08T06:20:05.105Z",
-      "status": "Delivered"
-    },
-    {
       "id": "1770537121888",
       "customer": {
         "fullName": "Katherine Mae V. Guzman",
@@ -229,181 +199,7 @@
       ],
       "total": 50,
       "createdAt": "2026-02-08T07:52:01.888Z",
-      "status": "Shipped"
-    },
-    {
-      "id": "1771123090127",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812",
-        "paymentMethod": "cod",
-        "gcashNumber": "",
-        "paymayaNumber": "",
-        "cardNumber": "",
-        "cardExpiry": "",
-        "cardCvv": "",
-        "cardName": "",
-        "orderNote": "i want the pink one"
-      },
-      "paymentMethod": "cod",
-      "items": [
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 1,
-          "selectedImage": "/img/keychain/7.jpg"
-        }
-      ],
-      "total": 50,
-      "createdAt": "2026-02-15T02:38:10.127Z",
       "status": "Cancelled"
-    },
-    {
-      "id": "1771131856655",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812",
-        "paymentMethod": "cod",
-        "gcashNumber": "",
-        "paymayaNumber": "",
-        "cardNumber": "",
-        "cardExpiry": "",
-        "cardCvv": "",
-        "cardName": "",
-        "orderNote": ""
-      },
-      "paymentMethod": "cod",
-      "items": [
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 1,
-          "selectedImage": "/img/keychain/2.jpg"
-        }
-      ],
-      "total": 50,
-      "createdAt": "2026-02-15T05:04:16.655Z",
-      "status": "Cancelled"
-    },
-    {
-      "id": "1771322082906",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812",
-        "paymentMethod": "cod",
-        "gcashNumber": "",
-        "paymayaNumber": "",
-        "cardNumber": "",
-        "cardExpiry": "",
-        "cardCvv": "",
-        "cardName": "",
-        "orderNote": ""
-      },
-      "paymentMethod": "cod",
-      "items": [
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 1,
-          "selectedImage": "/img/keychain/5.jpg"
-        }
-      ],
-      "total": 50,
-      "createdAt": "2026-02-17T09:54:42.906Z",
-      "status": "Cancelled"
-    },
-    {
-      "id": "1771755762928",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812",
-        "paymentMethod": "cod",
-        "gcashNumber": "",
-        "paymayaNumber": "",
-        "cardNumber": "",
-        "cardExpiry": "",
-        "cardCvv": "",
-        "cardName": "",
-        "orderNote": ""
-      },
-      "paymentMethod": "cod",
-      "items": [
-        {
-          "id": "6",
-          "name": "Crochet Bouquet",
-          "price": 200,
-          "quantity": 1,
-          "selectedImage": "/img/flower/1.jpg"
-        }
-      ],
-      "total": 200,
-      "createdAt": "2026-02-22T10:22:42.928Z",
-      "status": "Shipped"
-    },
-    {
-      "id": "1772071786292",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812",
-        "paymentMethod": "gcash",
-        "gcashNumber": "1234568",
-        "paymayaNumber": "",
-        "cardNumber": "",
-        "cardExpiry": "",
-        "cardCvv": "",
-        "cardName": "",
-        "orderNote": ""
-      },
-      "paymentMethod": "gcash",
-      "items": [
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 1,
-          "selectedImage": "/img/keychain/1.jpg"
-        },
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 2,
-          "selectedImage": "/img/keychain/10.jpg"
-        },
-        {
-          "id": "5",
-          "name": "Crochet Headband & Bandana",
-          "price": 50,
-          "quantity": 2,
-          "selectedImage": "/img/headband/9.jpg"
-        }
-      ],
-      "total": 250,
-      "createdAt": "2026-02-26T02:09:46.292Z",
-      "status": "Processing"
     },
     {
       "id": "1774512052035",
@@ -435,7 +231,7 @@
       ],
       "total": 50,
       "createdAt": "2026-03-26T08:00:52.035Z",
-      "status": "Pending"
+      "status": "Delivered"
     },
     {
       "id": "1774512544191",
@@ -467,6 +263,106 @@
       ],
       "total": 50,
       "createdAt": "2026-03-26T08:09:04.191Z",
+      "status": "Shipped"
+    },
+    {
+      "id": "1774519248776",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "1",
+          "name": "Crochet Keychain",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/keychain/1.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-03-26T10:00:48.776Z",
+      "status": "Pending"
+    },
+    {
+      "id": "1774527642313",
+      "userId": "1774506570487",
+      "username": "katherine",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "5",
+          "name": "Crochet Headband & Bandana",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/headband/1.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-03-26T12:20:42.313Z",
+      "status": "Pending"
+    },
+    {
+      "id": "1774527778564",
+      "userId": "1771755466175",
+      "username": "kth.gzmn",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "gcash",
+        "gcashNumber": "09629556678",
+        "paymayaNumber": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "gcash",
+      "items": [
+        {
+          "id": "6",
+          "name": "Crochet Bouquet",
+          "price": 200,
+          "quantity": 1,
+          "selectedImage": "/img/flower/1.jpg"
+        }
+      ],
+      "total": 200,
+      "createdAt": "2026-03-26T12:22:58.564Z",
       "status": "Pending"
     }
   ]

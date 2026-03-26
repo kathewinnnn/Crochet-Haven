@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../apiConfig';
@@ -665,38 +665,75 @@ const checkoutStyles = `
 }
 `;
 
+// ── Helper: decode userId from JWT ───────────────────────────────────────────
+const getUserIdFromToken = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return String(payload.id || payload.userId || payload.sub || '');
+  } catch {
+    return '';
+  }
+};
+
 // ── Mobile number validation helper ──────────────────────────────────────────
-// Accepts: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
-// Returns an error string if invalid, or '' if valid.
 const validateMobileNumber = (value) => {
-  if (!value) return ''; // empty — let HTML `required` handle it
-
+  if (!value) return '';
   const trimmed = value.trim();
-
-  // Strip all spaces for length counting
   const stripped = trimmed.replace(/\s+/g, '');
 
   if (stripped.startsWith('+63')) {
-    // +63 format: must be exactly +63 followed by 10 digits = 13 chars total
-    const digits = stripped.slice(3); // everything after +63
+    const digits = stripped.slice(3);
     if (!/^\d+$/.test(digits)) return 'Only digits are allowed after +63.';
     if (digits.length < 10) return `Incomplete number — ${10 - digits.length} more digit(s) needed after +63.`;
     if (digits.length > 10) return 'Too many digits — must be +63 followed by exactly 10 digits.';
     if (!digits.startsWith('9')) return 'Number after +63 must start with 9 (e.g. +639XXXXXXXXX).';
-    return ''; // valid
+    return '';
   }
 
   if (stripped.startsWith('0')) {
-    // 09XXXXXXXXX format: exactly 11 digits
     if (!/^\d+$/.test(stripped)) return 'Mobile number must contain digits only.';
     if (stripped.length < 11) return `Incomplete number — must be 11 digits (currently ${stripped.length}).`;
     if (stripped.length > 11) return 'Too many digits — mobile number must be exactly 11 digits.';
     if (!stripped.startsWith('09')) return 'Number must start with 09 (e.g. 09XXXXXXXXX).';
-    return ''; // valid
+    return '';
   }
 
-  // Doesn't start with 0 or +63
   return 'Enter a valid PH number starting with 09 or +63.';
+};
+
+const resolveCurrentUserId = () => {
+  // Same logic as Orders.js
+  const direct = localStorage.getItem('userId');
+  if (direct) return String(direct);
+
+  try {
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      const p = JSON.parse(raw);
+      const id = p?.id || p?.userId;
+      if (id) return String(id);
+    }
+  } catch {}
+
+  try {
+    const raw = localStorage.getItem('ch_user');
+    if (raw) {
+      const p = JSON.parse(raw);
+      const id = p?.id || p?.userId;
+      if (id) return String(id);
+    }
+  } catch {}
+
+  try {
+    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const id = payload?.id || payload?.userId || payload?.sub;
+      if (id) return String(id);
+    }
+  } catch {}
+
+  return null;
 };
 
 const Checkout = () => {
@@ -707,16 +744,21 @@ const Checkout = () => {
     paymentMethod: '', gcashNumber: '', paymayaNumber: '',
     cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '', orderNote: ''
   });
+
+  // LOGIN GUARD: Redirect if not authenticated
+  useEffect(() => {
+    const currentUserId = resolveCurrentUserId();
+    if (!currentUserId) {
+      navigate('/login', { state: { from: '/user/checkout' } });
+      return;
+    }
+  }, [navigate]);
+
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mobileErrors, setMobileErrors] = useState({ gcashNumber: '', paymayaNumber: '' });
 
-  // ── Live validation errors ──────────────────────────────────────────────
-  const [mobileErrors, setMobileErrors] = useState({
-    gcashNumber: '',
-    paymayaNumber: '',
-  });
-
-  // Use selected items from cart instead of all cart items
   const safeCart = selectedItems.length > 0 ? getSelectedItems() : (Array.isArray(cart) ? cart : []);
 
   const total = safeCart.reduce((sum, item) => {
@@ -734,21 +776,14 @@ const Checkout = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Validate mobile fields on every keystroke
     if (name === 'gcashNumber' || name === 'paymayaNumber') {
-      setMobileErrors(prev => ({
-        ...prev,
-        [name]: value ? validateMobileNumber(value) : '',
-      }));
+      setMobileErrors(prev => ({ ...prev, [name]: value ? validateMobileNumber(value) : '' }));
     }
-
-    // Clear the sibling error when switching payment method
     if (name === 'paymentMethod') {
       setMobileErrors({ gcashNumber: '', paymayaNumber: '' });
     }
   };
 
-  // Determine if the form can be submitted (no active mobile errors)
   const activeMobileField = formData.paymentMethod === 'gcash'
     ? 'gcashNumber'
     : formData.paymentMethod === 'paymaya'
@@ -757,14 +792,12 @@ const Checkout = () => {
 
   const hasMobileError = activeMobileField
     ? (mobileErrors[activeMobileField] !== '' ||
-       (formData[activeMobileField] &&
-        validateMobileNumber(formData[activeMobileField]) !== ''))
+       (formData[activeMobileField] && validateMobileNumber(formData[activeMobileField]) !== ''))
     : false;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Final guard: revalidate mobile number before submitting
     if (activeMobileField) {
       const err = validateMobileNumber(formData[activeMobileField]);
       if (err) {
@@ -775,7 +808,23 @@ const Checkout = () => {
 
     setIsLoading(true);
     try {
+      // ── Resolve the logged-in user's ID ────────────────────────────────────
+      const token = localStorage.getItem('token');
+      let userId = localStorage.getItem('userId');
+
+      // Fall back to JWT decoding if localStorage doesn't have it
+      if (!userId && token) {
+        userId = getUserIdFromToken(token);
+        if (userId) localStorage.setItem('userId', userId);
+      }
+
+      // Also grab username if stored
+      const username = localStorage.getItem('username') || '';
+
       const orderData = {
+        // ── KEY FIX: attach userId and username so Orders page can filter ──
+        userId,
+        username,
         customer: formData,
         paymentMethod: formData.paymentMethod,
         items: safeCart.map(item => ({
@@ -791,13 +840,19 @@ const Checkout = () => {
 
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(orderData),
       });
 
       if (response.ok) {
         setIsSubmitted(true);
         clearCart();
+        // Notify the Orders page that a new order was placed
+        try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
+        window.dispatchEvent(new CustomEvent('ordersUpdated'));
       } else {
         const errorData = await response.json();
         alert('Failed to place order: ' + (errorData.error || 'Unknown error'));
@@ -858,7 +913,6 @@ const Checkout = () => {
       <style>{checkoutStyles}</style>
       <div className="ch-co-page">
 
-        {/* ── Header ── */}
         <header className="ch-co-header">
           <div className="ch-co-header-inner">
             <div className="ch-co-logo-block">
@@ -875,7 +929,6 @@ const Checkout = () => {
           </div>
         </header>
 
-        {/* ── Main ── */}
         <main className="ch-co-main">
           {safeCart.length === 0 ? (
             <div className="ch-co-empty">
@@ -914,7 +967,7 @@ const Checkout = () => {
                         </div>
                         <div className="ch-co-form-group">
                           <label className="ch-co-label" htmlFor="phone">Phone</label>
-                          <input style={{width: '90%'}} className="ch-co-input" type="tel" id="phone" name="phone" 
+                          <input style={{width: '90%'}} className="ch-co-input" type="tel" id="phone" name="phone"
                             value={formData.phone} onChange={handleChange} required placeholder="+63 912 345 6789" />
                         </div>
                       </div>
@@ -977,13 +1030,9 @@ const Checkout = () => {
                           <label className="ch-co-label" htmlFor="gcashNumber">GCash Number</label>
                           <input
                             className={`ch-co-input${mobileErrors.gcashNumber ? ' has-error' : ''}`}
-                            type="tel"
-                            id="gcashNumber"
-                            name="gcashNumber"
-                            value={formData.gcashNumber}
-                            onChange={handleChange}
-                            required
-                            placeholder="09XXXXXXXXX"
+                            type="tel" id="gcashNumber" name="gcashNumber"
+                            value={formData.gcashNumber} onChange={handleChange}
+                            required placeholder="09XXXXXXXXX"
                           />
                           {mobileErrors.gcashNumber && (
                             <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>
@@ -997,13 +1046,9 @@ const Checkout = () => {
                           <label className="ch-co-label" htmlFor="paymayaNumber">PayMaya Number</label>
                           <input
                             className={`ch-co-input${mobileErrors.paymayaNumber ? ' has-error' : ''}`}
-                            type="tel"
-                            id="paymayaNumber"
-                            name="paymayaNumber"
-                            value={formData.paymayaNumber}
-                            onChange={handleChange}
-                            required
-                            placeholder="09XXXXXXXXX"
+                            type="tel" id="paymayaNumber" name="paymayaNumber"
+                            value={formData.paymayaNumber} onChange={handleChange}
+                            required placeholder="09XXXXXXXXX"
                           />
                           {mobileErrors.paymayaNumber && (
                             <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>
@@ -1098,13 +1143,16 @@ const Checkout = () => {
 
                     {/* Order note */}
                     <div className="ch-co-form-group">
-                      <label className="ch-co-label" htmlFor="orderNote">Order Note <span style={{ opacity: 0.5, fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+                      <label className="ch-co-label" htmlFor="orderNote">
+                        Order Note{' '}
+                        <span style={{ opacity: 0.5, fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>
+                          (optional)
+                        </span>
+                      </label>
                       <textarea
                         className="ch-co-textarea"
-                        id="orderNote"
-                        name="orderNote"
-                        value={formData.orderNote}
-                        onChange={handleChange}
+                        id="orderNote" name="orderNote"
+                        value={formData.orderNote} onChange={handleChange}
                         placeholder="Color preference, gift wrapping, special instructions…"
                         rows="3"
                       />
@@ -1120,7 +1168,6 @@ const Checkout = () => {
           )}
         </main>
 
-        {/* ── Footer ── */}
         <footer className="ch-co-footer">
           <div className="ch-co-footer-logo">🧶 Crochet Haven</div>
           <p className="ch-co-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>

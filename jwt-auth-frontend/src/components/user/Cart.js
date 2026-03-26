@@ -183,10 +183,48 @@ const styles = `
 }
 `;
 
+const resolveCurrentUserId = () => {
+  // Same as Orders.js/Checkout.js
+  const direct = localStorage.getItem('userId');
+  if (direct) return String(direct);
+
+  try {
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      const p = JSON.parse(raw);
+      const id = p?.id || p?.userId;
+      if (id) return String(id);
+    }
+  } catch {}
+
+  try {
+    const raw = localStorage.getItem('ch_user');
+    if (raw) {
+      const p = JSON.parse(raw);
+      const id = p?.id || p?.userId;
+      if (id) return String(id);
+    }
+  } catch {}
+
+  try {
+    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const id = payload?.id || payload?.userId || payload?.sub;
+      if (id) return String(id);
+    }
+  } catch {}
+
+  return null;
+};
+
 const Cart = () => {
   const { cart, removeFromCart, incrementQuantity, decrementQuantity, selectedItems, toggleSelected, selectAll, deselectAll, getSelectedItems } = useCart();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+
+  const currentUserId = resolveCurrentUserId();
+  const isAuthenticated = !!currentUserId;
 
   const safeCart = Array.isArray(cart) ? cart : [];
   const sortedCart = [...safeCart].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
@@ -205,6 +243,11 @@ const Cart = () => {
   const fmt = (p) => (isNaN(parseFloat(p)) ? '0.00' : parseFloat(p).toFixed(2));
 
   const handleCheckout = () => {
+    const currentUserId = resolveCurrentUserId();
+    if (!currentUserId) {
+      setError('Please log in to proceed to checkout.');
+      return;
+    }
     if (selectedCount === 0) { setError('Please select at least one item to checkout.'); return; }
     setError('');
     navigate('/user/checkout');

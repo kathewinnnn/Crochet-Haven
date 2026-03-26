@@ -144,6 +144,24 @@ app.post("/orders/:id/cancel", (req, res) => {
   }
 });
 
+// Delete order
+app.delete("/orders/:id", (req, res) => {
+  try {
+    const db = readDb();
+    const { id } = req.params;
+    const index = db.orders.findIndex(o => o.id === id);
+    if (index !== -1) {
+      db.orders.splice(index, 1);
+      writeDb(db);
+      res.json({ message: "Order deleted successfully" });
+    } else {
+      res.status(404).json({ error: "Order not found" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete order" });
+  }
+});
+
 // Get latest order (for polling)
 app.get("/orders/latest", (req, res) => {
   try {

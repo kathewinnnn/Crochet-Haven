@@ -198,18 +198,29 @@ const Login = () => {
       const token   = res.data.token;
       const decoded = jwtDecode(token);
 
-      // ── Save with consistent keys ──────────────────────────────────────
-      // Both 'token' (legacy) and 'ch_token' so CartContext finds whichever exists.
+      // ── Save tokens ────────────────────────────────────────────────────────
       localStorage.setItem('token',    token);
       localStorage.setItem('ch_token', token);
 
-      // Save the full decoded user under both key names so CartContext
-      // and userStorage helpers all resolve to the same user ID.
+      // ── Build user object and save under both key names ────────────────────
       const userObj = { ...decoded };
       localStorage.setItem('user',    JSON.stringify(userObj));
       localStorage.setItem('ch_user', JSON.stringify(userObj));
 
-      // ── Tell CartContext to reload for this user ────────────────────────
+      // ── KEY FIX: Always persist userId as its own key so Orders.js,
+      //    Checkout.js, and Profile.js all resolve the same ID without
+      //    having to decode the JWT every time.
+      const resolvedId = decoded.id || decoded.userId || decoded.sub;
+      if (resolvedId) {
+        localStorage.setItem('userId', String(resolvedId));
+      }
+
+      // Also persist username for Checkout
+      if (decoded.username) {
+        localStorage.setItem('username', decoded.username);
+      }
+
+      // ── Notify CartContext to reload for this user ─────────────────────────
       window.dispatchEvent(new Event('userAuthChanged'));
 
       setLoggedInUser(decoded.username || username);

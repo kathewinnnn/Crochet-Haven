@@ -8,12 +8,9 @@ import {
   saveUserProfile,
   saveAvatar,
   clearUserData,
+  resolveUserId,
 } from "../../pages/userStorage";
 
-/* ─────────────────────────────────────────────────────────────
-   All CSS is unchanged from the original; only the JS logic
-   is updated to use the shared userStorage helpers.
-───────────────────────────────────────────────────────────── */
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
 
@@ -150,7 +147,6 @@ const styles = `
   .ch-danger-btn { padding: 10px 20px; background: #dc2626; color: #fff; border: none; border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; flex-shrink: 0; transition: all 0.2s ease; }
   .ch-danger-btn:hover { background: #b91c1c; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
 
-  /* DELETE MODAL */
   .ch-del-backdrop { position: fixed; inset: 0; background: rgba(22,14,12,0.75); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9998; padding: 20px; animation: ch-fade 0.25s ease; }
   @keyframes ch-fade { from{opacity:0} to{opacity:1} }
   .ch-del-modal { background: var(--warm-white); border-radius: 8px; width: 100%; max-width: 460px; box-shadow: 0 32px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(220,38,38,0.1); animation: ch-modal-up 0.3s cubic-bezier(0.34,1.56,0.64,1); overflow: hidden; }
@@ -200,7 +196,6 @@ const styles = `
   .ch-del-step3-sub { font-size: 0.85rem; color: var(--muted); font-weight: 300; }
   @keyframes ch-spin { to{transform:rotate(360deg)} }
 
-  /* TOAST */
   .ch-toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 360px; width: calc(100% - 40px); }
   .ch-toast { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--warm-white); border-radius: 4px; box-shadow: 0 8px 32px rgba(44,36,32,0.14); animation: ch-toast-in 0.35s ease; position: relative; overflow: hidden; }
   @keyframes ch-toast-in { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
@@ -229,7 +224,6 @@ const styles = `
   .ch-footer-logo { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--charcoal); display: flex; align-items: center; gap: 8px; }
   .ch-footer-copy { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
 
-  /* AVATAR CHANGE INDICATOR */
   .ch-avatar-changed-badge {
     position: absolute; bottom: 0; right: 0;
     width: 22px; height: 22px; border-radius: 50%;
@@ -274,30 +268,30 @@ const styles = `
   }
 `;
 
-/* ── Toast ── */
+// ── Toast ──────────────────────────────────────────────────────────────────────
 const ChToast = ({ toast, onClose }) => {
   useEffect(() => { const t = setTimeout(onClose, 5000); return () => clearTimeout(t); }, [onClose]);
-  const icons = { success:"✓", error:"✕", warning:"!", info:"i" };
+  const icons = { success: "✓", error: "✕", warning: "!", info: "i" };
   return (
     <div className={`ch-toast ch-toast-${toast.type}`}>
-      <div className="ch-toast-icon">{icons[toast.type]||"i"}</div>
+      <div className="ch-toast-icon">{icons[toast.type] || "i"}</div>
       <p className="ch-toast-msg">{toast.message}</p>
       <button className="ch-toast-close" onClick={onClose}>×</button>
-      <div className="ch-toast-bar"><div className="ch-toast-bar-fill"/></div>
+      <div className="ch-toast-bar"><div className="ch-toast-bar-fill" /></div>
     </div>
   );
 };
 
-/* ── Circle Cropper (inline for profile avatar change) ── */
+// ── Circle Cropper ─────────────────────────────────────────────────────────────
 const AvatarCropper = ({ imageSrc, onDone, onCancel }) => {
   const canvasRef  = useRef(null);
   const previewRef = useRef(null);
   const isDragging = useRef(false);
-  const lastPos    = useRef({ x:0, y:0 });
+  const lastPos    = useRef({ x: 0, y: 0 });
   const imgRef     = useRef(new Image());
-  const [offset,  setOffset]  = useState({ x:0, y:0 });
+  const [offset,  setOffset]  = useState({ x: 0, y: 0 });
   const [scale,   setScale]   = useState(1);
-  const [imgSize, setImgSize] = useState({ w:0, h:0 });
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
   const SIZE = 240;
 
   useEffect(() => {
@@ -305,8 +299,8 @@ const AvatarCropper = ({ imageSrc, onDone, onCancel }) => {
     img.onload = () => {
       const ratio = SIZE / Math.min(img.naturalWidth, img.naturalHeight);
       setScale(ratio);
-      setImgSize({ w:img.naturalWidth, h:img.naturalHeight });
-      setOffset({ x:(SIZE-img.naturalWidth*ratio)/2, y:(SIZE-img.naturalHeight*ratio)/2 });
+      setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+      setOffset({ x: (SIZE - img.naturalWidth * ratio) / 2, y: (SIZE - img.naturalHeight * ratio) / 2 });
     };
     img.src = imageSrc;
   }, [imageSrc]);
@@ -315,73 +309,73 @@ const AvatarCropper = ({ imageSrc, onDone, onCancel }) => {
     const canvas = previewRef.current;
     if (!canvas || !imgRef.current.complete || !imgSize.w) return;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,SIZE,SIZE); ctx.save();
-    ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
-    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w*scale, imgSize.h*scale);
+    ctx.clearRect(0, 0, SIZE, SIZE); ctx.save();
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
     ctx.restore();
   }, [offset, scale, imgSize]);
 
-  const onMD = (e) => { isDragging.current=true; lastPos.current={x:e.clientX,y:e.clientY}; };
-  const onMU = ()  => { isDragging.current=false; };
+  const onMD = (e) => { isDragging.current = true; lastPos.current = { x: e.clientX, y: e.clientY }; };
+  const onMU = () => { isDragging.current = false; };
   const onMM = useCallback((e) => {
     if (!isDragging.current) return;
-    const dx=e.clientX-lastPos.current.x, dy=e.clientY-lastPos.current.y;
-    lastPos.current={x:e.clientX,y:e.clientY};
-    setOffset(p=>({x:p.x+dx,y:p.y+dy}));
-  },[]);
+    const dx = e.clientX - lastPos.current.x, dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    setOffset(p => ({ x: p.x + dx, y: p.y + dy }));
+  }, []);
 
   const crop = () => {
-    const c=canvasRef.current; c.width=SIZE; c.height=SIZE;
-    const ctx=c.getContext('2d');
-    ctx.clearRect(0,0,SIZE,SIZE); ctx.save();
-    ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
-    ctx.drawImage(imgRef.current,offset.x,offset.y,imgSize.w*scale,imgSize.h*scale);
+    const c = canvasRef.current; c.width = SIZE; c.height = SIZE;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, SIZE, SIZE); ctx.save();
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
     ctx.restore();
     onDone(c.toDataURL('image/png'));
   };
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(10,6,6,.85)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-      <div style={{background:'var(--warm-white)',borderRadius:'12px',maxWidth:'340px',width:'100%',overflow:'hidden',boxShadow:'0 40px 100px rgba(232,114,138,.3)'}}>
-        <div style={{padding:'16px 20px',background:'linear-gradient(135deg,#fdf6ec,#fce7f3)',borderBottom:'1px solid var(--border)'}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,color:'var(--charcoal)'}}>✂️ Crop Your Photo</div>
-          <div style={{fontSize:'12px',color:'var(--muted)',marginTop:'2px'}}>Drag to reposition · slider to zoom</div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(10,6,6,.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ background: 'var(--warm-white)', borderRadius: '12px', maxWidth: '340px', width: '100%', overflow: 'hidden', boxShadow: '0 40px 100px rgba(232,114,138,.3)' }}>
+        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg,#fdf6ec,#fce7f3)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, color: 'var(--charcoal)' }}>✂️ Crop Your Photo</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>Drag to reposition · slider to zoom</div>
         </div>
-        <div style={{position:'relative',width:'240px',height:'240px',margin:'20px auto 0',cursor:'grab',userSelect:'none'}}>
-          <div style={{position:'absolute',inset:0,borderRadius:'50%',boxShadow:'0 0 0 9999px rgba(0,0,0,.5)',zIndex:1,pointerEvents:'none'}}/>
+        <div style={{ position: 'relative', width: '240px', height: '240px', margin: '20px auto 0', cursor: 'grab', userSelect: 'none' }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', boxShadow: '0 0 0 9999px rgba(0,0,0,.5)', zIndex: 1, pointerEvents: 'none' }} />
           <canvas ref={previewRef} width={SIZE} height={SIZE}
-            style={{display:'block',borderRadius:'50%',border:'3px solid var(--rose)',zIndex:2,position:'relative'}}
-            onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onMouseLeave={onMU}/>
-          <canvas ref={canvasRef} style={{display:'none'}}/>
+            style={{ display: 'block', borderRadius: '50%', border: '3px solid var(--rose)', zIndex: 2, position: 'relative' }}
+            onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onMouseLeave={onMU} />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'20px 20px 8px'}}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px 20px 8px' }}>
           <span>🔍</span>
           <input type="range" min={0.3} max={3} step={0.01} value={scale}
-            onChange={e=>setScale(parseFloat(e.target.value))}
-            style={{flex:1,accentColor:'var(--rose)',cursor:'pointer'}}/>
-          <span style={{fontSize:'12px',color:'var(--muted)',minWidth:'36px'}}>{Math.round(scale*100)}%</span>
+            onChange={e => setScale(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: 'var(--rose)', cursor: 'pointer' }} />
+          <span style={{ fontSize: '12px', color: 'var(--muted)', minWidth: '36px' }}>{Math.round(scale * 100)}%</span>
         </div>
-        <div style={{display:'flex',gap:'10px',padding:'12px 20px 20px'}}>
-          <button onClick={onCancel} style={{flex:1,padding:'11px',border:'1px solid var(--border)',borderRadius:'2px',background:'transparent',color:'var(--muted)',cursor:'pointer',fontFamily:"'Lato',sans-serif",fontSize:'13px',fontWeight:700}}>Cancel</button>
-          <button onClick={crop}    style={{flex:2,padding:'11px',background:'var(--rose)',border:'none',borderRadius:'2px',color:'#fff',cursor:'pointer',fontFamily:"'Lato',sans-serif",fontSize:'13px',fontWeight:700}}>Use This Photo ✓</button>
+        <div style={{ display: 'flex', gap: '10px', padding: '12px 20px 20px' }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', border: '1px solid var(--border)', borderRadius: '2px', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: '13px', fontWeight: 700 }}>Cancel</button>
+          <button onClick={crop} style={{ flex: 2, padding: '11px', background: 'var(--rose)', border: 'none', borderRadius: '2px', color: '#fff', cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: '13px', fontWeight: 700 }}>Use This Photo ✓</button>
         </div>
       </div>
     </div>
   );
 };
 
-/* ── Delete Modal ── */
+// ── Delete Modal ───────────────────────────────────────────────────────────────
 const DeleteAccountModal = ({ onClose, onDeleted }) => {
-  const [step,        setStep]        = useState(1);
-  const [password,    setPassword]    = useState("");
-  const [showPwd,     setShowPwd]     = useState(false);
-  const [pwdError,    setPwdError]    = useState("");
-  const [isDeleting,  setIsDeleting]  = useState(false);
+  const [step,       setStep]       = useState(1);
+  const [password,   setPassword]   = useState("");
+  const [showPwd,    setShowPwd]    = useState(false);
+  const [pwdError,   setPwdError]   = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
   const inputRef = useRef(null);
 
-  useEffect(() => { if (step === 2) setTimeout(()=>inputRef.current?.focus(), 80); }, [step]);
+  useEffect(() => { if (step === 2) setTimeout(() => inputRef.current?.focus(), 80); }, [step]);
   useEffect(() => {
-    const h = (e) => { if (e.key==="Escape" && step!==3) onClose(); };
+    const h = (e) => { if (e.key === "Escape" && step !== 3) onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [step, onClose]);
@@ -392,8 +386,8 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
     if (password.length < 6) { setPwdError("Password must be at least 6 characters."); return; }
     setIsDeleting(true); setStep(3);
     try {
-      await new Promise(r=>setTimeout(r, 2200));
-      clearUserData();   // ← wipes all ch_ keys + legacy keys
+      await new Promise(r => setTimeout(r, 2200));
+      clearUserData();
       onDeleted();
     } catch {
       setIsDeleting(false); setStep(2);
@@ -402,26 +396,26 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
   };
 
   return (
-    <div className="ch-del-backdrop" onClick={e=>{ if(e.target===e.currentTarget&&step!==3) onClose(); }}>
+    <div className="ch-del-backdrop" onClick={e => { if (e.target === e.currentTarget && step !== 3) onClose(); }}>
       <div className="ch-del-modal" role="dialog" aria-modal="true">
-        {step===1 && (
+        {step === 1 && (
           <div className="ch-del-step1">
             <div className="ch-del-icon-wrap">⚠️</div>
             <div className="ch-del-title">Delete Account?</div>
-            <p className="ch-del-desc">This action is <strong style={{color:"#dc2626"}}>permanent and irreversible.</strong></p>
+            <p className="ch-del-desc">This action is <strong style={{ color: "#dc2626" }}>permanent and irreversible.</strong></p>
             <div className="ch-del-consequences">
               <div className="ch-del-consequences-title">What will be lost</div>
-              {["Your profile and personal information","All order history and receipts","Saved addresses and preferences","Account settings and notifications"].map((item,i)=>(
-                <div key={i} className="ch-del-consequence-item"><span className="ch-del-consequence-dot"/>{item}</div>
+              {["Your profile and personal information", "All order history and receipts", "Saved addresses and preferences", "Account settings and notifications"].map((item, i) => (
+                <div key={i} className="ch-del-consequence-item"><span className="ch-del-consequence-dot" />{item}</div>
               ))}
             </div>
             <div className="ch-del-step1-actions">
-              <button className="ch-del-cancel-btn"  onClick={onClose}>Keep Account</button>
-              <button className="ch-del-proceed-btn" onClick={()=>setStep(2)}><span>Yes, Delete It</span></button>
+              <button className="ch-del-cancel-btn" onClick={onClose}>Keep Account</button>
+              <button className="ch-del-proceed-btn" onClick={() => setStep(2)}><span>Yes, Delete It</span></button>
             </div>
           </div>
         )}
-        {step===2 && (
+        {step === 2 && (
           <div className="ch-del-step2">
             <div className="ch-del-step2-header">
               <div className="ch-del-step2-icon">🔑</div>
@@ -435,12 +429,12 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
               <div className="ch-del-pwd-group">
                 <label className="ch-del-pwd-label">Current Password</label>
                 <div className="ch-del-pwd-input-wrap">
-                  <input ref={inputRef} type={showPwd?"text":"password"}
-                    className={`ch-del-pwd-input${pwdError?" error":""}`}
-                    value={password} onChange={e=>{setPassword(e.target.value);setPwdError("");}}
-                    placeholder="Enter your password" autoComplete="current-password"/>
-                  <button type="button" className="ch-del-pwd-toggle" onClick={()=>setShowPwd(s=>!s)} tabIndex={-1}>
-                    {showPwd?"🙈":"👁️"}
+                  <input ref={inputRef} type={showPwd ? "text" : "password"}
+                    className={`ch-del-pwd-input${pwdError ? " error" : ""}`}
+                    value={password} onChange={e => { setPassword(e.target.value); setPwdError(""); }}
+                    placeholder="Enter your password" autoComplete="current-password" />
+                  <button type="button" className="ch-del-pwd-toggle" onClick={() => setShowPwd(s => !s)} tabIndex={-1}>
+                    {showPwd ? "🙈" : "👁️"}
                   </button>
                 </div>
                 {pwdError && <div className="ch-del-pwd-error"><span>⚠</span>{pwdError}</div>}
@@ -448,15 +442,15 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
               <div className="ch-del-step2-actions">
                 <button type="button" className="ch-del-cancel-btn" onClick={onClose}>Cancel</button>
                 <button type="submit" className="ch-del-final-btn" disabled={isDeleting}>
-                  {isDeleting?<><div className="ch-del-deleting-spinner"/>Deleting…</>:"Delete My Account"}
+                  {isDeleting ? <><div className="ch-del-deleting-spinner" />Deleting…</> : "Delete My Account"}
                 </button>
               </div>
             </form>
           </div>
         )}
-        {step===3 && (
+        {step === 3 && (
           <div className="ch-del-step3">
-            <div className="ch-del-step3-ring"/>
+            <div className="ch-del-step3-ring" />
             <div className="ch-del-step3-title">Deleting Account…</div>
             <p className="ch-del-step3-sub">Please wait while we remove your data.</p>
           </div>
@@ -466,13 +460,12 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════
-   MAIN PROFILE COMPONENT
-═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════
+// MAIN PROFILE COMPONENT
+// ═══════════════════════════════════════════════════
 const Profile = () => {
   const navigate     = useNavigate();
   const fileInputRef = useRef(null);
-  const rawAvatarRef = useRef(null); // holds file data URL before cropping
 
   const [user,            setUser]            = useState(null);
   const [loading,         setLoading]         = useState(true);
@@ -485,43 +478,47 @@ const Profile = () => {
   const [showAvatarCrop,  setShowAvatarCrop]  = useState(false);
   const [rawAvatarSrc,    setRawAvatarSrc]    = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [passwordForm, setPasswordForm]       = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
-  const [passwordForm, setPasswordForm] = useState({ currentPassword:"", newPassword:"", confirmPassword:"" });
+  // ── Notifications and privacy — scoped to userId so each user's prefs are separate ──
+  const getNotifKey  = () => `ch_notifications_${resolveUserId() || 'guest'}`;
+  const getPrivacyKey = () => `ch_privacy_${resolveUserId() || 'guest'}`;
 
   const [notifications, setNotifications] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ch_notifications")) || { emailOrders:true, emailPromotions:false, smsNotifications:true }; }
-    catch { return { emailOrders:true, emailPromotions:false, smsNotifications:true }; }
+    try {
+      const userId = resolveUserId();
+      const raw = localStorage.getItem(`ch_notifications_${userId}`) || localStorage.getItem("ch_notifications");
+      return raw ? JSON.parse(raw) : { emailOrders: true, emailPromotions: false, smsNotifications: true };
+    } catch { return { emailOrders: true, emailPromotions: false, smsNotifications: true }; }
   });
 
   const [privacy, setPrivacy] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ch_privacy")) || { profileVisible:true, showOrders:false }; }
-    catch { return { profileVisible:true, showOrders:false }; }
+    try {
+      const userId = resolveUserId();
+      const raw = localStorage.getItem(`ch_privacy_${userId}`) || localStorage.getItem("ch_privacy");
+      return raw ? JSON.parse(raw) : { profileVisible: true, showOrders: false };
+    } catch { return { profileVisible: true, showOrders: false }; }
   });
 
-  const addToast    = useCallback((type, message) => { const id=Date.now(); setToasts(p=>[...p,{id,type,message}]); }, []);
-  const removeToast = useCallback((id) => setToasts(p=>p.filter(t=>t.id!==id)), []);
+  const addToast    = useCallback((type, message) => { const id = Date.now(); setToasts(p => [...p, { id, type, message }]); }, []);
+  const removeToast = useCallback((id) => setToasts(p => p.filter(t => t.id !== id)), []);
 
-  /* ── Load user on mount ── */
   useEffect(() => { loadUser(); }, []);
   useEffect(() => { localStorage.setItem("profileActiveSection", activeSection); }, [activeSection]);
-  useEffect(() => { localStorage.setItem("ch_notifications", JSON.stringify(notifications)); }, [notifications]);
-  useEffect(() => { localStorage.setItem("ch_privacy",       JSON.stringify(privacy)); }, [privacy]);
+  useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);
+  useEffect(() => { localStorage.setItem(getPrivacyKey(), JSON.stringify(privacy)); }, [privacy]);
 
+  // ── Load user — profile edits take priority over auth data ────────────────
   const loadUser = () => {
     try {
-      /*
-       * Strategy (priority order):
-       * 1. ch_user (saved by Register or a previous profile edit) — most complete
-       * 2. Decode ch_token for any fields not yet in ch_user
-       * 3. Avatar comes from ch_avatar (its own key to avoid large-object limits)
-       */
-      const token   = loadToken();
-      let decoded   = {};
+      const token  = loadToken();
+      let decoded  = {};
       if (token) {
-        try { decoded = jwtDecode(token); } catch { /* expired / invalid */ }
+        try { decoded = jwtDecode(token); } catch { /* expired */ }
       }
 
-      const merged = loadFullUser(decoded); // localStorage wins over jwt
+      // loadFullUser merges: saved profile edits > ch_user > jwt
+      const merged = loadFullUser(decoded);
 
       if (merged && (merged.username || merged.email)) {
         merged.avatar = loadAvatar() || merged.avatar || null;
@@ -540,20 +537,21 @@ const Profile = () => {
     }
   };
 
-  /* ── Profile edit save ── */
+  // ── Save profile edits ────────────────────────────────────────────────────
+  // Uses saveUserProfile() which writes to ch_profile_<userId> — a key that
+  // is NOT wiped on logout, so edits survive across sessions.
   const handleEditSubmit = async (e) => {
     e?.preventDefault();
     setLoading(true);
     try {
-      await new Promise(r=>setTimeout(r, 800)); // simulate API call
+      await new Promise(r => setTimeout(r, 800));
 
-      // Persist to localStorage via userStorage
       const updated = saveUserProfile({
         ...editForm,
-        username: user.username, // username is not editable
+        username: user.username,
       });
-      // Merge avatar back in (not stored in ch_user object)
-      const withAvatar = { ...updated, avatar: loadAvatar() || user?.avatar || null };
+
+      const withAvatar = { ...user, ...updated, avatar: loadAvatar() || user?.avatar || null };
       setUser(withAvatar);
       setIsEditing(false);
       addToast("success", "Profile updated successfully!");
@@ -564,21 +562,21 @@ const Profile = () => {
     }
   };
 
-  /* ── Password change ── */
+  // ── Password change ───────────────────────────────────────────────────────
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) { addToast("error", "Passwords do not match!"); return; }
-    if (passwordForm.newPassword.length < 6)                       { addToast("error", "Password must be at least 6 characters!"); return; }
+    if (passwordForm.newPassword.length < 6) { addToast("error", "Password must be at least 6 characters!"); return; }
     setLoading(true);
     try {
-      await new Promise(r=>setTimeout(r, 800));
-      setPasswordForm({ currentPassword:"", newPassword:"", confirmPassword:"" });
+      await new Promise(r => setTimeout(r, 800));
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       addToast("success", "Password changed successfully!");
     } catch { addToast("error", "Failed to change password."); }
     finally  { setLoading(false); }
   };
 
-  /* ── Avatar file pick → cropper ── */
+  // ── Avatar file pick → cropper ────────────────────────────────────────────
   const handleAvatarFilePick = (e) => {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
@@ -587,13 +585,11 @@ const Profile = () => {
     e.target.value = '';
   };
 
-  /* ── Avatar crop done ── */
+  // ── Avatar crop done — saved under ch_avatar_<userId> ────────────────────
   const handleAvatarCropDone = (dataUrl) => {
     setShowAvatarCrop(false);
     setRawAvatarSrc(null);
-    // Save avatar to its own localStorage key
-    saveAvatar(dataUrl);
-    // Update local state
+    saveAvatar(dataUrl);                          // persists to ch_avatar_<userId>
     setUser(prev => ({ ...prev, avatar: dataUrl }));
     addToast("success", "Profile picture updated!");
   };
@@ -601,17 +597,17 @@ const Profile = () => {
   const handleAccountDeleted = () => navigate("/");
 
   const navItems = [
-    { key:"overview",      icon:"👤", label:"Overview"     },
-    { key:"security",      icon:"🔒", label:"Security"     },
-    { key:"notifications", icon:"🔔", label:"Notifications"},
-    { key:"privacy",       icon:"🛡️", label:"Privacy"      },
+    { key: "overview",      icon: "👤", label: "Overview"      },
+    { key: "security",      icon: "🔒", label: "Security"      },
+    { key: "notifications", icon: "🔔", label: "Notifications" },
+    { key: "privacy",       icon: "🛡️", label: "Privacy"       },
   ];
 
   if (loading && !user) return (
     <>
       <style>{styles}</style>
       <div className="ch-page">
-        <div className="ch-loading"><div className="ch-spinner"/><p>Loading profile…</p></div>
+        <div className="ch-loading"><div className="ch-spinner" /><p>Loading profile…</p></div>
       </div>
     </>
   );
@@ -621,12 +617,11 @@ const Profile = () => {
       <style>{styles}</style>
       <div className="ch-page">
 
-        {/* Avatar Cropper overlay */}
         {showAvatarCrop && rawAvatarSrc && (
           <AvatarCropper
             imageSrc={rawAvatarSrc}
             onDone={handleAvatarCropDone}
-            onCancel={()=>{ setShowAvatarCrop(false); setRawAvatarSrc(null); }}
+            onCancel={() => { setShowAvatarCrop(false); setRawAvatarSrc(null); }}
           />
         )}
 
@@ -662,15 +657,14 @@ const Profile = () => {
             {/* LEFT ASIDE */}
             <aside className="ch-profile-aside">
               <div className="ch-avatar-card">
-                {/* Avatar circle — click to change, shows circle cropper */}
-                <div className="ch-avatar-wrap" onClick={()=>fileInputRef.current?.click()}>
+                <div className="ch-avatar-wrap" onClick={() => fileInputRef.current?.click()}>
                   {user?.avatar
-                    ? <img src={user.avatar} alt="Profile"/>
-                    : <span className="ch-avatar-initial">{user?.username?.charAt(0)?.toUpperCase()||"U"}</span>
+                    ? <img src={user.avatar} alt="Profile" />
+                    : <span className="ch-avatar-initial">{user?.username?.charAt(0)?.toUpperCase() || "U"}</span>
                   }
                   <div className="ch-avatar-overlay">📷</div>
                 </div>
-                <input type="file" ref={fileInputRef} accept="image/*" onChange={handleAvatarFilePick} style={{display:"none"}}/>
+                <input type="file" ref={fileInputRef} accept="image/*" onChange={handleAvatarFilePick} style={{ display: "none" }} />
 
                 <div className="ch-user-name">{user?.fullName || user?.username}</div>
                 <div className="ch-user-email">{user?.email}</div>
@@ -678,10 +672,10 @@ const Profile = () => {
               </div>
 
               <nav className="ch-profile-nav">
-                {navItems.map(item=>(
+                {navItems.map(item => (
                   <button key={item.key}
-                    className={`ch-pnav-item${activeSection===item.key?" active":""}`}
-                    onClick={()=>setActiveSection(item.key)}>
+                    className={`ch-pnav-item${activeSection === item.key ? " active" : ""}`}
+                    onClick={() => setActiveSection(item.key)}>
                     <span className="ch-pnav-icon">{item.icon}</span>
                     {item.label}
                   </button>
@@ -701,16 +695,16 @@ const Profile = () => {
                       <div className="ch-section-sub">Your account details and contact info</div>
                     </div>
                     {!isEditing
-                      ? <button className="ch-btn-primary" onClick={()=>setIsEditing(true)}><span>✏️ Edit Profile</span></button>
+                      ? <button className="ch-btn-primary" onClick={() => setIsEditing(true)}><span>✏️ Edit Profile</span></button>
                       : <div className="ch-btn-group">
-                          <button className="ch-btn-secondary" onClick={()=>{
-                            setIsEditing(false);
-                            setEditForm({ fullName:user?.fullName||"", email:user?.email||"", phone:user?.phone||"", address:user?.address||"" });
-                          }}>Cancel</button>
-                          <button className="ch-btn-primary" onClick={handleEditSubmit} disabled={loading}>
-                            <span>{loading?"Saving…":"Save Changes"}</span>
-                          </button>
-                        </div>
+                        <button className="ch-btn-secondary" onClick={() => {
+                          setIsEditing(false);
+                          setEditForm({ fullName: user?.fullName || "", email: user?.email || "", phone: user?.phone || "", address: user?.address || "" });
+                        }}>Cancel</button>
+                        <button className="ch-btn-primary" onClick={handleEditSubmit} disabled={loading}>
+                          <span>{loading ? "Saving…" : "Save Changes"}</span>
+                        </button>
+                      </div>
                     }
                   </div>
 
@@ -718,15 +712,15 @@ const Profile = () => {
                     {!isEditing ? (
                       <div className="ch-info-grid">
                         {[
-                          { label:"Username",      value: user?.username },
-                          { label:"Full Name",     value: user?.fullName  || "—" },
-                          { label:"Email Address", value: user?.email     || "—" },
-                          { label:"Phone Number",  value: user?.phone     || "—" },
-                          { label:"Address",       value: user?.address   || "—", full:true },
-                          { label:"Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—" },
-                          { label:"Account Status", badge:true },
-                        ].map((item,i)=>(
-                          <div key={i} className={`ch-info-item${item.full?" full":""}`}>
+                          { label: "Username",      value: user?.username },
+                          { label: "Full Name",     value: user?.fullName  || "—" },
+                          { label: "Email Address", value: user?.email     || "—" },
+                          { label: "Phone Number",  value: user?.phone     || "—" },
+                          { label: "Address",       value: user?.address   || "—", full: true },
+                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—" },
+                          { label: "Account Status", badge: true },
+                        ].map((item, i) => (
+                          <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>
                             <span className="ch-info-label">{item.label}</span>
                             {item.badge
                               ? <span className="ch-status-badge">Active</span>
@@ -740,28 +734,28 @@ const Profile = () => {
                           <div className="ch-form-group">
                             <label>Full Name</label>
                             <input type="text" value={editForm.fullName}
-                              onChange={e=>setEditForm({...editForm,fullName:e.target.value})}
-                              placeholder="Your full name"/>
+                              onChange={e => setEditForm({ ...editForm, fullName: e.target.value })}
+                              placeholder="Your full name" />
                           </div>
                           <div className="ch-form-group">
                             <label>Email Address</label>
                             <input type="email" value={editForm.email}
-                              onChange={e=>setEditForm({...editForm,email:e.target.value})}
-                              placeholder="Your email"/>
+                              onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                              placeholder="Your email" />
                           </div>
                         </div>
                         <div className="ch-form-row">
                           <div className="ch-form-group">
                             <label>Phone Number</label>
                             <input type="tel" value={editForm.phone}
-                              onChange={e=>setEditForm({...editForm,phone:e.target.value})}
-                              placeholder="+63 912 345 6789"/>
+                              onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                              placeholder="+63 912 345 6789" />
                           </div>
                           <div className="ch-form-group">
                             <label>Address</label>
                             <input type="text" value={editForm.address}
-                              onChange={e=>setEditForm({...editForm,address:e.target.value})}
-                              placeholder="Your address"/>
+                              onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                              placeholder="Your address" />
                           </div>
                         </div>
                       </div>
@@ -785,25 +779,25 @@ const Profile = () => {
                       <div className="ch-form-group">
                         <label>Current Password</label>
                         <input type="password" value={passwordForm.currentPassword}
-                          onChange={e=>setPasswordForm({...passwordForm,currentPassword:e.target.value})}
-                          placeholder="Enter current password" required/>
+                          onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                          placeholder="Enter current password" required />
                       </div>
                       <div className="ch-form-row">
                         <div className="ch-form-group">
                           <label>New Password</label>
                           <input type="password" value={passwordForm.newPassword}
-                            onChange={e=>setPasswordForm({...passwordForm,newPassword:e.target.value})}
-                            placeholder="New password" required/>
+                            onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                            placeholder="New password" required />
                         </div>
                         <div className="ch-form-group">
                           <label>Confirm New Password</label>
                           <input type="password" value={passwordForm.confirmPassword}
-                            onChange={e=>setPasswordForm({...passwordForm,confirmPassword:e.target.value})}
-                            placeholder="Confirm password" required/>
+                            onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                            placeholder="Confirm password" required />
                         </div>
                       </div>
-                      <button type="submit" className="ch-btn-primary" disabled={loading} style={{alignSelf:"flex-start"}}>
-                        <span>{loading?"Updating…":"Update Password"}</span>
+                      <button type="submit" className="ch-btn-primary" disabled={loading} style={{ alignSelf: "flex-start" }}>
+                        <span>{loading ? "Updating…" : "Update Password"}</span>
                       </button>
                     </form>
                   </div>
@@ -822,19 +816,19 @@ const Profile = () => {
                   <div className="ch-info-card">
                     <div className="ch-settings-list">
                       {[
-                        { key:"emailOrders",      title:"Email Order Updates",  desc:"Get notified about your order status and delivery updates" },
-                        { key:"emailPromotions",  title:"Promotional Emails",   desc:"Receive news about new products, special offers, and discounts" },
-                        { key:"smsNotifications", title:"SMS Notifications",    desc:"Receive text messages for important account updates" },
-                      ].map(item=>(
+                        { key: "emailOrders",      title: "Email Order Updates",  desc: "Get notified about your order status and delivery updates" },
+                        { key: "emailPromotions",  title: "Promotional Emails",   desc: "Receive news about new products, special offers, and discounts" },
+                        { key: "smsNotifications", title: "SMS Notifications",    desc: "Receive text messages for important account updates" },
+                      ].map(item => (
                         <div key={item.key} className="ch-setting-item">
                           <div className="ch-setting-info"><h4>{item.title}</h4><p>{item.desc}</p></div>
                           <label className="ch-toggle">
                             <input type="checkbox" checked={notifications[item.key]}
-                              onChange={()=>{
-                                setNotifications(p=>({...p,[item.key]:!p[item.key]}));
-                                addToast("success","Notification preferences saved!");
-                              }}/>
-                            <span className="ch-toggle-track"/>
+                              onChange={() => {
+                                setNotifications(p => ({ ...p, [item.key]: !p[item.key] }));
+                                addToast("success", "Notification preferences saved!");
+                              }} />
+                            <span className="ch-toggle-track" />
                           </label>
                         </div>
                       ))}
@@ -855,18 +849,18 @@ const Profile = () => {
                   <div className="ch-info-card">
                     <div className="ch-settings-list">
                       {[
-                        { key:"profileVisible", title:"Public Profile",     desc:"Allow other users to view your profile information" },
-                        { key:"showOrders",     title:"Show Order History", desc:"Allow others to see your order history on your profile" },
-                      ].map(item=>(
+                        { key: "profileVisible", title: "Public Profile",     desc: "Allow other users to view your profile information" },
+                        { key: "showOrders",     title: "Show Order History", desc: "Allow others to see your order history on your profile" },
+                      ].map(item => (
                         <div key={item.key} className="ch-setting-item">
                           <div className="ch-setting-info"><h4>{item.title}</h4><p>{item.desc}</p></div>
                           <label className="ch-toggle">
                             <input type="checkbox" checked={privacy[item.key]}
-                              onChange={()=>{
-                                setPrivacy(p=>({...p,[item.key]:!p[item.key]}));
-                                addToast("success","Privacy settings updated!");
-                              }}/>
-                            <span className="ch-toggle-track"/>
+                              onChange={() => {
+                                setPrivacy(p => ({ ...p, [item.key]: !p[item.key] }));
+                                addToast("success", "Privacy settings updated!");
+                              }} />
+                            <span className="ch-toggle-track" />
                           </label>
                         </div>
                       ))}
@@ -876,7 +870,7 @@ const Profile = () => {
                         <h4>Delete Account</h4>
                         <p>Permanently delete your account and all associated data. This cannot be undone.</p>
                       </div>
-                      <button className="ch-danger-btn" onClick={()=>setShowDeleteModal(true)}>Delete Account</button>
+                      <button className="ch-danger-btn" onClick={() => setShowDeleteModal(true)}>Delete Account</button>
                     </div>
                   </div>
                 </>
@@ -894,12 +888,11 @@ const Profile = () => {
 
         {/* Toasts */}
         <div className="ch-toast-container">
-          {toasts.map(t=><ChToast key={t.id} toast={t} onClose={()=>removeToast(t.id)}/>)}
+          {toasts.map(t => <ChToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />)}
         </div>
 
-        {/* Delete Modal */}
         {showDeleteModal && (
-          <DeleteAccountModal onClose={()=>setShowDeleteModal(false)} onDeleted={handleAccountDeleted}/>
+          <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onDeleted={handleAccountDeleted} />
         )}
 
       </div>

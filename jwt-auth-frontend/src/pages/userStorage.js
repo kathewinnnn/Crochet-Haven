@@ -1,54 +1,201 @@
-const KEYS = {
-  TOKEN:   'ch_token',
-  USER:    'ch_user',
-  AVATAR:  'ch_avatar',
-};
-
-/* ── write ── */
-export const saveToken  = (token)   => localStorage.setItem(KEYS.TOKEN,  token);
-export const saveAvatar = (dataUrl) => {
-  if (dataUrl) localStorage.setItem(KEYS.AVATAR, dataUrl);
-  else         localStorage.removeItem(KEYS.AVATAR);
-};
-
 /**
- * Merge partial fields into the stored profile and persist.
- * Always pass at least { username, email } on first save.
+ * userStorage.js
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Centralised localStorage helpers for Crochet Haven.
+ *
+ * Key design decisions
+ * ────────────────────
+ * • Auth keys  ('token', 'ch_token', 'user', 'ch_user', 'userId', 'username')
+ *   are written by Login/Register and cleared on logout/delete.
+ *
+ * • Profile-edit keys  ('ch_profile_<userId>')  are keyed by userId so they
+ *   survive logout and are NOT cleared on logout — only on account deletion.
+ *   This means a user's edited name, phone, address etc. come back when they
+ *   log in again on the same browser.
+ *
+ * • Avatar key  ('ch_avatar_<userId>')  works the same way.
+ *
+ * • Notification / privacy prefs are also keyed by userId.
  */
-export const saveUserProfile = (profileFields) => {
-  const existing = loadUserProfile() || {};
-  const merged   = { ...existing, ...profileFields, updatedAt: new Date().toISOString() };
-  localStorage.setItem(KEYS.USER, JSON.stringify(merged));
-  return merged;
-};
 
-/* ── read ── */
-export const loadToken = () => localStorage.getItem(KEYS.TOKEN) || null;
+// ─── Token ───────────────────────────────────────────────────────────────────
 
-export const loadAvatar = () => localStorage.getItem(KEYS.AVATAR) || null;
+export const loadToken = () =>
+  localStorage.getItem('ch_token') || localStorage.getItem('token') || null;
 
-export const loadUserProfile = () => {
-  try {
-    const raw = localStorage.getItem(KEYS.USER);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
+export const saveToken = (token) => {
+  if (token) {
+    localStorage.setItem('ch_token', token);
+    localStorage.setItem('token', token);
+  } else {
+    localStorage.removeItem('ch_token');
+    localStorage.removeItem('token');
   }
 };
 
-/**
- * Returns the complete profile merged with a decoded JWT,
- * giving localStorage fields priority (they may have been edited).
- */
-export const loadFullUser = (jwtDecoded = {}) => {
-  const stored = loadUserProfile() || {};
-  return { ...jwtDecoded, ...stored };   // stored wins
+// ─── Resolve the current user's ID ───────────────────────────────────────────
+// Mirrors the same priority order used in Orders.js / Checkout.js so every
+// part of the app agrees on who is logged in.
+
+export const resolveUserId = () => {
+  // 1. Explicit userId key (fastest)
+  const direct = localStorage.getItem('userId');
+  if (direct) return String(direct);
+
+  // 2. 'user' JSON object (written by Login.js)
+  try {
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      const p = JSON.parse(raw);
+      const id = p?.id || p?.userId;
+      if (id) return String(id);
+    }
+  } catch { /* ignore */ }
+
+  // 3. 'ch_user' JSON object (written by Register / CartContext)
+  try {
+    const raw = localStorage.getItem('ch_user');
+    if (raw) {
+      const p = JSON.parse(raw);
+      const id = p?.id || p?.userId;
+      if (id) return String(id);
+    }
+  } catch { /* ignore */ }
+
+  // 4. Decode JWT
+  try {
+    const token = loadToken();
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const id = payload?.id || payload?.userId || payload?.sub;
+      if (id) return String(id);
+    }
+  } catch { /* ignore */ }
+
+  return null;
 };
 
-/* ── clear (logout / delete) ── */
+// ─── Profile-specific storage key ────────────────────────────────────────────
+
+const profileKey = (userId) => `ch_profile_${userId}`;
+const avatarKey  = (userId) => `ch_avatar_${userId}`;
+
+// ─── Load the full user object ────────────────────────────────────────────────
+// Merges (in priority order):
+//   1. Saved profile edits  (ch_profile_<id>)   ← highest priority
+//   2. Auth user object     (ch_user / user)
+//   3. JWT payload          (decoded)            ← lowest priority
+
+export const loadFullUser = (jwtDecoded = {}) => {
+  // Resolve base auth data
+  let base = {};
+  try {
+    const raw = localStorage.getItem('ch_user') || localStorage.getItem('user');
+    if (raw) base = JSON.parse(raw) || {};
+  } catch { /* ignore */ }
+
+  // Merge with jwt payload (base wins over jwt)
+  const merged = { ...jwtDecoded, ...base };
+
+  // Resolve userId
+  const userId =
+    merged.id || merged.userId ||
+    jwtDecoded?.id || jwtDecoded?.userId || jwtDecoded?.sub ||
+    null;
+
+  if (!userId) return merged;
+
+  // Persist userId separately for fast access
+  localStorage.setItem('userId', String(userId));
+
+  // Overlay with any saved profile edits (these win over everything)
+  try {
+    const savedProfile = localStorage.getItem(profileKey(userId));
+    if (savedProfile) {
+      const edits = JSON.parse(savedProfile);
+      return { ...merged, ...edits, id: userId };
+    }
+  } catch { /* ignore */ }
+
+  return { ...merged, id: userId };
+};
+
+// ─── Save profile edits ───────────────────────────────────────────────────────
+// Saves ONLY the editable fields under a user-scoped key so they survive
+// logout. The auth keys (token, ch_user, etc.) are NOT touched.
+
+export const saveUserProfile = (fields) => {
+  const userId = resolveUserId();
+  if (!userId) return fields;
+
+  // Load current saved profile (if any) and merge
+  let existing = {};
+  try {
+    const raw = localStorage.getItem(profileKey(userId));
+    if (raw) existing = JSON.parse(raw);
+  } catch { /* ignore */ }
+
+  const updated = {
+    ...existing,
+    fullName: fields.fullName ?? existing.fullName,
+    email:    fields.email    ?? existing.email,
+    phone:    fields.phone    ?? existing.phone,
+    address:  fields.address  ?? existing.address,
+    // username is intentionally excluded — it's set by auth, not editable
+  };
+
+  localStorage.setItem(profileKey(userId), JSON.stringify(updated));
+  return updated;
+};
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+export const loadAvatar = () => {
+  const userId = resolveUserId();
+  if (!userId) return null;
+  return localStorage.getItem(avatarKey(userId)) || null;
+};
+
+export const saveAvatar = (dataUrl) => {
+  const userId = resolveUserId();
+  if (!userId) return;
+  localStorage.setItem(avatarKey(userId), dataUrl);
+};
+
+// ─── Clear auth data on logout ────────────────────────────────────────────────
+// Clears only auth/session keys. Profile edits + avatar are intentionally
+// kept so they reappear when the user logs back in.
+
+export const clearAuthData = () => {
+  [
+    'token', 'ch_token',
+    'user',  'ch_user',
+    'userId', 'username',
+  ].forEach(k => localStorage.removeItem(k));
+};
+
+// ─── Clear ALL user data (account deletion) ───────────────────────────────────
+// Also removes the user-scoped profile/avatar keys.
+
 export const clearUserData = () => {
-  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
-  // also clean up any legacy keys the old code may have written
-  ['token','user','userProfile','profileActiveSection',
-   'userNotifications','userPrivacy'].forEach(k => localStorage.removeItem(k));
+  const userId = resolveUserId();
+
+  // Remove auth keys
+  clearAuthData();
+
+  // Remove user-scoped keys
+  if (userId) {
+    localStorage.removeItem(profileKey(userId));
+    localStorage.removeItem(avatarKey(userId));
+    localStorage.removeItem(`ch_notifications_${userId}`);
+    localStorage.removeItem(`ch_privacy_${userId}`);
+    localStorage.removeItem(`cart_${userId}`);
+    localStorage.removeItem(`cart_${userId}_selected`);
+  }
+
+  // Also sweep any legacy un-scoped keys
+  [
+    'ch_notifications', 'ch_privacy',
+    'profileActiveSection',
+  ].forEach(k => localStorage.removeItem(k));
 };
