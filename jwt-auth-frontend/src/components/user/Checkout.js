@@ -344,6 +344,36 @@ const checkoutStyles = `
     flex-shrink: 0;
   }
 
+  /* Success message */
+  .ch-co-field-success {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    color: var(--sage);
+    letter-spacing: 0.01em;
+    margin-top: 2px;
+    animation: coSuccessSlide 0.2s ease forwards;
+  }
+
+  @keyframes coSuccessSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Input success state */
+  .ch-co-input.has-success {
+    border-color: var(--sage) !important;
+    background: rgba(138, 171, 142, 0.05);
+    box-shadow: 0 0 0 3px rgba(138, 171, 142, 0.1);
+  }
+
+  .ch-co-input.has-success:focus {
+    border-color: var(--sage) !important;
+    box-shadow: 0 0 0 3px rgba(138, 171, 142, 0.15);
+  }
+
   .ch-co-input::placeholder,
   .ch-co-textarea::placeholder { color: var(--muted); opacity: 0.55; }
 
@@ -701,8 +731,32 @@ const validateMobileNumber = (value) => {
   return 'Enter a valid PH number starting with 09 or +63.';
 };
 
+// Check if mobile number is valid (for success indicator)
+const isMobileNumberValid = (value) => {
+  if (!value) return false;
+  const trimmed = value.trim();
+  const stripped = trimmed.replace(/\s+/g, '');
+  
+  // Check +63 format
+  if (stripped.startsWith('+63')) {
+    const digits = stripped.slice(3);
+    return /^\d{10}$/.test(digits) && digits.startsWith('9');
+  }
+  
+  // Check 0 format
+  if (stripped.startsWith('0')) {
+    return /^09\d{9}$/.test(stripped);
+  }
+  
+  // Check if it's just digits starting with 9
+  if (/^\d+$/.test(stripped)) {
+    return stripped.length === 10 && stripped.startsWith('9');
+  }
+  
+  return false;
+};
+
 const resolveCurrentUserId = () => {
-  // Same logic as Orders.js
   const direct = localStorage.getItem('userId');
   if (direct) return String(direct);
 
@@ -741,7 +795,8 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '', email: '', phone: '', address: '', city: '', zipCode: '',
-    paymentMethod: '', gcashNumber: '', paymayaNumber: '',
+    paymentMethod: '', gcashNumber: '', gcashAccountName: '', gcashPassword: '',
+    paymayaNumber: '', paymayaAccountName: '', paymayaPassword: '',
     cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '', orderNote: ''
   });
 
@@ -790,6 +845,11 @@ const Checkout = () => {
     ? 'paymayaNumber'
     : null;
 
+  // Check if current mobile field has valid number (for success state)
+  const hasValidMobileNumber = activeMobileField 
+    ? isMobileNumberValid(formData[activeMobileField]) 
+    : false;
+
   const hasMobileError = activeMobileField
     ? (mobileErrors[activeMobileField] !== '' ||
        (formData[activeMobileField] && validateMobileNumber(formData[activeMobileField]) !== ''))
@@ -798,10 +858,51 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // For GCash and PayMaya, validate that mobile number is provided and valid
     if (activeMobileField) {
-      const err = validateMobileNumber(formData[activeMobileField]);
+      const currentValue = formData[activeMobileField];
+      
+      // Check if field is empty
+      if (!currentValue || currentValue.trim() === '') {
+        const fieldLabel = activeMobileField === 'gcashNumber' ? 'GCash' : 'PayMaya';
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: `${fieldLabel} number is required.` }));
+        return;
+      }
+      
+      // Check if the number is valid format
+      const err = validateMobileNumber(currentValue);
       if (err) {
         setMobileErrors(prev => ({ ...prev, [activeMobileField]: err }));
+        return;
+      }
+      
+      // Check if it passes our validity check
+      if (!isMobileNumberValid(currentValue)) {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'Please enter a valid 11-digit mobile number (e.g., 09XXXXXXXXX).' }));
+        return;
+      }
+
+      // Validate account name for GCash/PayMaya
+      const accountNameField = activeMobileField === 'gcashNumber' ? 'gcashAccountName' : 'paymayaAccountName';
+      const accountNameValue = formData[accountNameField];
+      if (!accountNameValue || accountNameValue.trim() === '') {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: `${activeMobileField === 'gcashNumber' ? 'GCash' : 'PayMaya'} account name is required.` }));
+        return;
+      }
+
+      // Validate password/PIN for GCash/PayMaya
+      const passwordField = activeMobileField === 'gcashNumber' ? 'gcashPassword' : 'paymayaPassword';
+      const passwordValue = formData[passwordField];
+      if (!passwordValue || passwordValue.trim() === '') {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: `${activeMobileField === 'gcashNumber' ? 'GCash' : 'PayMaya'} PIN is required.` }));
+        return;
+      }
+      if (passwordValue.length < 4 || passwordValue.length > 6) {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'PIN must be 4-6 digits.' }));
+        return;
+      }
+      if (!/^\d+$/.test(passwordValue)) {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'PIN must contain only digits.' }));
         return;
       }
     }
@@ -1026,34 +1127,82 @@ const Checkout = () => {
 
                       {/* GCash */}
                       {formData.paymentMethod === 'gcash' && (
-                        <div className="ch-co-form-group">
-                          <label className="ch-co-label" htmlFor="gcashNumber">GCash Number</label>
-                          <input
-                            className={`ch-co-input${mobileErrors.gcashNumber ? ' has-error' : ''}`}
-                            type="tel" id="gcashNumber" name="gcashNumber"
-                            value={formData.gcashNumber} onChange={handleChange}
-                            required placeholder="09XXXXXXXXX"
-                          />
-                          {mobileErrors.gcashNumber && (
-                            <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>
-                          )}
-                        </div>
+                        <>
+                          <div className="ch-co-form-group">
+                            <label className="ch-co-label" htmlFor="gcashNumber">GCash Number</label>
+                            <input
+                              className={`ch-co-input${mobileErrors.gcashNumber ? ' has-error' : ''}${formData.gcashNumber && isMobileNumberValid(formData.gcashNumber) ? ' has-success' : ''}`}
+                              type="tel" id="gcashNumber" name="gcashNumber"
+                              value={formData.gcashNumber} onChange={handleChange}
+                              required placeholder="09XXXXXXXXX"
+                            />
+                            {mobileErrors.gcashNumber && (
+                              <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>
+                            )}
+                            {formData.gcashNumber && isMobileNumberValid(formData.gcashNumber) && !mobileErrors.gcashNumber && (
+                              <span className="ch-co-field-success">✓ Valid mobile number</span>
+                            )}
+                          </div>
+                          <div className="ch-co-form-group">
+                            <label className="ch-co-label" htmlFor="gcashAccountName">Account Name</label>
+                            <input
+                              className="ch-co-input"
+                              type="text" id="gcashAccountName" name="gcashAccountName"
+                              value={formData.gcashAccountName} onChange={handleChange}
+                              required placeholder="Your registered GCash name"
+                            />
+                          </div>
+                          <div className="ch-co-form-group">
+                            <label className="ch-co-label" htmlFor="gcashPassword">Password / PIN</label>
+                            <input
+                              className="ch-co-input"
+                              type="password" id="gcashPassword" name="gcashPassword"
+                              value={formData.gcashPassword} onChange={handleChange}
+                              required placeholder="Enter your GCash PIN"
+                              maxLength="6"
+                            />
+                          </div>
+                        </>
                       )}
 
                       {/* PayMaya */}
                       {formData.paymentMethod === 'paymaya' && (
-                        <div className="ch-co-form-group">
-                          <label className="ch-co-label" htmlFor="paymayaNumber">PayMaya Number</label>
-                          <input
-                            className={`ch-co-input${mobileErrors.paymayaNumber ? ' has-error' : ''}`}
-                            type="tel" id="paymayaNumber" name="paymayaNumber"
-                            value={formData.paymayaNumber} onChange={handleChange}
-                            required placeholder="09XXXXXXXXX"
-                          />
-                          {mobileErrors.paymayaNumber && (
-                            <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>
-                          )}
-                        </div>
+                        <>
+                          <div className="ch-co-form-group">
+                            <label className="ch-co-label" htmlFor="paymayaNumber">PayMaya Number</label>
+                            <input
+                              className={`ch-co-input${mobileErrors.paymayaNumber ? ' has-error' : ''}${formData.paymayaNumber && isMobileNumberValid(formData.paymayaNumber) ? ' has-success' : ''}`}
+                              type="tel" id="paymayaNumber" name="paymayaNumber"
+                              value={formData.paymayaNumber} onChange={handleChange}
+                              required placeholder="09XXXXXXXXX"
+                            />
+                            {mobileErrors.paymayaNumber && (
+                              <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>
+                            )}
+                            {formData.paymayaNumber && isMobileNumberValid(formData.paymayaNumber) && !mobileErrors.paymayaNumber && (
+                              <span className="ch-co-field-success">✓ Valid mobile number</span>
+                            )}
+                          </div>
+                          <div className="ch-co-form-group">
+                            <label className="ch-co-label" htmlFor="paymayaAccountName">Account Name</label>
+                            <input
+                              className="ch-co-input"
+                              type="text" id="paymayaAccountName" name="paymayaAccountName"
+                              value={formData.paymayaAccountName} onChange={handleChange}
+                              required placeholder="Your registered PayMaya name"
+                            />
+                          </div>
+                          <div className="ch-co-form-group">
+                            <label className="ch-co-label" htmlFor="paymayaPassword">Password / PIN</label>
+                            <input
+                              className="ch-co-input"
+                              type="password" id="paymayaPassword" name="paymayaPassword"
+                              value={formData.paymayaPassword} onChange={handleChange}
+                              required placeholder="Enter your PayMaya PIN"
+                              maxLength="6"
+                            />
+                          </div>
+                        </>
                       )}
 
                       {/* Card */}
@@ -1088,7 +1237,7 @@ const Checkout = () => {
                       <button
                         type="submit"
                         className="ch-co-submit"
-                        disabled={isLoading || !formData.paymentMethod || hasMobileError}
+                        disabled={isLoading || !formData.paymentMethod || hasMobileError || (activeMobileField && (!hasValidMobileNumber || !formData[activeMobileField === 'gcashNumber' ? 'gcashAccountName' : 'paymayaAccountName'] || !formData[activeMobileField === 'gcashNumber' ? 'gcashPassword' : 'paymayaPassword']))}
                       >
                         {isLoading ? (
                           <>

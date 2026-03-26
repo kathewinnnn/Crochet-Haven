@@ -234,38 +234,6 @@
       "status": "Delivered"
     },
     {
-      "id": "1774512544191",
-      "customer": {
-        "fullName": "Katherine Mae V. Guzman",
-        "email": "itsmemae45@gmail.com",
-        "phone": "09629556678",
-        "address": "Nanangduan, Pilar, Abra",
-        "city": "Abra",
-        "zipCode": "2812",
-        "paymentMethod": "cod",
-        "gcashNumber": "",
-        "paymayaNumber": "",
-        "cardNumber": "",
-        "cardExpiry": "",
-        "cardCvv": "",
-        "cardName": "",
-        "orderNote": ""
-      },
-      "paymentMethod": "cod",
-      "items": [
-        {
-          "id": "1",
-          "name": "Crochet Keychain",
-          "price": 50,
-          "quantity": 1,
-          "selectedImage": "/img/keychain/1.jpg"
-        }
-      ],
-      "total": 50,
-      "createdAt": "2026-03-26T08:09:04.191Z",
-      "status": "Shipped"
-    },
-    {
       "id": "1774519248776",
       "customer": {
         "fullName": "Katherine Mae V. Guzman",
@@ -295,7 +263,7 @@
       ],
       "total": 50,
       "createdAt": "2026-03-26T10:00:48.776Z",
-      "status": "Pending"
+      "status": "Shipped"
     },
     {
       "id": "1774527642313",
