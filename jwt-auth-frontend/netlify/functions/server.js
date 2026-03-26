@@ -12,16 +12,16 @@ app.use(express.json({ limit: '10mb' }));
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
 const dbPath = path.join(__dirname, '../db.json');
 
-// Helper functions
+// ─── DB helpers ───────────────────────────────────────────────────────────────
 const readDb = () => {
   try {
     const raw = fs.readFileSync(dbPath, 'utf8');
     const parsed = JSON.parse(raw);
-    if (!parsed.users) parsed.users = [];
+    if (!parsed.users)    parsed.users    = [];
     if (!parsed.products) parsed.products = [];
-    if (!parsed.orders) parsed.orders = [];
+    if (!parsed.orders)   parsed.orders   = [];
     return parsed;
-  } catch (err) {
+  } catch {
     return { users: [], products: [], orders: [] };
   }
 };
@@ -30,24 +30,31 @@ const writeDb = (data) => {
   fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 };
 
-// Auth routes
+// ─── JWT helper — returns decoded payload or null ─────────────────────────────
+const decodeToken = (authHeader) => {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  try {
+    return jwt.verify(authHeader.slice(7), JWT_SECRET);
+  } catch {
+    return null;
+  }
+};
+
+// ─── Auth routes ──────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    if (!username || !email || !password) {
+    if (!username || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
-    }
 
     const db = readDb();
-    const normalizedUsername = username.trim().toLowerCase();
-    const normalizedEmail = email.trim().toLowerCase();
+    const normUser  = username.trim().toLowerCase();
+    const normEmail = email.trim().toLowerCase();
 
-    if (db.users.some(u => u.username.trim().toLowerCase() === normalizedUsername)) {
+    if (db.users.some(u => u.username.trim().toLowerCase() === normUser))
       return res.status(400).json({ message: "Username is already taken" });
-    }
-    if (db.users.some(u => u.email.trim().toLowerCase() === normalizedEmail)) {
+    if (db.users.some(u => u.email.trim().toLowerCase() === normEmail))
       return res.status(400).json({ message: "Email is already registered" });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = {
@@ -58,11 +65,10 @@ app.post('/api/auth/register', async (req, res) => {
       role: "user",
       createdAt: new Date().toISOString(),
     };
-
     db.users.push(newUser);
     writeDb(db);
     return res.status(201).json({ message: "Registration successful" });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: "Server error during registration" });
   }
 });
@@ -70,21 +76,15 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) {
+    if (!username || !password)
       return res.status(400).json({ message: "Username and password are required" });
-    }
 
-    const db = readDb();
+    const db   = readDb();
     const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-
-    if (!user) {
-      return res.status(401).json({ message: "Invalid username or password" });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid username or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid username or password" });
-    }
+    if (!isMatch) return res.status(401).json({ message: "Invalid username or password" });
 
     const token = jwt.sign(
       { id: user.id, username: user.username, email: user.email, role: user.role },
@@ -92,19 +92,27 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: "7d" }
     );
     return res.json({ token });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: "Server error during login" });
   }
 });
 
-// Products routes
-app.get('/products', (req, res) => {
+app.get('/api/auth/check-username', (req, res) => {
   try {
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ message: "Username is required" });
     const db = readDb();
-    res.json(db.products);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to read database" });
+    const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+    return res.json({ available: !taken });
+  } catch {
+    return res.status(500).json({ message: "Server error" });
   }
+});
+
+// ─── Products routes ──────────────────────────────────────────────────────────
+app.get('/products', (req, res) => {
+  try { res.json(readDb().products); }
+  catch { res.status(500).json({ error: "Failed to read products" }); }
 });
 
 app.post('/products', (req, res) => {
@@ -114,383 +122,293 @@ app.post('/products', (req, res) => {
     db.products.push(newProduct);
     writeDb(db);
     res.status(201).json(newProduct);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to add product" });
-  }
+  } catch { res.status(500).json({ error: "Failed to add product" }); }
 });
 
 app.put('/products/:id', (req, res) => {
   try {
-    const db = readDb();
-    const { id } = req.params;
-    const updatedProduct = { ...req.body };
-    const index = db.products.findIndex(p => p.id === id);
-    if (index !== -1) {
-      db.products[index] = updatedProduct;
-      writeDb(db);
-      res.json(updatedProduct);
-    } else {
-      res.status(404).json({ error: "Product not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Failed to update product" });
-  }
+    const db    = readDb();
+    const index = db.products.findIndex(p => p.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Product not found" });
+    db.products[index] = { ...req.body };
+    writeDb(db);
+    res.json(db.products[index]);
+  } catch { res.status(500).json({ error: "Failed to update product" }); }
 });
 
 app.delete('/products/:id', (req, res) => {
   try {
-    const db = readDb();
-    const { id } = req.params;
-    const filteredProducts = db.products.filter(p => p.id !== id);
-    if (filteredProducts.length !== db.products.length) {
-      db.products = filteredProducts;
-      writeDb(db);
-      res.json({ message: "Product deleted" });
-    } else {
-      res.status(404).json({ error: "Product not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Failed to delete product" });
-  }
+    const db       = readDb();
+    const filtered = db.products.filter(p => p.id !== req.params.id);
+    if (filtered.length === db.products.length)
+      return res.status(404).json({ error: "Product not found" });
+    db.products = filtered;
+    writeDb(db);
+    res.json({ message: "Product deleted" });
+  } catch { res.status(500).json({ error: "Failed to delete product" }); }
 });
 
-// Orders routes
+// ─── Orders routes ────────────────────────────────────────────────────────────
+// ⚠️ IMPORTANT: specific routes (/orders/latest, /orders/count) MUST come
+//    before the parameterized route (/orders/:id) or Express will swallow them.
+
+// GET /orders — returns only the orders belonging to the logged-in user.
+// Admin sees all orders (for the dashboard).
 app.get('/orders', (req, res) => {
   try {
-    const db = readDb();
-    res.json(db.orders || []);
-  } catch (err) {
+    const decoded = decodeToken(req.headers.authorization);
+    const db      = readDb();
+    const all     = db.orders || [];
+
+    if (decoded?.role === 'admin') {
+      return res.json(all);                                       // admin sees everything
+    }
+    if (decoded?.id) {
+      const mine = all.filter(o => o.userId === decoded.id);
+      return res.json(mine);                                      // user sees only their own
+    }
+    return res.json([]);                                          // unauthenticated → empty
+  } catch {
     res.status(500).json({ error: "Failed to read orders" });
   }
 });
 
+// POST /orders — saves userId from the JWT onto the order
 app.post('/orders', (req, res) => {
   try {
-    const db = readDb();
+    const decoded = decodeToken(req.headers.authorization);
+    const db      = readDb();
+
     const order = {
-      id: Date.now().toString(),
+      id:        Date.now().toString(),
+      userId:    decoded?.id       || null,   // ← ties order to a specific user
+      username:  decoded?.username || null,
       ...req.body,
       createdAt: new Date().toISOString(),
-      status: "Pending"
+      status:    "Pending",
     };
+
     if (!db.orders) db.orders = [];
     db.orders.push(order);
     writeDb(db);
     res.status(201).json(order);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Failed to create order" });
   }
 });
 
-app.put('/orders/:id', (req, res) => {
-  try {
-    const db = readDb();
-    const { id } = req.params;
-    const { status } = req.body;
-    const index = db.orders.findIndex(o => o.id === id);
-    if (index !== -1) {
-      db.orders[index] = { ...db.orders[index], status };
-      writeDb(db);
-      res.json(db.orders[index]);
-    } else {
-      res.status(404).json({ error: "Order not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Failed to update order" });
-  }
-});
-
-app.post('/orders/:id/cancel', (req, res) => {
-  try {
-    const db = readDb();
-    const { id } = req.params;
-    const index = db.orders.findIndex(o => o.id === id);
-    if (index !== -1) {
-      db.orders[index] = { ...db.orders[index], status: "Cancelled" };
-      writeDb(db);
-      res.json(db.orders[index]);
-    } else {
-      res.status(404).json({ error: "Order not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Failed to cancel order" });
-  }
-});
-
+// ⚠️ These MUST be defined before /orders/:id
 app.get('/orders/latest', (req, res) => {
   try {
-    const db = readDb();
+    const db     = readDb();
     const orders = db.orders || [];
-    if (orders.length === 0) {
+    if (orders.length === 0)
       return res.json({ latestOrderId: null, latestTimestamp: null });
-    }
-    const latestOrder = orders[orders.length - 1];
-    res.json({ latestOrderId: latestOrder.id, latestTimestamp: latestOrder.createdAt });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to get latest order" });
-  }
+    const latest = orders[orders.length - 1];
+    res.json({ latestOrderId: latest.id, latestTimestamp: latest.createdAt });
+  } catch { res.status(500).json({ error: "Failed to get latest order" }); }
 });
 
 app.get('/orders/count', (req, res) => {
   try {
     const db = readDb();
     res.json({ count: db.orders ? db.orders.length : 0 });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to get order count" });
-  }
+  } catch { res.status(500).json({ error: "Failed to get order count" }); }
 });
 
-// Export express app for local testing
+app.put('/orders/:id', (req, res) => {
+  try {
+    const db    = readDb();
+    const index = db.orders.findIndex(o => o.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Order not found" });
+    db.orders[index] = { ...db.orders[index], status: req.body.status };
+    writeDb(db);
+    res.json(db.orders[index]);
+  } catch { res.status(500).json({ error: "Failed to update order" }); }
+});
+
+app.post('/orders/:id/cancel', (req, res) => {
+  try {
+    const db    = readDb();
+    const index = db.orders.findIndex(o => o.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Order not found" });
+    db.orders[index] = { ...db.orders[index], status: "Cancelled" };
+    writeDb(db);
+    res.json(db.orders[index]);
+  } catch { res.status(500).json({ error: "Failed to cancel order" }); }
+});
+
 module.exports = app;
 
-// Netlify Functions handler
+// ─── Netlify Functions handler ────────────────────────────────────────────────
 exports.handler = async (event, context) => {
-  // CORS headers
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin':  '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   };
 
-  // Handle preflight OPTIONS requests
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ message: 'OK' }),
-    };
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: 'OK' }) };
   }
 
-  // Parse body if it's a string
   let body = event.body;
   if (body && typeof body === 'string') {
-    try {
-      body = JSON.parse(body);
-    } catch (e) {
-      body = {};
-    }
+    try { body = JSON.parse(body); } catch { body = {}; }
   }
 
-  // Create mock request
-  const req = {
-    method: event.httpMethod,
-    path: event.path,
-    params: {},
-    query: event.queryStringParameters || {},
-    headers: event.headers || {},
-    body: body || {},
-  };
+  const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
+  const decoded    = decodeToken(authHeader);
 
-  // Build path params from the URL
-  const pathParts = event.path.split('/').filter(Boolean);
-  if (pathParts.length > 1) {
-    const routeParts = pathParts.slice(1); // skip the empty first part
-    // Extract id from path like /orders/123 -> params.id = 123
-    if (routeParts.length >= 2 && ['orders', 'products'].includes(routeParts[0])) {
-      req.params.id = routeParts[1];
-    }
-  }
+  const p      = event.path;
+  const method = event.httpMethod;
 
-  // Mock response object
   let responseData = null;
-  let statusCode = 200;
-  const res = {
-    status: function(code) {
-      statusCode = code;
-      return this;
-    },
-    json: function(data) {
-      responseData = data;
-      return this;
-    },
-    send: function(data) {
-      responseData = data;
-      return this;
-    },
-    setHeader: function() {},
-  };
+  let statusCode   = 200;
 
-  // Route the request manually
-  const { method, path, body: reqBody, params } = req;
-  
   try {
-    // Auth routes
-    if (path === '/api/auth/register' && method === 'POST') {
-      const { username, email, password } = reqBody;
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    if (p === '/api/auth/register' && method === 'POST') {
+      const { username, email, password } = body;
       if (!username || !email || !password) {
-        statusCode = 400;
-        responseData = { message: "All fields are required" };
+        statusCode = 400; responseData = { message: "All fields are required" };
       } else {
-        const db = readDb();
-        const normalizedUsername = username.trim().toLowerCase();
-        const normalizedEmail = email.trim().toLowerCase();
-
-        if (db.users.some(u => u.username.trim().toLowerCase() === normalizedUsername)) {
-          statusCode = 400;
-          responseData = { message: "Username is already taken" };
-        } else if (db.users.some(u => u.email.trim().toLowerCase() === normalizedEmail)) {
-          statusCode = 400;
-          responseData = { message: "Email is already registered" };
+        const db        = readDb();
+        const normUser  = username.trim().toLowerCase();
+        const normEmail = email.trim().toLowerCase();
+        if (db.users.some(u => u.username.trim().toLowerCase() === normUser)) {
+          statusCode = 400; responseData = { message: "Username is already taken" };
+        } else if (db.users.some(u => u.email.trim().toLowerCase() === normEmail)) {
+          statusCode = 400; responseData = { message: "Email is already registered" };
         } else {
-          const hashedPassword = await bcrypt.hash(password, 10);
-          const newUser = {
-            id: Date.now().toString(),
-            username: username.trim(),
-            email: email.trim(),
-            password: hashedPassword,
-            role: "user",
-            createdAt: new Date().toISOString(),
-          };
-          db.users.push(newUser);
-          writeDb(db);
-          statusCode = 201;
-          responseData = { message: "Registration successful" };
+          const hashed  = await bcrypt.hash(password, 10);
+          const newUser = { id: Date.now().toString(), username: username.trim(), email: email.trim(), password: hashed, role: "user", createdAt: new Date().toISOString() };
+          db.users.push(newUser); writeDb(db);
+          statusCode = 201; responseData = { message: "Registration successful" };
         }
       }
     }
-    else if (path === '/api/auth/login' && method === 'POST') {
-      const { username, password } = reqBody;
+
+    else if (p === '/api/auth/login' && method === 'POST') {
+      const { username, password } = body;
       if (!username || !password) {
-        statusCode = 400;
-        responseData = { message: "Username and password are required" };
+        statusCode = 400; responseData = { message: "Username and password are required" };
       } else {
-        const db = readDb();
+        const db   = readDb();
         const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-        
         if (!user) {
-          statusCode = 401;
-          responseData = { message: "Invalid username or password" };
+          statusCode = 401; responseData = { message: "Invalid username or password" };
         } else {
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
-            statusCode = 401;
-            responseData = { message: "Invalid username or password" };
+            statusCode = 401; responseData = { message: "Invalid username or password" };
           } else {
             const token = jwt.sign(
               { id: user.id, username: user.username, email: user.email, role: user.role },
-              JWT_SECRET,
-              { expiresIn: "7d" }
+              JWT_SECRET, { expiresIn: "7d" }
             );
             responseData = { token };
           }
         }
       }
     }
-    // Products routes
-    else if (path === '/products' && method === 'GET') {
-      const db = readDb();
-      responseData = db.products;
-    }
-    else if (path === '/products' && method === 'POST') {
-      const db = readDb();
-      const newProduct = { ...reqBody };
-      db.products.push(newProduct);
-      writeDb(db);
-      statusCode = 201;
-      responseData = newProduct;
-    }
-    else if (path.startsWith('/products/') && method === 'PUT') {
-      const id = path.split('/products/')[1];
-      const db = readDb();
-      const index = db.products.findIndex(p => p.id === id);
-      if (index !== -1) {
-        db.products[index] = { ...reqBody };
-        writeDb(db);
-        responseData = db.products[index];
-      } else {
-        statusCode = 404;
-        responseData = { error: "Product not found" };
+
+    else if (p.startsWith('/api/auth/check-username') && method === 'GET') {
+      const username = (event.queryStringParameters || {}).username;
+      if (!username) { statusCode = 400; responseData = { message: "Username required" }; }
+      else {
+        const db    = readDb();
+        const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+        responseData = { available: !taken };
       }
     }
-    else if (path.startsWith('/products/') && method === 'DELETE') {
-      const id = path.split('/products/')[1];
-      const db = readDb();
-      const filteredProducts = db.products.filter(p => p.id !== id);
-      if (filteredProducts.length !== db.products.length) {
-        db.products = filteredProducts;
-        writeDb(db);
-        responseData = { message: "Product deleted" };
+
+    // ── Products ──────────────────────────────────────────────────────────────
+    else if (p === '/products' && method === 'GET') {
+      responseData = readDb().products;
+    }
+    else if (p === '/products' && method === 'POST') {
+      const db = readDb(); const np = { ...body }; db.products.push(np); writeDb(db); statusCode = 201; responseData = np;
+    }
+    else if (p.startsWith('/products/') && method === 'PUT') {
+      const id = p.split('/products/')[1]; const db = readDb();
+      const i  = db.products.findIndex(p => p.id === id);
+      if (i === -1) { statusCode = 404; responseData = { error: "Product not found" }; }
+      else { db.products[i] = { ...body }; writeDb(db); responseData = db.products[i]; }
+    }
+    else if (p.startsWith('/products/') && method === 'DELETE') {
+      const id = p.split('/products/')[1]; const db = readDb();
+      const f  = db.products.filter(p => p.id !== id);
+      if (f.length === db.products.length) { statusCode = 404; responseData = { error: "Product not found" }; }
+      else { db.products = f; writeDb(db); responseData = { message: "Product deleted" }; }
+    }
+
+    // ── Orders ────────────────────────────────────────────────────────────────
+    // ⚠️ Check specific paths BEFORE the generic /orders/:id catch-all
+
+    else if (p === '/orders/latest' && method === 'GET') {
+      const db = readDb(); const orders = db.orders || [];
+      if (!orders.length) responseData = { latestOrderId: null, latestTimestamp: null };
+      else { const l = orders[orders.length - 1]; responseData = { latestOrderId: l.id, latestTimestamp: l.createdAt }; }
+    }
+
+    else if (p === '/orders/count' && method === 'GET') {
+      const db = readDb(); responseData = { count: db.orders ? db.orders.length : 0 };
+    }
+
+    // GET /orders — per-user filtering
+    else if (p === '/orders' && method === 'GET') {
+      const db  = readDb();
+      const all = db.orders || [];
+      if (decoded?.role === 'admin') {
+        responseData = all;                                       // admin sees all
+      } else if (decoded?.id) {
+        responseData = all.filter(o => o.userId === decoded.id); // user sees own
       } else {
-        statusCode = 404;
-        responseData = { error: "Product not found" };
+        responseData = [];                                        // unauthenticated
       }
     }
-    // Orders routes
-    else if (path === '/orders' && method === 'GET') {
-      const db = readDb();
-      responseData = db.orders || [];
-    }
-    else if (path === '/orders' && method === 'POST') {
-      const db = readDb();
+
+    // POST /orders — stamp userId onto every new order
+    else if (p === '/orders' && method === 'POST') {
+      const db    = readDb();
       const order = {
-        id: Date.now().toString(),
-        ...reqBody,
+        id:       Date.now().toString(),
+        userId:   decoded?.id       || null,
+        username: decoded?.username || null,
+        ...body,
         createdAt: new Date().toISOString(),
-        status: "Pending"
+        status:    "Pending",
       };
       if (!db.orders) db.orders = [];
-      db.orders.push(order);
-      writeDb(db);
-      statusCode = 201;
-      responseData = order;
+      db.orders.push(order); writeDb(db);
+      statusCode = 201; responseData = order;
     }
-    else if (path.startsWith('/orders/') && !path.includes('/cancel') && method === 'PUT') {
-      const id = path.split('/orders/')[1];
-      const db = readDb();
-      const { status } = reqBody;
-      const index = db.orders.findIndex(o => o.id === id);
-      if (index !== -1) {
-        db.orders[index] = { ...db.orders[index], status };
-        writeDb(db);
-        responseData = db.orders[index];
-      } else {
-        statusCode = 404;
-        responseData = { error: "Order not found" };
-      }
+
+    else if (p.startsWith('/orders/') && p.includes('/cancel') && method === 'POST') {
+      const id = p.split('/orders/')[1].split('/cancel')[0];
+      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
+      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
+      else { db.orders[i] = { ...db.orders[i], status: "Cancelled" }; writeDb(db); responseData = db.orders[i]; }
     }
-    else if (path.includes('/cancel') && method === 'POST') {
-      const id = path.split('/orders/')[1].split('/cancel')[0];
-      const db = readDb();
-      const index = db.orders.findIndex(o => o.id === id);
-      if (index !== -1) {
-        db.orders[index] = { ...db.orders[index], status: "Cancelled" };
-        writeDb(db);
-        responseData = db.orders[index];
-      } else {
-        statusCode = 404;
-        responseData = { error: "Order not found" };
-      }
+
+    else if (p.startsWith('/orders/') && method === 'PUT') {
+      const id = p.split('/orders/')[1];
+      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
+      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
+      else { db.orders[i] = { ...db.orders[i], status: body.status }; writeDb(db); responseData = db.orders[i]; }
     }
-    else if (path === '/orders/latest' && method === 'GET') {
-      const db = readDb();
-      const orders = db.orders || [];
-      if (orders.length === 0) {
-        responseData = { latestOrderId: null, latestTimestamp: null };
-      } else {
-        const latestOrder = orders[orders.length - 1];
-        responseData = { latestOrderId: latestOrder.id, latestTimestamp: latestOrder.createdAt };
-      }
-    }
-    else if (path === '/orders/count' && method === 'GET') {
-      const db = readDb();
-      responseData = { count: db.orders ? db.orders.length : 0 };
-    }
-    else {
-      statusCode = 404;
-      responseData = { error: "Not found" };
-    }
+
+    else { statusCode = 404; responseData = { error: "Not found" }; }
+
   } catch (err) {
     console.error('Handler error:', err);
-    statusCode = 500;
-    responseData = { error: "Internal server error" };
+    statusCode = 500; responseData = { error: "Internal server error" };
   }
 
   return {
     statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders,
-    },
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
     body: JSON.stringify(responseData),
   };
 };
