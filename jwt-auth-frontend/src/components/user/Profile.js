@@ -365,7 +365,10 @@ const AvatarCropper = ({ imageSrc, onDone, onCancel }) => {
 };
 
 // ── Delete Modal ───────────────────────────────────────────────────────────────
-const DeleteAccountModal = ({ onClose, onDeleted }) => {
+// Sends POST /api/auth/delete-account with { username, password }.
+// The backend verifies the password with bcrypt, removes the user + their
+// orders from db.json, then returns 200. On success, local storage is wiped.
+const DeleteAccountModal = ({ username, onClose, onDeleted }) => {
   const [step,       setStep]       = useState(1);
   const [password,   setPassword]   = useState("");
   const [showPwd,    setShowPwd]    = useState(false);
@@ -381,17 +384,50 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
   }, [step, onClose]);
 
   const handleFinalDelete = async (e) => {
-    e.preventDefault(); setPwdError("");
-    if (!password.trim())    { setPwdError("Password is required."); return; }
-    if (password.length < 6) { setPwdError("Password must be at least 6 characters."); return; }
-    setIsDeleting(true); setStep(3);
+    e.preventDefault();
+    setPwdError("");
+
+    if (!password.trim())    { setPwdError("Password is required.");                    return; }
+    if (password.length < 6) { setPwdError("Password must be at least 6 characters.");  return; }
+
+    setIsDeleting(true);
+    setStep(3);
+
     try {
-      await new Promise(r => setTimeout(r, 2200));
+      const res = await fetch("/api/auth/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = data.message || data.error || "Deletion failed. Please try again.";
+        setIsDeleting(false);
+        setStep(2);
+        setPwdError(msg);
+        return;
+      }
+
+      // ── Wipe ALL local storage for this user ──────────────────────────────
       clearUserData();
+      const userId = resolveUserId();
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && userId && key.includes(userId)) toRemove.push(key);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+      ["ch_token", "ch_user", "ch_notifications", "ch_privacy", "profileActiveSection"]
+        .forEach(k => localStorage.removeItem(k));
+
       onDeleted();
+
     } catch {
-      setIsDeleting(false); setStep(2);
-      setPwdError("Deletion failed. Please try again.");
+      setIsDeleting(false);
+      setStep(2);
+      setPwdError("Network error — please check your connection and try again.");
     }
   };
 
@@ -425,7 +461,7 @@ const DeleteAccountModal = ({ onClose, onDeleted }) => {
               </div>
             </div>
             <form onSubmit={handleFinalDelete} className="ch-del-step2-body">
-              <p className="ch-del-step2-desc">Enter your <strong>current password</strong> to verify your identity.</p>
+              <p className="ch-del-step2-desc">Enter your <strong>current password</strong> to permanently delete your account.</p>
               <div className="ch-del-pwd-group">
                 <label className="ch-del-pwd-label">Current Password</label>
                 <div className="ch-del-pwd-input-wrap">
@@ -480,8 +516,7 @@ const Profile = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [passwordForm, setPasswordForm]       = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
-  // ── Notifications and privacy — scoped to userId so each user's prefs are separate ──
-  const getNotifKey  = () => `ch_notifications_${resolveUserId() || 'guest'}`;
+  const getNotifKey   = () => `ch_notifications_${resolveUserId() || 'guest'}`;
   const getPrivacyKey = () => `ch_privacy_${resolveUserId() || 'guest'}`;
 
   const [notifications, setNotifications] = useState(() => {
@@ -508,24 +543,14 @@ const Profile = () => {
   useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem(getPrivacyKey(), JSON.stringify(privacy)); }, [privacy]);
 
-  // ── Load user — profile edits take priority over auth data ────────────────
   const loadUser = () => {
     try {
-      const token  = loadToken();
-      console.log('📂 Profile loadUser - token exists:', !!token);
-
-      let decoded  = {};
-      if (token) {
-        try { decoded = jwtDecode(token); } catch { /* expired */ }
-      }
-
-      // loadFullUser merges: saved profile edits > ch_user > jwt
+      const token = loadToken();
+      let decoded = {};
+      if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
       const merged = loadFullUser(decoded);
-      console.log('📂 Profile loadUser - merged user:', merged);
-
       if (merged && (merged.username || merged.email)) {
         const avatar = loadAvatar();
-        console.log('📂 Profile loadUser - avatar:', avatar ? 'found' : 'not found');
         merged.avatar = avatar || merged.avatar || null;
         setUser(merged);
         setEditForm({
@@ -534,43 +559,23 @@ const Profile = () => {
           phone:    merged.phone    || "",
           address:  merged.address  || "",
         });
-      } else {
-        console.log('⚠️ Profile loadUser - no user data found');
       }
-    } catch (err) {
-      console.error('❌ Profile loadUser error:', err);
-      addToast("error", "Failed to load user data.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { addToast("error", "Failed to load user data."); }
+    finally  { setLoading(false); }
   };
 
-  // ── Save profile edits ────────────────────────────────────────────────────
-  // Uses saveUserProfile() which writes to ch_profile_<userId> — a key that
-  // is NOT wiped on logout, so edits survive across sessions.
   const handleEditSubmit = async (e) => {
-    e?.preventDefault();
-    setLoading(true);
+    e?.preventDefault(); setLoading(true);
     try {
       await new Promise(r => setTimeout(r, 800));
-
-      const updated = saveUserProfile({
-        ...editForm,
-        username: user.username,
-      });
-
+      const updated    = saveUserProfile({ ...editForm, username: user.username });
       const withAvatar = { ...user, ...updated, avatar: loadAvatar() || user?.avatar || null };
-      setUser(withAvatar);
-      setIsEditing(false);
+      setUser(withAvatar); setIsEditing(false);
       addToast("success", "Profile updated successfully!");
-    } catch {
-      addToast("error", "Failed to update profile.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { addToast("error", "Failed to update profile."); }
+    finally  { setLoading(false); }
   };
 
-  // ── Password change ───────────────────────────────────────────────────────
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) { addToast("error", "Passwords do not match!"); return; }
@@ -584,20 +589,16 @@ const Profile = () => {
     finally  { setLoading(false); }
   };
 
-  // ── Avatar file pick → cropper ────────────────────────────────────────────
   const handleAvatarFilePick = (e) => {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => { setRawAvatarSrc(reader.result); setShowAvatarCrop(true); };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    reader.readAsDataURL(file); e.target.value = '';
   };
 
-  // ── Avatar crop done — saved under ch_avatar_<userId> ────────────────────
   const handleAvatarCropDone = (dataUrl) => {
-    setShowAvatarCrop(false);
-    setRawAvatarSrc(null);
-    saveAvatar(dataUrl);                          // persists to ch_avatar_<userId>
+    setShowAvatarCrop(false); setRawAvatarSrc(null);
+    saveAvatar(dataUrl);
     setUser(prev => ({ ...prev, avatar: dataUrl }));
     addToast("success", "Profile picture updated!");
   };
@@ -612,8 +613,7 @@ const Profile = () => {
   ];
 
   if (loading && !user) return (
-    <>
-      <style>{styles}</style>
+    <><style>{styles}</style>
       <div className="ch-page">
         <div className="ch-loading"><div className="ch-spinner" /><p>Loading profile…</p></div>
       </div>
@@ -626,11 +626,8 @@ const Profile = () => {
       <div className="ch-page">
 
         {showAvatarCrop && rawAvatarSrc && (
-          <AvatarCropper
-            imageSrc={rawAvatarSrc}
-            onDone={handleAvatarCropDone}
-            onCancel={() => { setShowAvatarCrop(false); setRawAvatarSrc(null); }}
-          />
+          <AvatarCropper imageSrc={rawAvatarSrc} onDone={handleAvatarCropDone}
+            onCancel={() => { setShowAvatarCrop(false); setRawAvatarSrc(null); }} />
         )}
 
         {/* HEADER */}
@@ -651,9 +648,7 @@ const Profile = () => {
         <div className="ch-page-banner">
           <div className="ch-banner-inner">
             <p className="ch-banner-eyebrow">Your Account</p>
-            <h1 className="ch-banner-title">
-              <em>{user?.fullName || user?.username || "Profile"}</em>
-            </h1>
+            <h1 className="ch-banner-title"><em>{user?.fullName || user?.username || "Profile"}</em></h1>
             <p className="ch-banner-sub">Manage your profile and preferences</p>
           </div>
         </div>
@@ -673,19 +668,16 @@ const Profile = () => {
                   <div className="ch-avatar-overlay">📷</div>
                 </div>
                 <input type="file" ref={fileInputRef} accept="image/*" onChange={handleAvatarFilePick} style={{ display: "none" }} />
-
                 <div className="ch-user-name">{user?.fullName || user?.username}</div>
                 <div className="ch-user-email">{user?.email}</div>
                 <span className="ch-user-badge">{user?.role || "Customer"}</span>
               </div>
-
               <nav className="ch-profile-nav">
                 {navItems.map(item => (
                   <button key={item.key}
                     className={`ch-pnav-item${activeSection === item.key ? " active" : ""}`}
                     onClick={() => setActiveSection(item.key)}>
-                    <span className="ch-pnav-icon">{item.icon}</span>
-                    {item.label}
+                    <span className="ch-pnav-icon">{item.icon}</span>{item.label}
                   </button>
                 ))}
               </nav>
@@ -705,34 +697,31 @@ const Profile = () => {
                     {!isEditing
                       ? <button className="ch-btn-primary" onClick={() => setIsEditing(true)}><span>✏️ Edit Profile</span></button>
                       : <div className="ch-btn-group">
-                        <button className="ch-btn-secondary" onClick={() => {
-                          setIsEditing(false);
-                          setEditForm({ fullName: user?.fullName || "", email: user?.email || "", phone: user?.phone || "", address: user?.address || "" });
-                        }}>Cancel</button>
-                        <button className="ch-btn-primary" onClick={handleEditSubmit} disabled={loading}>
-                          <span>{loading ? "Saving…" : "Save Changes"}</span>
-                        </button>
-                      </div>
+                          <button className="ch-btn-secondary" onClick={() => {
+                            setIsEditing(false);
+                            setEditForm({ fullName: user?.fullName || "", email: user?.email || "", phone: user?.phone || "", address: user?.address || "" });
+                          }}>Cancel</button>
+                          <button className="ch-btn-primary" onClick={handleEditSubmit} disabled={loading}>
+                            <span>{loading ? "Saving…" : "Save Changes"}</span>
+                          </button>
+                        </div>
                     }
                   </div>
-
                   <div className="ch-info-card">
                     {!isEditing ? (
                       <div className="ch-info-grid">
                         {[
-                          { label: "Username",      value: user?.username },
-                          { label: "Full Name",     value: user?.fullName  || "—" },
-                          { label: "Email Address", value: user?.email     || "—" },
-                          { label: "Phone Number",  value: user?.phone     || "—" },
-                          { label: "Address",       value: user?.address   || "—", full: true },
-                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—" },
+                          { label: "Username",       value: user?.username },
+                          { label: "Full Name",      value: user?.fullName  || "—" },
+                          { label: "Email Address",  value: user?.email     || "—" },
+                          { label: "Phone Number",   value: user?.phone     || "—" },
+                          { label: "Address",        value: user?.address   || "—", full: true },
+                          { label: "Member Since",   value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—" },
                           { label: "Account Status", badge: true },
                         ].map((item, i) => (
                           <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>
                             <span className="ch-info-label">{item.label}</span>
-                            {item.badge
-                              ? <span className="ch-status-badge">Active</span>
-                              : <span className="ch-info-value">{item.value}</span>}
+                            {item.badge ? <span className="ch-status-badge">Active</span> : <span className="ch-info-value">{item.value}</span>}
                           </div>
                         ))}
                       </div>
@@ -741,29 +730,21 @@ const Profile = () => {
                         <div className="ch-form-row">
                           <div className="ch-form-group">
                             <label>Full Name</label>
-                            <input type="text" value={editForm.fullName}
-                              onChange={e => setEditForm({ ...editForm, fullName: e.target.value })}
-                              placeholder="Your full name" />
+                            <input type="text" value={editForm.fullName} onChange={e => setEditForm({ ...editForm, fullName: e.target.value })} placeholder="Your full name" />
                           </div>
                           <div className="ch-form-group">
                             <label>Email Address</label>
-                            <input type="email" value={editForm.email}
-                              onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                              placeholder="Your email" />
+                            <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="Your email" />
                           </div>
                         </div>
                         <div className="ch-form-row">
                           <div className="ch-form-group">
                             <label>Phone Number</label>
-                            <input type="tel" value={editForm.phone}
-                              onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                              placeholder="+63 912 345 6789" />
+                            <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="+63 912 345 6789" />
                           </div>
                           <div className="ch-form-group">
                             <label>Address</label>
-                            <input type="text" value={editForm.address}
-                              onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                              placeholder="Your address" />
+                            <input type="text" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} placeholder="Your address" />
                           </div>
                         </div>
                       </div>
@@ -786,22 +767,16 @@ const Profile = () => {
                     <form onSubmit={handlePasswordChange} className="ch-edit-form">
                       <div className="ch-form-group">
                         <label>Current Password</label>
-                        <input type="password" value={passwordForm.currentPassword}
-                          onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                          placeholder="Enter current password" required />
+                        <input type="password" value={passwordForm.currentPassword} onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} placeholder="Enter current password" required />
                       </div>
                       <div className="ch-form-row">
                         <div className="ch-form-group">
                           <label>New Password</label>
-                          <input type="password" value={passwordForm.newPassword}
-                            onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                            placeholder="New password" required />
+                          <input type="password" value={passwordForm.newPassword} onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} placeholder="New password" required />
                         </div>
                         <div className="ch-form-group">
                           <label>Confirm New Password</label>
-                          <input type="password" value={passwordForm.confirmPassword}
-                            onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                            placeholder="Confirm password" required />
+                          <input type="password" value={passwordForm.confirmPassword} onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} placeholder="Confirm password" required />
                         </div>
                       </div>
                       <button type="submit" className="ch-btn-primary" disabled={loading} style={{ alignSelf: "flex-start" }}>
@@ -832,10 +807,7 @@ const Profile = () => {
                           <div className="ch-setting-info"><h4>{item.title}</h4><p>{item.desc}</p></div>
                           <label className="ch-toggle">
                             <input type="checkbox" checked={notifications[item.key]}
-                              onChange={() => {
-                                setNotifications(p => ({ ...p, [item.key]: !p[item.key] }));
-                                addToast("success", "Notification preferences saved!");
-                              }} />
+                              onChange={() => { setNotifications(p => ({ ...p, [item.key]: !p[item.key] })); addToast("success", "Notification preferences saved!"); }} />
                             <span className="ch-toggle-track" />
                           </label>
                         </div>
@@ -864,10 +836,7 @@ const Profile = () => {
                           <div className="ch-setting-info"><h4>{item.title}</h4><p>{item.desc}</p></div>
                           <label className="ch-toggle">
                             <input type="checkbox" checked={privacy[item.key]}
-                              onChange={() => {
-                                setPrivacy(p => ({ ...p, [item.key]: !p[item.key] }));
-                                addToast("success", "Privacy settings updated!");
-                              }} />
+                              onChange={() => { setPrivacy(p => ({ ...p, [item.key]: !p[item.key] })); addToast("success", "Privacy settings updated!"); }} />
                             <span className="ch-toggle-track" />
                           </label>
                         </div>
@@ -899,8 +868,13 @@ const Profile = () => {
           {toasts.map(t => <ChToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />)}
         </div>
 
+        {/* Delete modal — pass username so the backend can look up the user */}
         {showDeleteModal && (
-          <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onDeleted={handleAccountDeleted} />
+          <DeleteAccountModal
+            username={user?.username}
+            onClose={() => setShowDeleteModal(false)}
+            onDeleted={handleAccountDeleted}
+          />
         )}
 
       </div>

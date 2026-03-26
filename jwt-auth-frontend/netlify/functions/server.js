@@ -109,6 +109,39 @@ app.get('/api/auth/check-username', (req, res) => {
   }
 });
 
+// ─── DELETE account ───────────────────────────────────────────────────────────
+// POST (not DELETE) so Netlify Functions can read the body reliably.
+// Frontend sends { username, password } — no JWT required so even an
+// expired token doesn't block the user from deleting their account.
+app.post('/api/auth/delete-account', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ message: "Username and password are required" });
+
+    const db   = readDb();
+    const idx  = db.users.findIndex(
+      u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
+    );
+    if (idx === -1)
+      return res.status(404).json({ message: "Account not found" });
+
+    const user    = db.users[idx];
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Incorrect password. Please try again." });
+
+    // Remove the user and all their orders from the DB
+    db.users  = db.users.filter((_, i) => i !== idx);
+    db.orders = db.orders.filter(o => o.userId !== user.id);
+    writeDb(db);
+
+    return res.json({ message: "Account deleted successfully" });
+  } catch {
+    return res.status(500).json({ message: "Server error during account deletion" });
+  }
+});
+
 // ─── Products routes ──────────────────────────────────────────────────────────
 app.get('/products', (req, res) => {
   try { res.json(readDb().products); }
@@ -149,45 +182,31 @@ app.delete('/products/:id', (req, res) => {
 });
 
 // ─── Orders routes ────────────────────────────────────────────────────────────
-// ⚠️ IMPORTANT: specific routes (/orders/latest, /orders/count) MUST come
-//    before the parameterized route (/orders/:id) or Express will swallow them.
-
-// GET /orders — returns only the orders belonging to the logged-in user.
-// Admin sees all orders (for the dashboard).
 app.get('/orders', (req, res) => {
   try {
     const decoded = decodeToken(req.headers.authorization);
     const db      = readDb();
     const all     = db.orders || [];
-
-    if (decoded?.role === 'admin') {
-      return res.json(all);                                       // admin sees everything
-    }
-    if (decoded?.id) {
-      const mine = all.filter(o => o.userId === decoded.id);
-      return res.json(mine);                                      // user sees only their own
-    }
-    return res.json([]);                                          // unauthenticated → empty
+    if (decoded?.role === 'admin') return res.json(all);
+    if (decoded?.id) return res.json(all.filter(o => o.userId === decoded.id));
+    return res.json([]);
   } catch {
     res.status(500).json({ error: "Failed to read orders" });
   }
 });
 
-// POST /orders — saves userId from the JWT onto the order
 app.post('/orders', (req, res) => {
   try {
     const decoded = decodeToken(req.headers.authorization);
     const db      = readDb();
-
     const order = {
       id:        Date.now().toString(),
-      userId:    decoded?.id       || null,   // ← ties order to a specific user
+      userId:    decoded?.id       || null,
       username:  decoded?.username || null,
       ...req.body,
       createdAt: new Date().toISOString(),
       status:    "Pending",
     };
-
     if (!db.orders) db.orders = [];
     db.orders.push(order);
     writeDb(db);
@@ -197,7 +216,6 @@ app.post('/orders', (req, res) => {
   }
 });
 
-// ⚠️ These MUST be defined before /orders/:id
 app.get('/orders/latest', (req, res) => {
   try {
     const db     = readDb();
@@ -256,6 +274,7 @@ exports.handler = async (event, context) => {
   if (body && typeof body === 'string') {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
+  if (!body) body = {};
 
   const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
   const decoded    = decodeToken(authHeader);
@@ -323,6 +342,36 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // ── DELETE ACCOUNT ────────────────────────────────────────────────────────
+    // Uses POST so Netlify can reliably read the request body.
+    // Expects { username, password } — verifies password against the stored
+    // bcrypt hash, then removes the user + all their orders from db.json.
+    else if (p === '/api/auth/delete-account' && method === 'POST') {
+      const { username, password } = body;
+      if (!username || !password) {
+        statusCode = 400; responseData = { message: "Username and password are required" };
+      } else {
+        const db  = readDb();
+        const idx = db.users.findIndex(
+          u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
+        );
+        if (idx === -1) {
+          statusCode = 404; responseData = { message: "Account not found" };
+        } else {
+          const user    = db.users[idx];
+          const isMatch = await bcrypt.compare(password, user.password);
+          if (!isMatch) {
+            statusCode = 401; responseData = { message: "Incorrect password. Please try again." };
+          } else {
+            db.users  = db.users.filter((_, i) => i !== idx);
+            db.orders = db.orders.filter(o => o.userId !== user.id);
+            writeDb(db);
+            responseData = { message: "Account deleted successfully" };
+          }
+        }
+      }
+    }
+
     // ── Products ──────────────────────────────────────────────────────────────
     else if (p === '/products' && method === 'GET') {
       responseData = readDb().products;
@@ -344,8 +393,6 @@ exports.handler = async (event, context) => {
     }
 
     // ── Orders ────────────────────────────────────────────────────────────────
-    // ⚠️ Check specific paths BEFORE the generic /orders/:id catch-all
-
     else if (p === '/orders/latest' && method === 'GET') {
       const db = readDb(); const orders = db.orders || [];
       if (!orders.length) responseData = { latestOrderId: null, latestTimestamp: null };
@@ -356,20 +403,14 @@ exports.handler = async (event, context) => {
       const db = readDb(); responseData = { count: db.orders ? db.orders.length : 0 };
     }
 
-    // GET /orders — per-user filtering
     else if (p === '/orders' && method === 'GET') {
       const db  = readDb();
       const all = db.orders || [];
-      if (decoded?.role === 'admin') {
-        responseData = all;                                       // admin sees all
-      } else if (decoded?.id) {
-        responseData = all.filter(o => o.userId === decoded.id); // user sees own
-      } else {
-        responseData = [];                                        // unauthenticated
-      }
+      if (decoded?.role === 'admin') responseData = all;
+      else if (decoded?.id) responseData = all.filter(o => o.userId === decoded.id);
+      else responseData = [];
     }
 
-    // POST /orders — stamp userId onto every new order
     else if (p === '/orders' && method === 'POST') {
       const db    = readDb();
       const order = {
