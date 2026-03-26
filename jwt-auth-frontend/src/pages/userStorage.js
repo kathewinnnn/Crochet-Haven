@@ -1,25 +1,3 @@
-/**
- * userStorage.js
- * ─────────────────────────────────────────────────────────────────────────────
- * Centralised localStorage helpers for Crochet Haven.
- *
- * Key design decisions
- * ────────────────────
- * • Auth keys  ('token', 'ch_token', 'user', 'ch_user', 'userId', 'username')
- *   are written by Login/Register and cleared on logout/delete.
- *
- * • Profile-edit keys  ('ch_profile_<userId>')  are keyed by userId so they
- *   survive logout and are NOT cleared on logout — only on account deletion.
- *   This means a user's edited name, phone, address etc. come back when they
- *   log in again on the same browser.
- *
- * • Avatar key  ('ch_avatar_<userId>')  works the same way.
- *
- * • Notification / privacy prefs are also keyed by userId.
- */
-
-// ─── Token ───────────────────────────────────────────────────────────────────
-
 export const loadToken = () =>
   localStorage.getItem('ch_token') || localStorage.getItem('token') || null;
 
@@ -126,7 +104,10 @@ export const loadFullUser = (jwtDecoded = {}) => {
 
 export const saveUserProfile = (fields) => {
   const userId = resolveUserId();
-  if (!userId) return fields;
+  if (!userId) {
+    console.log('⚠️ saveUserProfile: No userId found');
+    return fields;
+  }
 
   // Load current saved profile (if any) and merge
   let existing = {};
@@ -137,12 +118,10 @@ export const saveUserProfile = (fields) => {
 
   const updated = {
     ...existing,
-    fullName: fields.fullName ?? existing.fullName,
-    email:    fields.email    ?? existing.email,
-    phone:    fields.phone    ?? existing.phone,
-    address:  fields.address  ?? existing.address,
-    // username is intentionally excluded — it's set by auth, not editable
+    ...fields, // Include all fields from registration
   };
+
+  console.log('💾 Saving user profile:', { userId, updated });
 
   localStorage.setItem(profileKey(userId), JSON.stringify(updated));
   return updated;
@@ -152,14 +131,25 @@ export const saveUserProfile = (fields) => {
 
 export const loadAvatar = () => {
   const userId = resolveUserId();
-  if (!userId) return null;
-  return localStorage.getItem(avatarKey(userId)) || null;
+  console.log('🖼️ loadAvatar - userId:', userId);
+  if (!userId) {
+    console.log('🖼️ loadAvatar - no userId, returning null');
+    return null;
+  }
+  const avatar = localStorage.getItem(avatarKey(userId)) || null;
+  console.log('🖼️ loadAvatar - avatar:', avatar ? 'found' : 'not found');
+  return avatar;
 };
 
 export const saveAvatar = (dataUrl) => {
   const userId = resolveUserId();
-  if (!userId) return;
+  console.log('💾 saveAvatar - userId:', userId, ', has data:', !!dataUrl);
+  if (!userId) {
+    console.log('⚠️ saveAvatar: No userId found');
+    return;
+  }
   localStorage.setItem(avatarKey(userId), dataUrl);
+  console.log('💾 saveAvatar: Saved avatar for user', userId);
 };
 
 // ─── Clear auth data on logout ────────────────────────────────────────────────

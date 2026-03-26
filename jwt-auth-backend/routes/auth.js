@@ -38,8 +38,8 @@ const writeDb = (data) => {
 // ── POST /api/auth/register ──────────────────────────────────────────
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    console.log("📝 Register attempt:", { username, email }); // DEBUG
+    const { username, email, password, fullName, phone, address, avatar } = req.body;
+    console.log("📝 Register attempt:", { username, email, fullName }); // DEBUG
 
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -80,6 +80,10 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
       role: "user",
       createdAt: new Date().toISOString(),
+      fullName: fullName ? fullName.trim() : "",
+      phone: phone ? phone.trim() : "",
+      address: address ? address.trim() : "",
+      avatar: avatar || "",
     };
 
     db.users.push(newUser);
@@ -124,6 +128,10 @@ router.post("/login", async (req, res) => {
         username: user.username,
         email:    user.email,
         role:     user.role,
+        fullName: user.fullName || "",
+        phone:    user.phone || "",
+        address:  user.address || "",
+        createdAt: user.createdAt,
       },
       JWT_SECRET,
       { expiresIn: "7d" }
@@ -160,7 +168,7 @@ router.get("/profile", verifyToken, (req, res) => {
 // ── PUT /api/auth/profile ─────────────────────────────────────────
 router.put("/profile", verifyToken, async (req, res) => {
   try {
-    const { name, phone, bio, storeName, location, avatar } = req.body;
+    const { fullName, phone, address, avatar } = req.body;
     const db = readDb();
     
     const userIndex = db.users.findIndex((u) => u.id === req.user.id);
@@ -168,15 +176,13 @@ router.put("/profile", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Update user profile fields (including avatar if provided)
+    // Update user profile fields (including fullName, phone, address, avatar)
     db.users[userIndex] = {
       ...db.users[userIndex],
-      name: name || "",
-      phone: phone || "",
-      bio: bio || "",
-      storeName: storeName || "",
-      location: location || "",
-      avatar: avatar || "",
+      fullName: fullName || db.users[userIndex].fullName || "",
+      phone: phone || db.users[userIndex].phone || "",
+      address: address || db.users[userIndex].address || "",
+      avatar: avatar || db.users[userIndex].avatar || "",
     };
     
     writeDb(db);

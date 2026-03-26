@@ -512,6 +512,8 @@ const Profile = () => {
   const loadUser = () => {
     try {
       const token  = loadToken();
+      console.log('📂 Profile loadUser - token exists:', !!token);
+
       let decoded  = {};
       if (token) {
         try { decoded = jwtDecode(token); } catch { /* expired */ }
@@ -519,9 +521,12 @@ const Profile = () => {
 
       // loadFullUser merges: saved profile edits > ch_user > jwt
       const merged = loadFullUser(decoded);
+      console.log('📂 Profile loadUser - merged user:', merged);
 
       if (merged && (merged.username || merged.email)) {
-        merged.avatar = loadAvatar() || merged.avatar || null;
+        const avatar = loadAvatar();
+        console.log('📂 Profile loadUser - avatar:', avatar ? 'found' : 'not found');
+        merged.avatar = avatar || merged.avatar || null;
         setUser(merged);
         setEditForm({
           fullName: merged.fullName || merged.username || "",
@@ -529,8 +534,11 @@ const Profile = () => {
           phone:    merged.phone    || "",
           address:  merged.address  || "",
         });
+      } else {
+        console.log('⚠️ Profile loadUser - no user data found');
       }
     } catch (err) {
+      console.error('❌ Profile loadUser error:', err);
       addToast("error", "Failed to load user data.");
     } finally {
       setLoading(false);
@@ -717,7 +725,7 @@ const Profile = () => {
                           { label: "Email Address", value: user?.email     || "—" },
                           { label: "Phone Number",  value: user?.phone     || "—" },
                           { label: "Address",       value: user?.address   || "—", full: true },
-                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—" },
+                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—" },
                           { label: "Account Status", badge: true },
                         ].map((item, i) => (
                           <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>

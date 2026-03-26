@@ -285,10 +285,10 @@ const Register = () => {
     username: '', fullName: '', email: '', phone: '', address: '', password: '', confirmPassword: '',
   });
 
-  const [uStatus, setUStatus] = useState(U.IDLE);
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [uStatus,      setUStatus]      = useState(U.IDLE);
+  const [fieldErrors,  setFieldErrors]  = useState({});
+  const [touched,      setTouched]      = useState({});   // ← NEW
 
-  // Step-3-only generic server error (NOT username conflicts — those go back to Step 1)
   const [globalError,  setGlobalError]  = useState('');
   const [isLoading,    setIsLoading]    = useState(false);
   const [showSuccess,  setShowSuccess]  = useState(false);
@@ -301,29 +301,15 @@ const Register = () => {
   const [showDisagree, setShowDisagree] = useState(false);
   const [focused,      setFocused]      = useState('');
 
-  /* ─── USERNAME CHECKING ───────────────────────────────────────
-     Strategy:
-       • While typing: show ⏳ CHECKING immediately (≥8 chars).
-         A 600ms debounce fires the API — so if the user is still
-         typing we don't spam the server.
-       • On blur (tab/click away): cancel the debounce and fire NOW
-         so the result is instant when they move to the next field.
-       • ch('username') resets to IDLE only when the value actually
-         changes, so blur-check results aren't wiped on re-render.
-  ─────────────────────────────────────────────────────────── */
-
-  // Refs so async callbacks always see the latest values without stale closures
   const usernameRef = useRef(form.username);
   usernameRef.current = form.username;
 
-  // The actual API call — shared by debounce and blur
   const fireUsernameCheck = useCallback(async (u) => {
     setUStatus(U.CHECKING);
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
       );
-      // Guard: ignore stale response if the username changed while we awaited
       if (usernameRef.current.trim() === u) {
         setUStatus(res.data?.available === true ? U.AVAILABLE : U.TAKEN);
       }
@@ -332,22 +318,20 @@ const Register = () => {
     }
   }, []);
 
-  // Debounce effect: sets CHECKING immediately, calls API after 600ms idle
   useEffect(() => {
     clearTimeout(uTimer.current);
     const u = form.username.trim();
-    if (u.length < 8) { setUStatus(U.IDLE); return; }
+    if (u.length < 5) { setUStatus(U.IDLE); return; }
     setUStatus(U.CHECKING);
     uTimer.current = setTimeout(() => fireUsernameCheck(u), 600);
     return () => clearTimeout(uTimer.current);
   }, [form.username, fireUsernameCheck]);
 
-  // Called on blur — cancels pending debounce and fires instantly
   const runUsernameCheck = useCallback(() => {
     const u = usernameRef.current.trim();
-    if (u.length < 8) return;
-    clearTimeout(uTimer.current); // kill the 600ms timer
-    fireUsernameCheck(u);         // fire right now
+    if (u.length < 5) return;
+    clearTimeout(uTimer.current);
+    fireUsernameCheck(u);
   }, [fireUsernameCheck]);
 
   const uIndicator = { [U.IDLE]: '', [U.CHECKING]: '⏳', [U.AVAILABLE]: '✅', [U.TAKEN]: '❌', [U.ERROR]: '' }[uStatus];
@@ -355,7 +339,7 @@ const Register = () => {
   const renderUsernameMsg = () => {
     const len = form.username.trim().length;
     if (len === 0) return null;
-    if (len < 8)   return <div className="ferr">⚠ Must be at least 8 characters ({len}/8)</div>;
+    if (len < 5)   return <div className="ferr">⚠ Must be at least 5 characters ({len}/5)</div>;
     switch (uStatus) {
       case U.CHECKING:  return <div className="fnfo">⏳ Checking availability…</div>;
       case U.AVAILABLE: return <div className="fok">✓ Username is available!</div>;
@@ -368,16 +352,23 @@ const Register = () => {
   const validateInfoWithStatus = (resolvedStatus) => {
     const errs = {};
     const u = form.username.trim();
-    if (!u)              errs.username = 'Username is required.';
-    else if (u.length < 8) errs.username = 'Username must be at least 8 characters.';
+    if (!u)                errs.username = 'Username is required.';
+    else if (u.length < 5) errs.username = 'Username must be at least 5 characters.';
     else if (resolvedStatus === U.CHECKING) errs.username = 'Please wait — still checking username availability.';
     else if (resolvedStatus === U.TAKEN)    errs.username = 'This username is already taken. Please choose another.';
 
     if (!form.fullName.trim()) errs.fullName = 'Full name is required.';
+
     const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.email.trim())             errs.email = 'Email is required.';
     else if (!emailRx.test(form.email)) errs.email = 'Enter a valid email address.';
-    if (!form.phone.trim())   errs.phone   = 'Phone number is required.';
+
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (!form.phone.trim())                 errs.phone = 'Phone number is required.';
+    else if (phoneDigits.length > 11)       errs.phone = 'Phone number must not exceed 11 digits.';
+    else if (phoneDigits.length !== 11)     errs.phone = 'Phone number must be 11 digits (e.g., 09XXXXXXXXX).';
+    else if (!phoneDigits.startsWith('09')) errs.phone = 'Phone number must start with 09.';
+
     if (!form.address.trim()) errs.address = 'Address is required.';
     if (form.password.length < 6) errs.password = 'Password must be at least 6 characters.';
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match.';
@@ -385,9 +376,11 @@ const Register = () => {
   };
 
   const goToAvatar = async () => {
-    // If still pending or never checked, force-run the check now and wait
+    // Mark all fields as touched so required errors show
+    setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
+
     const u = form.username.trim();
-    if (u.length >= 8 && (uStatus === U.IDLE || uStatus === U.CHECKING || uStatus === U.ERROR)) {
+    if (u.length >= 5 && (uStatus === U.IDLE || uStatus === U.CHECKING || uStatus === U.ERROR)) {
       clearTimeout(uTimer.current);
       setUStatus(U.CHECKING);
       try {
@@ -396,7 +389,6 @@ const Register = () => {
         );
         const resolved = res.data?.available === true ? U.AVAILABLE : U.TAKEN;
         setUStatus(resolved);
-        // Validate with resolved status
         const errs = validateInfoWithStatus(resolved);
         setFieldErrors(errs);
         if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
@@ -413,10 +405,6 @@ const Register = () => {
     if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
   };
 
-  /* ─── FINAL SUBMIT ───
-     KEY FIX: if the server says username is taken, go BACK to Step 1
-     and show the error on the username field — not as a generic Step 3 error.
-  ─── */
   const handleSubmit = async () => {
     setIsLoading(true);
     setGlobalError('');
@@ -433,14 +421,29 @@ const Register = () => {
 
       const token = res.data?.token || res.data?.accessToken || null;
       if (token) saveToken(token);
-      saveUserProfile({
+
+      const userData = {
+        id:        res.data?.user?.id || res.data?.id || Date.now().toString(),
         username:  form.username,
         email:     form.email,
         fullName:  form.fullName,
         phone:     form.phone,
         address:   form.address,
         role:      res.data?.user?.role || res.data?.role || 'Customer',
-        createdAt: res.data?.user?.createdAt || new Date().toISOString(),
+        createdAt: res.data?.user?.createdAt || res.data?.createdAt || new Date().toISOString(),
+      };
+
+      localStorage.setItem('ch_user', JSON.stringify(userData));
+      localStorage.setItem('userId', userData.id);
+
+      saveUserProfile({
+        username:  form.username,
+        email:     form.email,
+        fullName:  form.fullName,
+        phone:     form.phone,
+        address:   form.address,
+        role:      userData.role,
+        createdAt: userData.createdAt,
       });
       saveAvatar(avatar || null);
       setShowSuccess(true);
@@ -450,22 +453,17 @@ const Register = () => {
       setIsLoading(false);
       const serverMsg = err.response?.data?.message || '';
 
-      // ── Username taken: route back to Step 1, highlight the field ──
       if (err.response && isUsernameTakenError(serverMsg)) {
         setUStatus(U.TAKEN);
         setFieldErrors({ username: 'This username is already taken. Please choose another.' });
         setStep(STEP_INFO);
         return;
       }
-
-      // ── Email conflict ──
       if (err.response && serverMsg.toLowerCase().includes('email')) {
         setFieldErrors({ email: serverMsg || 'This email is already registered.' });
         setStep(STEP_INFO);
         return;
       }
-
-      // ── Generic server / network error — stays on Step 3 ──
       if (err.response)     setGlobalError(serverMsg || 'Registration failed. Please try again.');
       else if (err.request) setGlobalError('Cannot connect to server. Please make sure the backend is running.');
       else                  setGlobalError('An unexpected error occurred. Please try again.');
@@ -496,19 +494,31 @@ const Register = () => {
     fontFamily: "'Segoe UI',sans-serif", color: '#1f2937',
   });
 
+  // ← UPDATED: marks field as touched on blur + fires username check
   const fc = (name) => ({
     onFocus: () => setFocused(name),
-    onBlur:  () => { setFocused(''); if (name === 'username') runUsernameCheck(); },
+    onBlur:  () => {
+      setFocused('');
+      setTouched(p => ({ ...p, [name]: true }));
+      if (name === 'username') runUsernameCheck();
+    },
   });
+
   const ch = (field) => (e) => {
-    const newVal = e.target.value;
+    let newVal = e.target.value;
+    if (field === 'phone') newVal = newVal.replace(/[^\d]/g, '');
     setForm(p => ({ ...p, [field]: newVal }));
     if (fieldErrors[field]) setFieldErrors(p => ({ ...p, [field]: '' }));
-    // Reset username status only when the value actually changes (so blur results aren't wiped)
     if (field === 'username' && newVal.trim() !== usernameRef.current.trim()) {
       setUStatus(newVal.trim().length < 8 ? U.IDLE : U.CHECKING);
     }
   };
+
+  // Derived helpers for phone validation used in both border and message
+  const phoneDigitCount = form.phone.replace(/\D/g, '').length;
+  const phoneHasLetters = /[^\d]/.test(form.phone);
+  const phoneIsOverflow = phoneDigitCount > 11;
+  const phoneHasErr     = !!fieldErrors.phone || phoneIsOverflow || phoneHasLetters;
 
   /* ═══════════════════════════════════════════════
      RENDER
@@ -575,8 +585,11 @@ const Register = () => {
                     type="text"
                     value={form.username}
                     onChange={ch('username')}
-                    placeholder="Choose a unique username (min. 8 characters)"
-                    style={{ ...inp('username', uStatus === U.TAKEN || (!!fieldErrors.username && form.username.trim().length < 8)), paddingRight: '40px' }}
+                    placeholder="Choose a unique username (min. 5 characters)"
+                    style={{
+                      ...inp('username', uStatus === U.TAKEN || (!!fieldErrors.username && form.username.trim().length < 5) || (touched.username && !form.username.trim())),
+                      paddingRight: '40px',
+                    }}
                     {...fc('username')}
                   />
                   {uIndicator && (
@@ -585,78 +598,135 @@ const Register = () => {
                     </span>
                   )}
                 </div>
-                {renderUsernameMsg() ?? (fieldErrors.username && uStatus !== U.TAKEN
-                  ? <div className="ferr">⚠ {fieldErrors.username}</div>
-                  : null
-                )}
+                {touched.username && !form.username.trim()
+                  ? <div className="ferr">⚠ Username is required.</div>
+                  : renderUsernameMsg() ?? (fieldErrors.username && uStatus !== U.TAKEN
+                      ? <div className="ferr">⚠ {fieldErrors.username}</div>
+                      : null
+                    )
+                }
               </div>
 
               {/* Full Name */}
               <div style={st.fg}>
                 <label style={st.label}>🪪 Full Name</label>
-                <input type="text" value={form.fullName} onChange={ch('fullName')}
+                <input
+                  type="text"
+                  value={form.fullName}
+                  onChange={ch('fullName')}
                   placeholder="Your full name"
-                  style={inp('fullName', !!fieldErrors.fullName)} {...fc('fullName')} />
-                {fieldErrors.fullName && <div className="ferr">⚠ {fieldErrors.fullName}</div>}
+                  style={inp('fullName', !!fieldErrors.fullName || (touched.fullName && !form.fullName.trim()))}
+                  {...fc('fullName')}
+                />
+                {fieldErrors.fullName
+                  ? <div className="ferr">⚠ {fieldErrors.fullName}</div>
+                  : touched.fullName && !form.fullName.trim()
+                    ? <div className="ferr">⚠ Full name is required.</div>
+                    : null}
               </div>
 
               {/* Email */}
               <div style={st.fg}>
                 <label style={st.label}>✉️ Email</label>
-                <input type="email" value={form.email} onChange={ch('email')}
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={ch('email')}
                   placeholder="Enter your email"
-                  style={inp('email', !!fieldErrors.email)} {...fc('email')} />
-                {fieldErrors.email && <div className="ferr">⚠ {fieldErrors.email}</div>}
+                  style={inp('email', !!fieldErrors.email || (touched.email && !form.email.trim()))}
+                  {...fc('email')}
+                />
+                {fieldErrors.email
+                  ? <div className="ferr">⚠ {fieldErrors.email}</div>
+                  : touched.email && !form.email.trim()
+                    ? <div className="ferr">⚠ Email is required.</div>
+                    : null}
               </div>
 
               {/* Phone */}
               <div style={st.fg}>
                 <label style={st.label}>📱 Phone Number</label>
-                <input type="tel" value={form.phone} onChange={ch('phone')}
-                  placeholder="+63 912 345 6789"
-                  style={inp('phone', !!fieldErrors.phone)} {...fc('phone')} />
-                {fieldErrors.phone && <div className="ferr">⚠ {fieldErrors.phone}</div>}
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={ch('phone')}
+                  placeholder="09XXXXXXXXX"
+                  style={inp('phone', phoneHasErr || (touched.phone && !form.phone.trim()))}
+                  {...fc('phone')}
+                />
+                {phoneHasLetters
+                  ? <div className="ferr">⚠ Phone number must contain digits only — no letters or symbols.</div>
+                  : phoneIsOverflow
+                    ? <div className="ferr">⚠ Phone number must not exceed 11 digits.</div>
+                    : fieldErrors.phone
+                      ? <div className="ferr">⚠ {fieldErrors.phone}</div>
+                      : touched.phone && !form.phone.trim()
+                        ? <div className="ferr">⚠ Phone number is required.</div>
+                        : null}
               </div>
 
               {/* Address */}
               <div style={st.fg}>
                 <label style={st.label}>📍 Address</label>
-                <input type="text" value={form.address} onChange={ch('address')}
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={ch('address')}
                   placeholder="Your address"
-                  style={inp('address', !!fieldErrors.address)} {...fc('address')} />
-                {fieldErrors.address && <div className="ferr">⚠ {fieldErrors.address}</div>}
+                  style={inp('address', !!fieldErrors.address || (touched.address && !form.address.trim()))}
+                  {...fc('address')}
+                />
+                {fieldErrors.address
+                  ? <div className="ferr">⚠ {fieldErrors.address}</div>
+                  : touched.address && !form.address.trim()
+                    ? <div className="ferr">⚠ Address is required.</div>
+                    : null}
               </div>
 
               {/* Password */}
               <div style={st.fg}>
                 <label style={st.label}>🔒 Password</label>
                 <div style={{ position: 'relative' }}>
-                  <input type={showPw ? 'text' : 'password'} value={form.password} onChange={ch('password')}
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={ch('password')}
                     placeholder="Create a password"
-                    style={{ ...inp('password', !!fieldErrors.password), paddingRight: '44px' }} {...fc('password')} />
+                    style={{ ...inp('password', !!fieldErrors.password || (touched.password && !form.password)), paddingRight: '44px' }}
+                    {...fc('password')}
+                  />
                   <button type="button" style={st.eye} onClick={() => setShowPw(p => !p)}>{showPw ? '🙈' : '👁️'}</button>
                 </div>
                 {fieldErrors.password
                   ? <div className="ferr">⚠ {fieldErrors.password}</div>
-                  : <div className="fnfo" style={{ color: form.password.length >= 6 ? '#10b981' : '#9ca3af' }}>
-                      {form.password.length === 0 ? 'Minimum 6 characters' : form.password.length < 6 ? 'Too short' : '✓ Strength: Good'}
-                    </div>}
+                  : touched.password && !form.password
+                    ? <div className="ferr">⚠ Password is required.</div>
+                    : <div className="fnfo" style={{ color: form.password.length >= 6 ? '#10b981' : '#9ca3af' }}>
+                        {form.password.length === 0 ? 'Minimum 6 characters' : form.password.length < 6 ? 'Too short' : '✓ Strength: Good'}
+                      </div>}
               </div>
 
               {/* Confirm Password */}
               <div style={{ ...st.fg, marginBottom: 0 }}>
                 <label style={st.label}>🔐 Confirm Password</label>
                 <div style={{ position: 'relative' }}>
-                  <input type={showCfPw ? 'text' : 'password'} value={form.confirmPassword} onChange={ch('confirmPassword')}
+                  <input
+                    type={showCfPw ? 'text' : 'password'}
+                    value={form.confirmPassword}
+                    onChange={ch('confirmPassword')}
                     placeholder="Confirm your password"
-                    style={{ ...inp('confirmPassword', !!fieldErrors.confirmPassword), paddingRight: '44px' }} {...fc('confirmPassword')} />
+                    style={{ ...inp('confirmPassword', !!fieldErrors.confirmPassword || (touched.confirmPassword && !form.confirmPassword)), paddingRight: '44px' }}
+                    {...fc('confirmPassword')}
+                  />
                   <button type="button" style={st.eye} onClick={() => setShowCfPw(p => !p)}>{showCfPw ? '🙈' : '👁️'}</button>
                 </div>
                 {fieldErrors.confirmPassword
                   ? <div className="ferr">⚠ {fieldErrors.confirmPassword}</div>
-                  : form.confirmPassword && form.password === form.confirmPassword
-                    ? <div className="fok">✓ Passwords match</div>
-                    : null}
+                  : touched.confirmPassword && !form.confirmPassword
+                    ? <div className="ferr">⚠ Please confirm your password.</div>
+                    : form.confirmPassword && form.password === form.confirmPassword
+                      ? <div className="fok">✓ Passwords match</div>
+                      : null}
               </div>
 
               <button style={{ ...st.primary, marginTop: '24px' }} onClick={goToAvatar}>
@@ -725,7 +795,6 @@ const Register = () => {
                 </div>
               )}
 
-              {/* Generic server error ONLY — username/email conflicts go back to Step 1 */}
               {globalError && (
                 <div style={{ ...st.errBox, marginBottom: '14px' }}>
                   <span style={{ color: '#ec4899' }}>⚠️</span>
