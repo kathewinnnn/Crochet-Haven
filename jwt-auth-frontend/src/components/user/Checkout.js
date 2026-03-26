@@ -594,7 +594,7 @@ const checkoutStyles = `
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-co-page { margin-left: 220px; }
+    .ch-co-page { margin-left: 220px; padding-top: 56px; }
     .ch-co-header-inner { padding: 28px 30px; }
     .ch-co-main { padding: 40px 30px 60px; }
     .ch-co-grid { grid-template-columns: 1fr; }
@@ -602,7 +602,7 @@ const checkoutStyles = `
   }
  
   @media (max-width: 768px) {
-    .ch-co-page { margin-left: 0; }
+    .ch-co-page { margin-left: 0; padding-top: 56px; }
     .ch-co-header-inner { padding: 14px 16px 14px 68px; }
     .ch-co-logo-yarn { font-size: 1.8rem; }
     .ch-co-logo-text { font-size: 1.3rem; }

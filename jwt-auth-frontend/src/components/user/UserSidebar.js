@@ -17,6 +17,7 @@ const sidebarStyles = `
     --sb-width: 240px;
   }
 
+  /* ─── SIDEBAR BASE ─── */
   .ch-sidebar {
     position: fixed;
     top: 0;
@@ -71,6 +72,7 @@ const sidebarStyles = `
     gap: 12px;
     cursor: pointer;
     transition: opacity 0.2s ease;
+    flex-shrink: 0;
   }
 
   .ch-sb-logo:hover { opacity: 0.85; }
@@ -109,7 +111,6 @@ const sidebarStyles = `
     color: #fff;
     line-height: 1;
     letter-spacing: -0.01em;
-    flex: 1;
   }
 
   .ch-sb-brand span { color: var(--sb-rose); }
@@ -122,31 +123,6 @@ const sidebarStyles = `
     margin-top: 4px;
   }
 
-  /* Close button — only visible on mobile/tablet inside the logo area */
-  .ch-sb-close {
-    display: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7);
-    font-size: 0.9rem;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-    margin-left: auto;
-    padding: 0;
-  }
-
-  .ch-sb-close:hover {
-    background: rgba(232,114,138,0.2);
-    border-color: rgba(232,114,138,0.4);
-    color: #fff;
-  }
-
   /* ─── SECTION LABEL ─── */
   .ch-sb-section-lbl {
     padding: 20px 24px 8px;
@@ -155,6 +131,7 @@ const sidebarStyles = `
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--sb-muted);
+    flex-shrink: 0;
   }
 
   /* ─── NAV ─── */
@@ -163,6 +140,7 @@ const sidebarStyles = `
     overflow-y: auto;
     padding: 4px 12px;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   .ch-sb-nav::-webkit-scrollbar { display: none; }
@@ -182,6 +160,7 @@ const sidebarStyles = `
     position: relative;
     border: 1px solid transparent;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .ch-sb-item:hover {
@@ -262,6 +241,7 @@ const sidebarStyles = `
     transition: all 0.2s ease;
     margin-bottom: 2px;
     border: 1px solid transparent;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .ch-sb-sub-item:hover { background: var(--sb-surface); color: var(--sb-text); border-color: var(--sb-border); }
@@ -286,10 +266,11 @@ const sidebarStyles = `
     margin: 8px 12px;
   }
 
-  /* ─── LOGOUT ─── */
+  /* ─── FOOTER / LOGOUT ─── */
   .ch-sb-footer {
     padding: 12px;
     border-top: 1px solid var(--sb-border);
+    flex-shrink: 0;
   }
 
   .ch-sb-logout {
@@ -310,6 +291,7 @@ const sidebarStyles = `
     justify-content: center;
     gap: 8px;
     transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .ch-sb-logout:hover {
@@ -319,53 +301,128 @@ const sidebarStyles = `
     box-shadow: 0 4px 16px rgba(232,114,138,0.3);
   }
 
-  /* ─── HAMBURGER BUTTON (mobile only) ─── */
-  .ch-hamburger {
+  /* ── Mobile Topbar ── */
+  .ch-mobile-topbar {
     display: none;
     position: fixed;
-    top: 14px;
-    left: 14px;
-    z-index: 200;
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
     background: var(--sb-bg);
-    border: 1px solid var(--sb-border);
-    cursor: pointer;
+    z-index: 200;
     align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 5px;
-    padding: 0;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--sb-border);
+    font-family: 'Lato', sans-serif;
   }
 
-  .ch-hamburger:hover { background: rgba(232,114,138,0.15); border-color: rgba(232,114,138,0.4); }
+  .ch-mobile-topbar-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
 
-  .ch-hamburger-bar {
-    width: 20px;
+  .ch-mobile-topbar-brand span { color: var(--sb-rose); }
+
+  .ch-hamburger {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .ch-hamburger:hover { background: var(--sb-surface); }
+
+  .ch-hamburger-line {
+    width: 22px;
     height: 2px;
     background: rgba(255,255,255,0.82);
     border-radius: 2px;
-    transition: all 0.3s ease;
+    transition: all 0.28s ease;
     transform-origin: center;
   }
 
-  /* ─── MOBILE OVERLAY ─── */
-  .ch-sb-overlay {
+  .ch-hamburger.open .ch-hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .ch-hamburger.open .ch-hamburger-line:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .ch-hamburger.open .ch-hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* ── Mobile overlay ── */
+  .ch-mobile-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 99;
+    background: rgba(0,0,0,0.55);
+    z-index: 149;
     backdrop-filter: blur(2px);
-    animation: ch-overlay-in 0.2s ease;
+    -webkit-backdrop-filter: blur(2px);
+    animation: ch-overlay-in 0.22s ease;
+    cursor: pointer;
   }
 
   @keyframes ch-overlay-in {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  /* ── Mobile drawer ── */
+  .ch-mobile-drawer {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 260px;
+    height: calc(100vh - 56px);
+    background: var(--sb-bg);
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ch-mobile-drawer.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 48px rgba(0,0,0,0.45);
+  }
+
+  .ch-mobile-drawer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ch-mobile-drawer-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
   /* ─── MODAL ─── */
@@ -379,6 +436,7 @@ const sidebarStyles = `
     justify-content: center;
     z-index: 9999;
     animation: ch-fade 0.2s ease;
+    padding: 16px;
   }
 
   @keyframes ch-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -388,7 +446,7 @@ const sidebarStyles = `
     border-radius: 4px;
     padding: 40px 36px;
     max-width: 400px;
-    width: 90%;
+    width: 100%;
     text-align: center;
     box-shadow: 0 24px 64px rgba(0,0,0,0.25);
     animation: ch-modal-up 0.3s ease;
@@ -423,6 +481,7 @@ const sidebarStyles = `
     display: flex;
     gap: 12px;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .ch-sb-modal-cancel {
@@ -493,34 +552,117 @@ const sidebarStyles = `
 
   .ch-sb-spinning-sub { font-size: 0.82rem; color: #8a7a74; font-weight: 300; }
 
-  /* ─── RESPONSIVE ─── */
+  /* ═══════════════════════════════════════════
+     RESPONSIVE BREAKPOINTS
+  ═══════════════════════════════════════════ */
 
-  /* Tablet (768px - 1024px) */
-  @media (max-width: 1024px) and (min-width: 769px) {
-    :root { --sb-width: 220px; }
-    .ch-sb-close { display: flex; }
+  /* ─── TABLET (769px – 1024px) ─── */
+  @media (max-width: 1024px) {
+    .ch-sidebar { display: none !important; }
+    .ch-mobile-topbar { display: flex; }
+    .ch-mobile-overlay.visible { display: block; }
   }
 
-  /* Mobile (≤768px): hamburger shows, sidebar becomes a drawer */
+  /* ─── MOBILE (≤ 768px) ─── */
   @media (max-width: 768px) {
-    .ch-hamburger { display: flex; }
+    .ch-mobile-topbar { display: flex; }
+    .ch-mobile-overlay.visible { display: block; }
 
-    .ch-sidebar {
-      transform: translateX(-100%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      width: 280px;
-      z-index: 150;
-    }
+    .ch-sb-modal { padding: 32px 24px; }
+    .ch-sb-modal-title { font-size: 1.3rem; }
+    .ch-sb-modal-actions { flex-direction: column; }
+    .ch-sb-modal-cancel,
+    .ch-sb-modal-confirm { width: 100%; padding: 14px; }
+  }
 
-    .ch-sidebar.mobile-open {
-      transform: translateX(0);
-      box-shadow: 8px 0 40px rgba(0,0,0,0.4);
-    }
-
-    .ch-sb-overlay { display: block; }
-    .ch-sb-close { display: flex; }
+  /* ─── SMALL MOBILE (≤ 380px) ─── */
+  @media (max-width: 380px) {
+    .ch-mobile-drawer { width: 240px; }
   }
 `;
+
+/* ── Shared nav content rendered in both desktop sidebar & mobile drawer ── */
+const NavContent = ({ activePage, showAccount, setShowAccount, onItemClick, totalItems, navigate }) => {
+  const location = useLocation();
+
+  const isActive = (path) => {
+    if (path === "/user" && location.pathname === "/user") return true;
+    if (path !== "/user" && location.pathname.startsWith(path)) return true;
+    return false;
+  };
+
+  const handleClick = (path) => {
+    navigate(path);
+    if (onItemClick) onItemClick();
+  };
+
+  const navItems = [
+    { path: "/user",          icon: "🏠", label: "Home" },
+    { path: "/user/products", icon: "🛍️", label: "Products" },
+    { path: "/user/cart",     icon: "🛒", label: "Cart", badge: totalItems > 0 ? totalItems : null },
+    { path: "/user/about",    icon: "ℹ️",  label: "About" },
+  ];
+
+  const accountItems = [
+    { path: "/user/profile", label: "Profile" },
+    { path: "/user/orders",  label: "My Orders" },
+    { path: "/user/settings",label: "Settings" },
+  ];
+
+  return (
+    <>
+      <div className="ch-sb-section-lbl">Navigation</div>
+      <nav className="ch-sb-nav">
+        {navItems.map(item => (
+          <div
+            key={item.path}
+            className={`ch-sb-item${isActive(item.path) ? " active" : ""}`}
+            onClick={() => handleClick(item.path)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => e.key === "Enter" && handleClick(item.path)}
+          >
+            <span className="ch-sb-icon">{item.icon}</span>
+            <span className="ch-sb-label">{item.label}</span>
+            {item.badge && <span className="ch-sb-badge">{item.badge}</span>}
+          </div>
+        ))}
+
+        <div className="ch-sb-divider" />
+
+        {/* Account dropdown */}
+        <div
+          className={`ch-sb-item${accountItems.some(a => isActive(a.path)) ? " active" : ""}`}
+          onClick={() => setShowAccount(!showAccount)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === "Enter" && setShowAccount(!showAccount)}
+          aria-expanded={showAccount}
+        >
+          <span className="ch-sb-icon">👤</span>
+          <span className="ch-sb-label">My Account</span>
+          <span className={`ch-sb-chevron${showAccount ? " open" : ""}`}>▶</span>
+        </div>
+
+        <div className={`ch-sb-submenu${showAccount ? " open" : ""}`}>
+          {accountItems.map(item => (
+            <div
+              key={item.path}
+              className={`ch-sb-sub-item${isActive(item.path) ? " active" : ""}`}
+              onClick={() => handleClick(item.path)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === "Enter" && handleClick(item.path)}
+            >
+              <div className="ch-sb-sub-dot" />
+              {item.label}
+            </div>
+          ))}
+        </div>
+      </nav>
+    </>
+  );
+};
 
 const UserSidebar = () => {
   const navigate = useNavigate();
@@ -532,12 +674,6 @@ const UserSidebar = () => {
   const cancelButtonRef = useRef(null);
   const { totalItems } = useCart();
 
-  const isActive = (path) => {
-    if (path === "/user" && location.pathname === "/user") return true;
-    if (path !== "/user" && location.pathname.startsWith(path)) return true;
-    return false;
-  };
-
   const handleLogout = () => {
     setIsLoggingOut(true);
     setTimeout(() => {
@@ -547,31 +683,22 @@ const UserSidebar = () => {
     }, 1500);
   };
 
-  const handleNavClick = (path) => {
-    navigate(path);
-    setMobileOpen(false);
-  };
-
-  // Close sidebar on route change (mobile)
+  // Close drawer on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  // Prevent body scroll when mobile sidebar is open
+  // Prevent body scroll when drawer is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
-        if (showLogoutModal && !isLoggingOut) setShowLogoutModal(false);
         if (mobileOpen) setMobileOpen(false);
+        if (showLogoutModal && !isLoggingOut) setShowLogoutModal(false);
       }
     };
     window.addEventListener("keydown", handleEscape);
@@ -582,117 +709,87 @@ const UserSidebar = () => {
     if (showLogoutModal && !isLoggingOut && cancelButtonRef.current) cancelButtonRef.current.focus();
   }, [showLogoutModal, isLoggingOut]);
 
-  const navItems = [
-    { path: "/user", icon: "🏠", label: "Home" },
-    { path: "/user/products", icon: "🛍️", label: "Products" },
-    { path: "/user/cart", icon: "🛒", label: "Cart", badge: totalItems > 0 ? totalItems : null },
-    { path: "/user/about", icon: "ℹ️", label: "About" },
-  ];
-
-  const accountItems = [
-    { path: "/user/profile", label: "Profile" },
-    { path: "/user/orders", label: "My Orders" },
-    { path: "/user/settings", label: "Settings" },
-  ];
-
   return (
     <>
       <style>{sidebarStyles}</style>
 
-      {/* Hamburger button (mobile only) — plain ☰ lines, no X animation */}
-      <button
-        className="ch-hamburger"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
-      >
-        <span className="ch-hamburger-bar" />
-        <span className="ch-hamburger-bar" />
-        <span className="ch-hamburger-bar" />
-      </button>
-
-      {/* Overlay (mobile) */}
-      {mobileOpen && (
-        <div className="ch-sb-overlay" onClick={() => setMobileOpen(false)} />
-      )}
-
-      <aside className={`ch-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+      {/* ── Desktop Sidebar (hidden on tablet + mobile via CSS) ── */}
+      <aside className="ch-sidebar" aria-label="Navigation sidebar">
         <div className="ch-sb-inner">
-
-          {/* Logo — X close button lives here on mobile/tablet */}
-          <div className="ch-sb-logo" onClick={() => handleNavClick("/user")}>
+          <div className="ch-sb-logo" onClick={() => navigate("/user")}>
             <img
               src="/img/ch.png"
               alt="Crochet Haven"
               className="ch-sb-logo-img"
-              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+              onError={e => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "flex";
+              }}
             />
-            <div className="ch-sb-logo-fallback" style={{ display: 'none' }}>🧶</div>
+            <div className="ch-sb-logo-fallback" style={{ display: "none" }}>🧶</div>
             <div className="ch-sb-brand-wrapper">
               <div className="ch-sb-brand">Crochet <span>Haven</span></div>
               <div className="ch-sb-tagline">Shop Zone</div>
             </div>
-            {/* X close button — only shown on mobile/tablet via CSS */}
-            <button
-              className="ch-sb-close"
-              onClick={(e) => { e.stopPropagation(); setMobileOpen(false); }}
-              aria-label="Close sidebar"
-            >
-              ✕
-            </button>
           </div>
 
-          {/* Nav */}
-          <div className="ch-sb-section-lbl">Navigation</div>
-          <nav className="ch-sb-nav">
+          <NavContent
+            showAccount={showAccount}
+            setShowAccount={setShowAccount}
+            totalItems={totalItems}
+            navigate={navigate}
+          />
 
-            {navItems.map(item => (
-              <div
-                key={item.path}
-                className={`ch-sb-item${isActive(item.path) ? ' active' : ''}`}
-                onClick={() => handleNavClick(item.path)}
-              >
-                <span className="ch-sb-icon">{item.icon}</span>
-                <span className="ch-sb-label">{item.label}</span>
-                {item.badge && <span className="ch-sb-badge">{item.badge}</span>}
-              </div>
-            ))}
-
-            <div className="ch-sb-divider" />
-
-            {/* Account dropdown */}
-            <div
-              className={`ch-sb-item${accountItems.some(a => isActive(a.path)) ? ' active' : ''}`}
-              onClick={() => setShowAccount(!showAccount)}
-            >
-              <span className="ch-sb-icon">👤</span>
-              <span className="ch-sb-label">My Account</span>
-              <span className={`ch-sb-chevron${showAccount ? ' open' : ''}`}>▶</span>
-            </div>
-
-            <div className={`ch-sb-submenu${showAccount ? ' open' : ''}`}>
-              {accountItems.map(item => (
-                <div
-                  key={item.path}
-                  className={`ch-sb-sub-item${isActive(item.path) ? ' active' : ''}`}
-                  onClick={() => handleNavClick(item.path)}
-                >
-                  <div className="ch-sb-sub-dot" />
-                  {item.label}
-                </div>
-              ))}
-            </div>
-
-          </nav>
-
-          {/* Logout */}
           <div className="ch-sb-footer">
             <button className="ch-sb-logout" onClick={() => setShowLogoutModal(true)}>
               <span>🚪</span> Logout
             </button>
           </div>
-
         </div>
       </aside>
+
+      {/* ── Mobile Topbar ── */}
+      <div className="ch-mobile-topbar">
+        <div className="ch-mobile-topbar-brand">Crochet <span>Haven</span></div>
+        <button
+          className={`ch-hamburger ${mobileOpen ? "open" : ""}`}
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+        >
+          <div className="ch-hamburger-line" />
+          <div className="ch-hamburger-line" />
+          <div className="ch-hamburger-line" />
+        </button>
+      </div>
+
+      {/* Mobile overlay */}
+      <div
+        className={`ch-mobile-overlay ${mobileOpen ? "visible" : ""}`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* ── Mobile Drawer ── */}
+      <div className={`ch-mobile-drawer ${mobileOpen ? "open" : ""}`}>
+        <div className="ch-mobile-drawer-inner">
+          <NavContent
+            showAccount={showAccount}
+            setShowAccount={setShowAccount}
+            totalItems={totalItems}
+            navigate={navigate}
+            onItemClick={() => setMobileOpen(false)}
+          />
+
+          <div className="ch-sb-footer">
+            <button
+              className="ch-sb-logout"
+              onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }}
+            >
+              <span>🚪</span> Logout
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Logout Modal */}
       {showLogoutModal && (
@@ -700,7 +797,7 @@ const UserSidebar = () => {
           className="ch-sb-modal-backdrop"
           onClick={e => { if (e.target === e.currentTarget && !isLoggingOut) setShowLogoutModal(false); }}
         >
-          <div className="ch-sb-modal" role="dialog" aria-modal="true">
+          <div className="ch-sb-modal" role="dialog" aria-modal="true" aria-labelledby="logout-title">
             {isLoggingOut ? (
               <>
                 <div className="ch-sb-spinner" />
@@ -710,8 +807,10 @@ const UserSidebar = () => {
             ) : (
               <>
                 <span className="ch-sb-modal-icon">🚪</span>
-                <div className="ch-sb-modal-title">Confirm Logout</div>
-                <div className="ch-sb-modal-desc">Are you sure you want to logout? You'll need to sign in again to access your account.</div>
+                <div className="ch-sb-modal-title" id="logout-title">Confirm Logout</div>
+                <div className="ch-sb-modal-desc">
+                  Are you sure you want to logout? You'll need to sign in again to access your account.
+                </div>
                 <div className="ch-sb-modal-actions">
                   <button
                     ref={cancelButtonRef}

@@ -499,7 +499,7 @@ const styles = `
 
   /* ─── TABLET (769px - 1024px) ─── */
   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-page { margin-left: 220px; }
+    .ch-page { margin-left: 220px; padding-top: 56px; }
     .ch-header-inner { padding: 36px 30px; }
     .ch-hero { padding: 50px 30px 60px; gap: 40px; }
     .ch-hero-headline { font-size: 2.8rem; }
@@ -514,7 +514,7 @@ const styles = `
 
   /* ─── MOBILE (≤768px) ─── */
   @media (max-width: 768px) {
-    .ch-page { margin-left: 0; }
+    .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 20px 16px 16px 68px; }
     .ch-logo-yarn { font-size: 2rem; }
     .ch-logo-text { font-size: 1.4rem; }

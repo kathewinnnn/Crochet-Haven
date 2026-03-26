@@ -39,499 +39,83 @@ const styles = `
     z-index: 0;
   }
 
-  /* ─── HEADER ─── */
-  .ch-header {
-    background: var(--warm-white);
-    border-bottom: 1px solid var(--border);
-    position: relative;
-    z-index: 1;
-  }
-
-  .ch-header-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 32px 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .ch-logo-block {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    text-decoration: none;
-  }
-
-  .ch-logo-yarn {
-    font-size: 2.2rem;
-    animation: sway 4s ease-in-out infinite;
-    display: inline-block;
-    transform-origin: bottom center;
-  }
-
-  @keyframes sway {
-    0%, 100% { transform: rotate(-4deg); }
-    50% { transform: rotate(4deg); }
-  }
-
-  .ch-logo-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.6rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--charcoal);
-    line-height: 1;
-  }
-
+  .ch-header { background: var(--warm-white); border-bottom: 1px solid var(--border); position: relative; z-index: 1; }
+  .ch-header-inner { max-width: 1200px; margin: 0 auto; padding: 32px 60px; display: flex; align-items: center; justify-content: space-between; }
+  .ch-logo-block { display: flex; align-items: center; gap: 16px; text-decoration: none; }
+  .ch-logo-yarn { font-size: 2.2rem; animation: sway 4s ease-in-out infinite; display: inline-block; transform-origin: bottom center; }
+  @keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+  .ch-logo-text { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: var(--charcoal); line-height: 1; }
   .ch-logo-text span { color: var(--rose); }
-
-  .ch-tagline {
-    font-size: 0.72rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 5px;
-  }
-
-  .ch-nav-cta {
-    display: inline-flex;
-    align-items: center;
-    padding: 12px 24px;
-    background: var(--rose);
-    color: #fff;
-    text-decoration: none;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    border-radius: 2px;
-    transition: background 0.2s ease, transform 0.2s ease;
-  }
-
+  .ch-tagline { font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
+  .ch-nav-cta { display: inline-flex; align-items: center; padding: 12px 24px; background: var(--rose); color: #fff; text-decoration: none; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 2px; transition: background 0.2s ease, transform 0.2s ease; }
   .ch-nav-cta:hover { background: var(--deep-rose); transform: translateY(-1px); }
 
-  /* ─── PAGE BANNER ─── */
-  .ch-page-banner {
-    position: relative;
-    z-index: 1;
-    background: var(--charcoal);
-    padding: 72px 60px;
-    overflow: hidden;
-  }
-
-  .ch-page-banner::after {
-    content: '';
-    position: absolute;
-    right: -80px;
-    top: -80px;
-    width: 400px;
-    height: 400px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(232,114,138,0.18) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
+  .ch-page-banner { position: relative; z-index: 1; background: var(--charcoal); padding: 72px 60px; overflow: hidden; }
+  .ch-page-banner::after { content: ''; position: absolute; right: -80px; top: -80px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(232,114,138,0.18) 0%, transparent 70%); pointer-events: none; }
   .ch-banner-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
-
-  .ch-banner-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.7rem;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--amber);
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
-
-  .ch-banner-eyebrow::before {
-    content: '';
-    display: block;
-    width: 28px;
-    height: 1.5px;
-    background: var(--amber);
-  }
-
-  .ch-banner-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 3rem;
-    font-weight: 800;
-    color: var(--warm-white);
-    line-height: 1.1;
-    margin-bottom: 14px;
-    letter-spacing: -0.02em;
-    max-width: 600px;
-  }
-
+  .ch-banner-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); font-weight: 700; margin-bottom: 16px; }
+  .ch-banner-eyebrow::before { content: ''; display: block; width: 28px; height: 1.5px; background: var(--amber); }
+  .ch-banner-title { font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 800; color: var(--warm-white); line-height: 1.1; margin-bottom: 14px; letter-spacing: -0.02em; max-width: 600px; }
   .ch-banner-title em { font-style: italic; color: var(--blush); }
+  .ch-banner-sub { font-size: 1rem; color: rgba(255,255,255,0.4); font-weight: 300; max-width: 480px; line-height: 1.7; }
 
-  .ch-banner-sub {
-    font-size: 1rem;
-    color: rgba(255,255,255,0.4);
-    font-weight: 300;
-    max-width: 480px;
-    line-height: 1.7;
-  }
+  .ch-about-body { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 72px 60px 100px; }
 
-  /* ─── BODY ─── */
-  .ch-about-body {
-    position: relative;
-    z-index: 1;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 72px 60px 100px;
-  }
-
-  /* ─── STORY SECTION ─── */
-  .ch-story {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-    margin-bottom: 80px;
-    padding-bottom: 80px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .ch-story-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.72rem;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--terracotta);
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
-
-  .ch-story-eyebrow::before {
-    content: '';
-    display: block;
-    width: 28px;
-    height: 1.5px;
-    background: var(--terracotta);
-  }
-
-  .ch-story h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: var(--charcoal);
-    line-height: 1.15;
-    margin-bottom: 20px;
-    letter-spacing: -0.02em;
-  }
-
+  .ch-story { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin-bottom: 80px; padding-bottom: 80px; border-bottom: 1px solid var(--border); }
+  .ch-story-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 0.72rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--terracotta); font-weight: 700; margin-bottom: 16px; }
+  .ch-story-eyebrow::before { content: ''; display: block; width: 28px; height: 1.5px; background: var(--terracotta); }
+  .ch-story h2 { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 800; color: var(--charcoal); line-height: 1.15; margin-bottom: 20px; letter-spacing: -0.02em; }
   .ch-story h2 em { font-style: italic; color: var(--rose); }
+  .ch-story p { font-size: 0.95rem; line-height: 1.85; color: var(--muted); margin-bottom: 16px; font-weight: 300; }
+  .ch-story-visual { background: linear-gradient(145deg, #f7e8d8, #f0cfc4); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8rem; min-height: 320px; position: relative; overflow: hidden; }
+  .ch-story-visual::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 30%, rgba(232,114,138,0.15), transparent 60%); }
 
-  .ch-story p {
-    font-size: 0.95rem;
-    line-height: 1.85;
-    color: var(--muted);
-    margin-bottom: 16px;
-    font-weight: 300;
-  }
-
-  .ch-story-visual {
-    background: linear-gradient(145deg, #f7e8d8, #f0cfc4);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8rem;
-    min-height: 320px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .ch-story-visual::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 30% 30%, rgba(232,114,138,0.15), transparent 60%);
-  }
-
-  .ch-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    padding: 14px 30px;
-    background: var(--charcoal);
-    color: var(--cream);
-    text-decoration: none;
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    border-radius: 2px;
-    margin-top: 8px;
-    transition: background 0.25s ease;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .ch-btn-primary::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--rose);
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    z-index: 0;
-  }
-
+  .ch-btn-primary { display: inline-flex; align-items: center; padding: 14px 30px; background: var(--charcoal); color: var(--cream); text-decoration: none; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 2px; margin-top: 8px; transition: background 0.25s ease; position: relative; overflow: hidden; }
+  .ch-btn-primary::after { content: ''; position: absolute; inset: 0; background: var(--rose); transform: translateX(-100%); transition: transform 0.3s ease; z-index: 0; }
   .ch-btn-primary:hover::after { transform: translateX(0); }
   .ch-btn-primary span { position: relative; z-index: 1; }
 
-  /* ─── SECTION LABEL ─── */
-  .ch-section-label {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 36px;
-  }
+  .ch-section-label { display: flex; align-items: center; gap: 16px; margin-bottom: 36px; }
+  .ch-section-label h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 600; color: var(--charcoal); white-space: nowrap; }
+  .ch-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .ch-section-label h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--charcoal);
-    white-space: nowrap;
-  }
-
-  .ch-section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* ─── WHY CHOOSE US GRID ─── */
-  .ch-why-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 80px;
-  }
-
-  .ch-why-card {
-    background: var(--warm-white);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 32px 24px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
+  .ch-why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 80px; }
+  .ch-why-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; padding: 32px 24px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
   .ch-why-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(44,36,32,0.08); }
-
   .ch-why-icon { font-size: 2.2rem; display: block; margin-bottom: 16px; }
+  .ch-why-name { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 600; color: var(--charcoal); margin-bottom: 8px; }
+  .ch-why-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.7; font-weight: 300; }
 
-  .ch-why-name {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--charcoal);
-    margin-bottom: 8px;
-  }
-
-  .ch-why-desc {
-    font-size: 0.82rem;
-    color: var(--muted);
-    line-height: 1.7;
-    font-weight: 300;
-  }
-
-  /* ─── MISSION SECTION ─── */
-  .ch-mission {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-    margin-bottom: 80px;
-    padding-bottom: 80px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .ch-mission-visual {
-    background: linear-gradient(145deg, #e8f4ea, #d0e8d3);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 7rem;
-    min-height: 280px;
-  }
-
-  .ch-mission h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: var(--charcoal);
-    line-height: 1.2;
-    margin-bottom: 20px;
-    letter-spacing: -0.02em;
-  }
-
+  .ch-mission { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin-bottom: 80px; padding-bottom: 80px; border-bottom: 1px solid var(--border); }
+  .ch-mission-visual { background: linear-gradient(145deg, #e8f4ea, #d0e8d3); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 7rem; min-height: 280px; }
+  .ch-mission h2 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 800; color: var(--charcoal); line-height: 1.2; margin-bottom: 20px; letter-spacing: -0.02em; }
   .ch-mission h2 em { font-style: italic; color: var(--sage); }
+  .ch-mission p { font-size: 0.95rem; line-height: 1.85; color: var(--muted); margin-bottom: 14px; font-weight: 300; }
 
-  .ch-mission p {
-    font-size: 0.95rem;
-    line-height: 1.85;
-    color: var(--muted);
-    margin-bottom: 14px;
-    font-weight: 300;
-  }
-
-  /* ─── CONTACT GRID ─── */
-  .ch-contact-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 56px;
-  }
-
-  .ch-contact-card {
-    background: var(--warm-white);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 28px 22px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
+  .ch-contact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 56px; }
+  .ch-contact-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; padding: 28px 22px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
   .ch-contact-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(44,36,32,0.08); }
-
   .ch-contact-icon { font-size: 2rem; display: block; margin-bottom: 14px; }
+  .ch-contact-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 600; color: var(--charcoal); margin-bottom: 8px; }
+  .ch-contact-detail { font-size: 0.82rem; color: var(--muted); line-height: 1.7; font-weight: 300; }
 
-  .ch-contact-name {
-    font-family: 'Playfair Display', serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--charcoal);
-    margin-bottom: 8px;
-  }
-
-  .ch-contact-detail {
-    font-size: 0.82rem;
-    color: var(--muted);
-    line-height: 1.7;
-    font-weight: 300;
-  }
-
-  /* ─── MAP ─── */
   .ch-map-section { margin-bottom: 20px; }
-
-  .ch-map-label {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .ch-map-label h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--charcoal);
-    white-space: nowrap;
-  }
-
-  .ch-map-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .ch-map-frame {
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    height: 400px;
-  }
-
+  .ch-map-label { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .ch-map-label h2 { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 600; color: var(--charcoal); white-space: nowrap; }
+  .ch-map-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .ch-map-frame { border-radius: 4px; overflow: hidden; border: 1px solid var(--border); height: 400px; }
   .ch-map-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .ch-map-caption { margin-top: 12px; font-size: 0.8rem; color: var(--muted); text-align: center; letter-spacing: 0.04em; }
 
-  .ch-map-caption {
-    margin-top: 12px;
-    font-size: 0.8rem;
-    color: var(--muted);
-    text-align: center;
-    letter-spacing: 0.04em;
-  }
+  .ch-quote-strip { position: relative; z-index: 1; background: var(--charcoal); padding: 72px 60px; text-align: center; overflow: hidden; margin-top: 0; }
+  .ch-quote-strip::before { content: '"'; position: absolute; top: -40px; left: 50%; transform: translateX(-50%); font-family: 'Playfair Display', serif; font-size: 20rem; color: rgba(255,255,255,0.03); line-height: 1; pointer-events: none; }
+  .ch-quote-text { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-style: italic; font-weight: 400; color: var(--warm-white); max-width: 700px; margin: 0 auto 20px; line-height: 1.5; position: relative; z-index: 1; }
+  .ch-quote-cite { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.35); position: relative; z-index: 1; }
 
-  /* ─── QUOTE STRIP ─── */
-  .ch-quote-strip {
-    position: relative;
-    z-index: 1;
-    background: var(--charcoal);
-    padding: 72px 60px;
-    text-align: center;
-    overflow: hidden;
-    margin-top: 0;
-  }
-
-  .ch-quote-strip::before {
-    content: '"';
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Playfair Display', serif;
-    font-size: 20rem;
-    color: rgba(255,255,255,0.03);
-    line-height: 1;
-    pointer-events: none;
-  }
-
-  .ch-quote-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.8rem;
-    font-style: italic;
-    font-weight: 400;
-    color: var(--warm-white);
-    max-width: 700px;
-    margin: 0 auto 20px;
-    line-height: 1.5;
-    position: relative;
-    z-index: 1;
-  }
-
-  .ch-quote-cite {
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ─── FOOTER ─── */
-  .ch-footer {
-    position: relative;
-    z-index: 1;
-    background: var(--warm-white);
-    border-top: 1px solid var(--border);
-    padding: 32px 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .ch-footer-logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--charcoal);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
+  .ch-footer { position: relative; z-index: 1; background: var(--warm-white); border-top: 1px solid var(--border); padding: 32px 60px; display: flex; align-items: center; justify-content: space-between; }
+  .ch-footer-logo { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--charcoal); display: flex; align-items: center; gap: 8px; }
   .ch-footer-copy { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.04em; }
 
-  /* ─── Responsive ─── */
   @media (max-width: 1024px) {
     .ch-why-grid, .ch-contact-grid { grid-template-columns: repeat(2, 1fr); }
   }
@@ -555,8 +139,9 @@ const styles = `
     .ch-story h2, .ch-mission h2 { font-size: 1.8rem; }
   }
 
+  /* ─── TABLET ─── */
   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-page { margin-left: 220px; }
+    .ch-page { margin-left: 220px; padding-top: 56px; }
     .ch-header-inner { padding: 24px 30px; }
     .ch-page-banner { padding: 48px 30px; }
     .ch-banner-title { font-size: 2.2rem; }
@@ -566,10 +151,11 @@ const styles = `
     .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
     .ch-quote-strip { padding: 56px 30px; }
   }
- 
+
+  /* ─── MOBILE ─── */
   @media (max-width: 768px) {
-    .ch-page { margin-left: 0; }
-    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-page { margin-left: 0; padding-top: 56px; }
+    .ch-header-inner { padding: 14px 16px; }
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
@@ -594,7 +180,6 @@ function About() {
       <style>{styles}</style>
       <div className="ch-page">
 
-        {/* ── HEADER ── */}
         <header className="ch-header">
           <div className="ch-header-inner">
             <Link to="/user/home" className="ch-logo-block">
@@ -608,7 +193,6 @@ function About() {
           </div>
         </header>
 
-        {/* ── BANNER ── */}
         <div className="ch-page-banner">
           <div className="ch-banner-inner">
             <p className="ch-banner-eyebrow">Who We Are</p>
@@ -617,10 +201,7 @@ function About() {
           </div>
         </div>
 
-        {/* ── BODY ── */}
         <div className="ch-about-body">
-
-          {/* Story */}
           <div className="ch-story">
             <div>
               <p className="ch-story-eyebrow">Since 2020</p>
@@ -632,7 +213,6 @@ function About() {
             <div className="ch-story-visual">💝</div>
           </div>
 
-          {/* Why Choose Us */}
           <div className="ch-section-label"><h2>Why Choose Us</h2></div>
           <div className="ch-why-grid">
             {[
@@ -649,7 +229,6 @@ function About() {
             ))}
           </div>
 
-          {/* Mission */}
           <div className="ch-mission">
             <div className="ch-mission-visual">🧵</div>
             <div>
@@ -660,7 +239,6 @@ function About() {
             </div>
           </div>
 
-          {/* Contact */}
           <div className="ch-section-label"><h2>Get In Touch</h2></div>
           <div className="ch-contact-grid">
             {[
@@ -677,7 +255,6 @@ function About() {
             ))}
           </div>
 
-          {/* Map */}
           <div className="ch-map-section">
             <div className="ch-map-label"><h2>📍 Find Us Here</h2></div>
             <div className="ch-map-frame">
@@ -691,23 +268,17 @@ function About() {
             </div>
             <p className="ch-map-caption">123 Yarn Street, Craft District, Pilar, Abra, Philippines</p>
           </div>
-
         </div>
 
-        {/* ── QUOTE ── */}
         <div className="ch-quote-strip">
-          <p className="ch-quote-text">
-            "Crochet is like painting with yarn — a way to express yourself and create something that lasts."
-          </p>
+          <p className="ch-quote-text">"Crochet is like painting with yarn — a way to express yourself and create something that lasts."</p>
           <span className="ch-quote-cite">— Anonymous Crochet Lover</span>
         </div>
 
-        {/* ── FOOTER ── */}
         <footer className="ch-footer">
           <div className="ch-footer-logo">🧶 Crochet Haven</div>
           <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
         </footer>
-
       </div>
     </>
   );

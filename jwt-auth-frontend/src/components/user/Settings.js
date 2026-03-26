@@ -499,7 +499,7 @@ const styles = `
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-page { margin-left: 220px; }
+    .ch-page { margin-left: 220px; padding-top: 56px; }
     .ch-header-inner { padding: 24px 30px; }
     .ch-page-banner { padding: 36px 30px; }
     .ch-banner-title { font-size: 2rem; }
@@ -512,7 +512,7 @@ const styles = `
   }
  
   @media (max-width: 768px) {
-    .ch-page { margin-left: 0; }
+    .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 14px 16px 14px 68px; }
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
