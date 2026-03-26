@@ -1,568 +1,650 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
+import { saveToken, saveUserProfile, saveAvatar } from './userStorage';
 
-/* ─────────────────────────────────────────────
-   Post-registration full-screen transition overlay
-───────────────────────────────────────────── */
-const RegisterSuccessOverlay = ({ username }) => (
-  <div style={overlayStyles.backdrop}>
+/* ═══════════════════════════════════════════════════
+   STEP CONSTANTS
+═══════════════════════════════════════════════════ */
+const STEP_INFO   = 1;
+const STEP_AVATAR = 2;
+const STEP_TERMS  = 3;
+
+/* ═══════════════════════════════════════════════════
+   CIRCLE CROPPER
+═══════════════════════════════════════════════════ */
+const CircleCropper = ({ imageSrc, onDone, onCancel }) => {
+  const canvasRef  = useRef(null);
+  const previewRef = useRef(null);
+  const isDragging = useRef(false);
+  const lastPos    = useRef({ x: 0, y: 0 });
+  const imgRef     = useRef(new Image());
+
+  const [offset,  setOffset]  = useState({ x: 0, y: 0 });
+  const [scale,   setScale]   = useState(1);
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+  const SIZE = 260;
+
+  useEffect(() => {
+    const img = imgRef.current;
+    img.onload = () => {
+      const ratio = SIZE / Math.min(img.naturalWidth, img.naturalHeight);
+      setScale(ratio);
+      setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+      setOffset({ x:(SIZE - img.naturalWidth*ratio)/2, y:(SIZE - img.naturalHeight*ratio)/2 });
+    };
+    img.src = imageSrc;
+  }, [imageSrc]);
+
+  useEffect(() => {
+    const canvas = previewRef.current;
+    if (!canvas || !imgRef.current.complete || !imgSize.w) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI*2);
+    ctx.clip();
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w*scale, imgSize.h*scale);
+    ctx.restore();
+  }, [offset, scale, imgSize]);
+
+  const onMouseDown = (e) => { isDragging.current=true; lastPos.current={x:e.clientX,y:e.clientY}; };
+  const onMouseUp   = ()  => { isDragging.current=false; };
+  const onMouseMove = useCallback((e) => {
+    if (!isDragging.current) return;
+    const dx=e.clientX-lastPos.current.x, dy=e.clientY-lastPos.current.y;
+    lastPos.current={x:e.clientX,y:e.clientY};
+    setOffset(p=>({x:p.x+dx,y:p.y+dy}));
+  },[]);
+  const onTouchStart = (e) => { isDragging.current=true; lastPos.current={x:e.touches[0].clientX,y:e.touches[0].clientY}; };
+  const onTouchEnd   = ()  => { isDragging.current=false; };
+  const onTouchMove  = (e) => {
+    if (!isDragging.current) return;
+    const dx=e.touches[0].clientX-lastPos.current.x, dy=e.touches[0].clientY-lastPos.current.y;
+    lastPos.current={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    setOffset(p=>({x:p.x+dx,y:p.y+dy}));
+  };
+
+  const handleCrop = () => {
+    const canvas=canvasRef.current; canvas.width=SIZE; canvas.height=SIZE;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,SIZE,SIZE); ctx.save();
+    ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
+    ctx.drawImage(imgRef.current,offset.x,offset.y,imgSize.w*scale,imgSize.h*scale);
+    ctx.restore();
+    onDone(canvas.toDataURL('image/png'));
+  };
+
+  return (
+    <div style={cs.backdrop}>
+      <div style={cs.modal}>
+        <div style={cs.header}>
+          <span style={cs.htitle}>✂️ Crop Your Photo</span>
+          <span style={cs.hsub}>Drag to reposition · slider to zoom</span>
+        </div>
+        <div style={cs.stage}>
+          <div style={cs.dimRing}/>
+          <canvas ref={previewRef} width={SIZE} height={SIZE} style={cs.canvas}
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}/>
+          <canvas ref={canvasRef} style={{display:'none'}}/>
+          <div style={cs.hint}>↕ ↔ Drag to adjust</div>
+        </div>
+        <div style={cs.zoomRow}>
+          <span>🔍</span>
+          <input type="range" min={0.3} max={3} step={0.01} value={scale}
+            onChange={e=>setScale(parseFloat(e.target.value))}
+            style={{flex:1,accentColor:'#ec4899',cursor:'pointer'}}/>
+          <span style={{fontSize:'12px',color:'#6b7280',minWidth:'36px',textAlign:'right'}}>{Math.round(scale*100)}%</span>
+        </div>
+        <div style={cs.actions}>
+          <button style={cs.cancelBtn} onClick={onCancel}>Cancel</button>
+          <button style={cs.doneBtn}   onClick={handleCrop}>Use This Photo ✓</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+const cs = {
+  backdrop:  {position:'fixed',inset:0,zIndex:10000,background:'rgba(10,6,6,.87)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',animation:'fadeIn .25s ease'},
+  modal:     {background:'#fff',borderRadius:'20px',boxShadow:'0 40px 100px rgba(249,168,212,.45)',width:'100%',maxWidth:'380px',overflow:'hidden',animation:'popIn .35s cubic-bezier(.34,1.56,.64,1)'},
+  header:    {padding:'20px 24px 16px',background:'linear-gradient(135deg,#fdf2f8,#fce7f3)',borderBottom:'1px solid #fbcfe8'},
+  htitle:    {display:'block',fontWeight:700,color:'#1f2937',fontSize:'15px'},
+  hsub:      {display:'block',fontSize:'12px',color:'#9ca3af',marginTop:'2px'},
+  stage:     {position:'relative',width:'260px',height:'260px',margin:'24px auto 0',cursor:'grab',userSelect:'none'},
+  dimRing:   {position:'absolute',inset:0,borderRadius:'50%',boxShadow:'0 0 0 9999px rgba(0,0,0,.5)',zIndex:1,pointerEvents:'none'},
+  canvas:    {display:'block',borderRadius:'50%',border:'3px solid #f472b6',boxShadow:'0 0 0 4px rgba(244,114,182,.25)',zIndex:2,position:'relative'},
+  hint:      {position:'absolute',bottom:'-22px',left:'50%',transform:'translateX(-50%)',fontSize:'11px',color:'#9ca3af',whiteSpace:'nowrap',zIndex:3},
+  zoomRow:   {display:'flex',alignItems:'center',gap:'10px',padding:'28px 24px 8px'},
+  actions:   {display:'flex',gap:'12px',padding:'16px 24px 24px'},
+  cancelBtn: {flex:1,padding:'12px',border:'2px solid #fbcfe8',borderRadius:'10px',background:'transparent',color:'#9ca3af',cursor:'pointer',fontWeight:600,fontSize:'14px'},
+  doneBtn:   {flex:2,padding:'12px',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',border:'none',borderRadius:'10px',color:'#fff',cursor:'pointer',fontWeight:700,fontSize:'14px',boxShadow:'0 4px 14px rgba(236,72,153,.4)'},
+};
+
+/* ═══════════════════════════════════════════════════
+   SUCCESS OVERLAY
+═══════════════════════════════════════════════════ */
+const SuccessOverlay = ({ username }) => (
+  <div style={ov.backdrop}>
     <style>{`
-      @keyframes overlayFadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-      }
-      @keyframes popIn {
-        0%   { opacity: 0; transform: scale(0.6) translateY(20px); }
-        65%  { transform: scale(1.08) translateY(-4px); }
-        100% { opacity: 1; transform: scale(1) translateY(0); }
-      }
-      @keyframes shimmer {
-        0%   { background-position: -400px 0; }
-        100% { background-position: 400px 0; }
-      }
-      @keyframes spinRing {
-        to { transform: rotate(360deg); }
-      }
-      @keyframes dotPulse {
-        0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-        40%            { transform: scale(1);   opacity: 1;   }
-      }
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(12px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes progressFill {
-        from { width: 0%; }
-        to   { width: 100%; }
-      }
-      @keyframes confettiFall {
-        0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(80px) rotate(360deg); opacity: 0; }
-      }
+      @keyframes ovFadeIn{from{opacity:0}to{opacity:1}}
+      @keyframes ovPopIn{0%{opacity:0;transform:scale(.6) translateY(20px)}65%{transform:scale(1.08) translateY(-4px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+      @keyframes ovShimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+      @keyframes ovSpin{to{transform:rotate(360deg)}}
+      @keyframes ovDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+      @keyframes ovSlide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes ovFill{from{width:0%}to{width:100%}}
+      @keyframes ovFetti{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(80px) rotate(360deg);opacity:0}}
     `}</style>
-
-    {/* Confetti dots */}
-    {[
-      { left: "15%", color: "#f9a8d4", delay: "0s",   size: "8px"  },
-      { left: "30%", color: "#ec4899", delay: "0.1s",  size: "6px"  },
-      { left: "50%", color: "#fbcfe8", delay: "0.15s", size: "10px" },
-      { left: "65%", color: "#f472b6", delay: "0.05s", size: "7px"  },
-      { left: "80%", color: "#f9a8d4", delay: "0.2s",  size: "9px"  },
-      { left: "22%", color: "#fce7f3", delay: "0.25s", size: "5px"  },
-      { left: "70%", color: "#ec4899", delay: "0.3s",  size: "6px"  },
-    ].map((c, i) => (
-      <div
-        key={i}
-        style={{
-          position: "fixed",
-          top: "18%",
-          left: c.left,
-          width: c.size,
-          height: c.size,
-          borderRadius: "50%",
-          background: c.color,
-          animation: `confettiFall 1.4s ${c.delay} ease-out forwards`,
-          pointerEvents: "none",
-        }}
-      />
+    {[['15%','#f9a8d4','0s','8px'],['30%','#ec4899','.1s','6px'],['50%','#fbcfe8','.15s','10px'],
+      ['65%','#f472b6','.05s','7px'],['80%','#f9a8d4','.2s','9px'],['22%','#fce7f3','.25s','5px'],['70%','#ec4899','.3s','6px']
+    ].map(([l,c,d,sz],i)=>(
+      <div key={i} style={{position:'fixed',top:'18%',left:l,width:sz,height:sz,borderRadius:'50%',background:c,animation:`ovFetti 1.4s ${d} ease-out forwards`,pointerEvents:'none'}}/>
     ))}
-
-    {/* Card */}
-    <div style={overlayStyles.card}>
-      {/* Spinning rings */}
-      <div style={overlayStyles.ringWrap}>
-        <div style={overlayStyles.ringOuter} />
-        <div style={overlayStyles.ringInner} />
-        <div style={overlayStyles.checkCircle}>
+    <div style={ov.card}>
+      <div style={ov.ringWrap}>
+        <div style={ov.ro}/><div style={ov.ri}/>
+        <div style={ov.check}>
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <polyline
-              points="8,18 15,25 28,11"
-              stroke="#fff"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ animation: "popIn 0.5s 0.2s both" }}
-            />
+            <polyline points="8,18 15,25 28,11" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{animation:'ovPopIn .5s .2s both'}}/>
           </svg>
         </div>
       </div>
+      <h2 style={ov.h2}>Account Created! 🎉</h2>
+      <p  style={ov.sub}>Welcome aboard, <strong style={{color:'#ec4899'}}>{username}</strong>!</p>
+      <p  style={ov.red}>Taking you to login…</p>
+      <div style={ov.track}><div style={ov.bar}/></div>
+      <div style={ov.dots}>{[0,1,2].map(i=><span key={i} style={{...ov.dot,animation:`ovDot 1.2s ${i*.2}s infinite ease-in-out`}}/>)}</div>
+    </div>
+  </div>
+);
+const ov = {
+  backdrop:{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,rgba(253,242,248,.96),rgba(251,207,232,.96))',backdropFilter:'blur(6px)',animation:'ovFadeIn .35s ease'},
+  card:    {background:'#fff',borderRadius:'24px',boxShadow:'0 32px 80px rgba(249,168,212,.45)',padding:'52px 44px 44px',display:'flex',flexDirection:'column',alignItems:'center',minWidth:'340px',animation:'ovPopIn .45s cubic-bezier(.34,1.56,.64,1) both'},
+  ringWrap:{position:'relative',width:'96px',height:'96px',marginBottom:'28px',display:'flex',alignItems:'center',justifyContent:'center'},
+  ro:      {position:'absolute',inset:0,borderRadius:'50%',border:'3px solid transparent',borderTopColor:'#f472b6',borderRightColor:'#f9a8d4',animation:'ovSpin 1s linear infinite'},
+  ri:      {position:'absolute',inset:'10px',borderRadius:'50%',border:'2px solid transparent',borderBottomColor:'#fbcfe8',borderLeftColor:'#ec4899',animation:'ovSpin .7s linear infinite reverse'},
+  check:   {width:'64px',height:'64px',borderRadius:'50%',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 24px rgba(236,72,153,.35)'},
+  h2:      {margin:'0 0 8px',fontSize:'24px',fontWeight:700,color:'#1f2937',animation:'ovSlide .4s .15s both',fontFamily:"'Segoe UI',sans-serif"},
+  sub:     {margin:'0 0 6px',fontSize:'15px',color:'#6b7280',animation:'ovSlide .4s .25s both',fontFamily:"'Segoe UI',sans-serif"},
+  red:     {margin:'0 0 24px',fontSize:'13px',color:'#9ca3af',animation:'ovSlide .4s .35s both',fontFamily:"'Segoe UI',sans-serif"},
+  track:   {width:'220px',height:'5px',background:'#fce7f3',borderRadius:'99px',overflow:'hidden',marginBottom:'20px',animation:'ovSlide .4s .4s both'},
+  bar:     {height:'100%',borderRadius:'99px',background:'linear-gradient(90deg,#f9a8d4,#ec4899,#f472b6)',backgroundSize:'400px 100%',animation:'ovFill 1.8s cubic-bezier(.4,0,.2,1) forwards, ovShimmer 1.5s linear infinite'},
+  dots:    {display:'flex',gap:'8px',animation:'ovSlide .4s .5s both'},
+  dot:     {width:'8px',height:'8px',borderRadius:'50%',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',display:'inline-block'},
+};
 
-      {/* Text */}
-      <h2 style={overlayStyles.heading}>Account Created! 🎉</h2>
-      <p style={overlayStyles.sub}>
-        Welcome aboard, <strong style={{ color: "#ec4899" }}>{username}</strong>!
+/* ═══════════════════════════════════════════════════
+   DISAGREE MODAL
+═══════════════════════════════════════════════════ */
+const DisagreeModal = ({ onGoBack, onLeave }) => (
+  <div style={{position:'fixed',inset:0,zIndex:10001,background:'rgba(10,6,6,.7)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',animation:'fadeIn .25s ease'}}>
+    <div style={{background:'#fff',borderRadius:'20px',padding:'40px 36px 36px',maxWidth:'380px',width:'100%',boxShadow:'0 32px 80px rgba(0,0,0,.25)',animation:'popIn .35s cubic-bezier(.34,1.56,.64,1)',textAlign:'center'}}>
+      <div style={{fontSize:'52px',marginBottom:'16px'}}>🤔</div>
+      <h3 style={{fontSize:'20px',fontWeight:700,color:'#1f2937',marginBottom:'10px'}}>No worries!</h3>
+      <p  style={{fontSize:'14px',color:'#6b7280',lineHeight:1.7,marginBottom:'28px'}}>
+        You need to agree to our Terms &amp; Conditions to create an account. You can go back and review them, or leave and come back anytime.
       </p>
-      <p style={overlayStyles.redirect}>Taking you to login…</p>
-
-      {/* Progress bar */}
-      <div style={overlayStyles.progressTrack}>
-        <div style={overlayStyles.progressBar} />
-      </div>
-
-      {/* Dot loader */}
-      <div style={overlayStyles.dots}>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            style={{
-              ...overlayStyles.dot,
-              animation: `dotPulse 1.2s ${i * 0.2}s infinite ease-in-out`,
-            }}
-          />
-        ))}
+      <div style={{display:'flex',gap:'12px'}}>
+        <button onClick={onGoBack} style={{flex:1,padding:'13px',border:'2px solid #fbcfe8',borderRadius:'12px',background:'transparent',color:'#6b7280',fontWeight:600,fontSize:'14px',cursor:'pointer'}}>← Go Back</button>
+        <button onClick={onLeave}  style={{flex:1,padding:'13px',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:700,fontSize:'14px',cursor:'pointer',boxShadow:'0 4px 14px rgba(236,72,153,.4)'}}>Leave for Now</button>
       </div>
     </div>
   </div>
 );
 
-const overlayStyles = {
-  backdrop: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 9999,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background:
-      "linear-gradient(135deg, rgba(253,242,248,0.96) 0%, rgba(252,231,243,0.98) 50%, rgba(251,207,232,0.96) 100%)",
-    backdropFilter: "blur(6px)",
-    animation: "overlayFadeIn 0.35s ease",
-  },
-  card: {
-    background: "#fff",
-    borderRadius: "24px",
-    boxShadow:
-      "0 32px 80px rgba(249,168,212,0.45), 0 0 0 1px rgba(249,168,212,0.15)",
-    padding: "52px 44px 44px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    minWidth: "340px",
-    animation: "popIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both",
-  },
-  ringWrap: {
-    position: "relative",
-    width: "96px",
-    height: "96px",
-    marginBottom: "28px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ringOuter: {
-    position: "absolute",
-    inset: 0,
-    borderRadius: "50%",
-    border: "3px solid transparent",
-    borderTopColor: "#f472b6",
-    borderRightColor: "#f9a8d4",
-    animation: "spinRing 1s linear infinite",
-  },
-  ringInner: {
-    position: "absolute",
-    inset: "10px",
-    borderRadius: "50%",
-    border: "2px solid transparent",
-    borderBottomColor: "#fbcfe8",
-    borderLeftColor: "#ec4899",
-    animation: "spinRing 0.7s linear infinite reverse",
-  },
-  checkCircle: {
-    width: "64px",
-    height: "64px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #f9a8d4, #ec4899)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 8px 24px rgba(236,72,153,0.35)",
-  },
-  heading: {
-    margin: "0 0 8px",
-    fontSize: "24px",
-    fontWeight: "700",
-    color: "#1f2937",
-    animation: "slideUp 0.4s 0.15s both",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-  },
-  sub: {
-    margin: "0 0 6px",
-    fontSize: "15px",
-    color: "#6b7280",
-    animation: "slideUp 0.4s 0.25s both",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-  },
-  redirect: {
-    margin: "0 0 24px",
-    fontSize: "13px",
-    color: "#9ca3af",
-    letterSpacing: "0.02em",
-    animation: "slideUp 0.4s 0.35s both",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-  },
-  progressTrack: {
-    width: "220px",
-    height: "5px",
-    background: "#fce7f3",
-    borderRadius: "99px",
-    overflow: "hidden",
-    marginBottom: "20px",
-    animation: "slideUp 0.4s 0.4s both",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: "99px",
-    background: "linear-gradient(90deg, #f9a8d4, #ec4899, #f472b6)",
-    backgroundSize: "400px 100%",
-    animation:
-      "progressFill 1.8s cubic-bezier(0.4,0,0.2,1) forwards, shimmer 1.5s linear infinite",
-  },
-  dots: {
-    display: "flex",
-    gap: "8px",
-    animation: "slideUp 0.4s 0.5s both",
-  },
-  dot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #f9a8d4, #ec4899)",
-    display: "inline-block",
-  },
-};
+/* ═══════════════════════════════════════════════════
+   STEP BAR
+═══════════════════════════════════════════════════ */
+const StepBar = ({ current }) => (
+  <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'28px',gap:0}}>
+    {[{n:1,label:'Info'},{n:2,label:'Photo'},{n:3,label:'Terms'}].map((s,i,arr)=>(
+      <React.Fragment key={s.n}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'6px'}}>
+          <div style={{width:'32px',height:'32px',borderRadius:'50%',background:current>=s.n?'linear-gradient(135deg,#f9a8d4,#ec4899)':'#fce7f3',color:current>=s.n?'#fff':'#f9a8d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'13px',boxShadow:current>=s.n?'0 4px 12px rgba(236,72,153,.4)':'none',transition:'all .3s',border:current===s.n?'2.5px solid #ec4899':'2px solid transparent'}}>
+            {current>s.n?'✓':s.n}
+          </div>
+          <span style={{fontSize:'10px',fontWeight:600,color:current>=s.n?'#ec4899':'#d1d5db',letterSpacing:'.08em',textTransform:'uppercase'}}>{s.label}</span>
+        </div>
+        {i<arr.length-1&&<div style={{height:'2px',width:'48px',marginBottom:'18px',background:current>s.n?'linear-gradient(90deg,#f9a8d4,#ec4899)':'#fce7f3',transition:'background .3s'}}/>}
+      </React.Fragment>
+    ))}
+  </div>
+);
 
-/* ─────────────────────────────────────────────
-   Main Register Component
-───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   TERMS TEXT
+═══════════════════════════════════════════════════ */
+const TERMS = `Welcome to our platform. By creating an account, you agree to the following terms and conditions. Please read them carefully.
+
+1. ACCOUNT ELIGIBILITY
+You must be at least 13 years of age to register. By creating an account you confirm that all information you provide is accurate and truthful.
+
+2. USE OF YOUR INFORMATION
+We collect the personal information you provide (name, email, phone, address, profile photo) solely to operate and improve this service. We do not sell your data to third parties.
+
+3. PASSWORD & SECURITY
+You are responsible for maintaining the confidentiality of your password. Notify us immediately if you suspect unauthorized access to your account.
+
+4. PROHIBITED CONDUCT
+You agree not to impersonate others, upload harmful content, or use the platform for any unlawful activity.
+
+5. INTELLECTUAL PROPERTY
+All content on this platform, including designs and text, is owned by us and may not be reproduced without permission.
+
+6. TERMINATION
+We reserve the right to suspend or terminate accounts that violate these terms.
+
+7. LIMITATION OF LIABILITY
+To the extent permitted by law, we are not liable for indirect damages arising from your use of the service.
+
+8. CHANGES TO TERMS
+We may update these terms from time to time. Continued use of the platform constitutes acceptance of the revised terms.
+
+9. GOVERNING LAW
+These terms are governed by the laws of the Republic of the Philippines.
+
+By clicking "I Agree & Create Account" you confirm you have read and accept these Terms & Conditions.`;
+
+/* ═══════════════════════════════════════════════════
+   MAIN REGISTER COMPONENT
+═══════════════════════════════════════════════════ */
 const Register = () => {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isUsernameFocused, setIsUsernameFocused] = useState(false);
-  const [isEmailFocused, setIsEmailFocused] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
-  const [isButtonHovered, setIsButtonHovered] = useState(false);
-  const [registerSuccess, setRegisterSuccess] = useState(false); // ← new
   const navigate = useNavigate();
+  const fileRef  = useRef(null);
+  const termsRef = useRef(null);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const [step, setStep] = useState(STEP_INFO);
+  const [form, setForm] = useState({ username:'', fullName:'', email:'', phone:'', address:'', password:'', confirmPassword:'' });
+  const [fieldErrors,   setFieldErrors]   = useState({});
+  const [globalError,   setGlobalError]   = useState('');
+  const [isLoading,     setIsLoading]     = useState(false);
+  const [showSuccess,   setShowSuccess]   = useState(false);
+
+  // username uniqueness
+  const [uChecking,  setUChecking]  = useState(false);
+  const [uAvailable, setUAvailable] = useState(null);
+  const uTimer = useRef(null);
+
+  // password visibility
+  const [showPw,   setShowPw]   = useState(false);
+  const [showCfPw, setShowCfPw] = useState(false);
+
+  // avatar
+  const [rawImage, setRawImage] = useState(null);
+  const [avatar,   setAvatar]   = useState(null);
+  const [showCrop, setShowCrop] = useState(false);
+
+  // terms
+  const [termsRead,    setTermsRead]    = useState(false);
+  const [showDisagree, setShowDisagree] = useState(false);
+
+  // focus
+  const [focused, setFocused] = useState('');
+
+  /* ── username debounce ── */
+  useEffect(() => {
+    if (uTimer.current) clearTimeout(uTimer.current);
+    const u = form.username.trim();
+    if (u.length < 3) { setUAvailable(null); return; }
+    setUChecking(true); setUAvailable(null);
+    uTimer.current = setTimeout(async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/auth/check-username?username=${u}`);
+        setUAvailable(res.data.available !== false);
+      } catch { setUAvailable(true); }
+      finally  { setUChecking(false); }
+    }, 600);
+    return () => clearTimeout(uTimer.current);
+  }, [form.username]);
+
+  /* ── file → cropper ── */
+  const handleFilePick = (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => { setRawImage(reader.result); setShowCrop(true); };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError("");
+  /* ── terms scroll ── */
+  const handleTermsScroll = (e) => {
+    const el = e.target;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 32) setTermsRead(true);
+  };
 
-    if (!formData.username.trim()) { setError("Username is required"); return; }
-    if (formData.username.length < 3) { setError("Username must be at least 3 characters"); return; }
-    if (!formData.email.trim()) { setError("Email is required"); return; }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) { setError("Please enter a valid email address"); return; }
-    if (formData.password.length < 6) { setError("Password must be at least 6 characters"); return; }
-    if (formData.password !== formData.confirmPassword) { setError("Passwords do not match"); return; }
+  /* ── validate step 1 ── */
+  const validateInfo = () => {
+    const errs = {};
+    const u = form.username.trim();
+    if (!u)                        errs.username = 'Username is required.';
+    else if (u.length < 3)         errs.username = 'Must be at least 3 characters.';
+    else if (uAvailable === false)  errs.username = 'This username is already taken.';
+    else if (uChecking)             errs.username = 'Still checking availability…';
+    if (!form.fullName.trim())     errs.fullName = 'Full name is required.';
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!form.email.trim())        errs.email = 'Email is required.';
+    else if (!emailRx.test(form.email)) errs.email = 'Enter a valid email address.';
+    if (!form.phone.trim())        errs.phone = 'Phone number is required.';
+    if (!form.address.trim())      errs.address = 'Address is required.';
+    if (form.password.length < 6)  errs.password = 'Password must be at least 6 characters.';
+    if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match.';
+    return errs;
+  };
 
-    setIsLoading(true);
+  const goToAvatar = () => {
+    const errs = validateInfo();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+  };
 
+  /* ── final submit ── */
+  const handleSubmit = async () => {
+    setIsLoading(true); setGlobalError('');
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/register`, {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
+      const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
+        username: form.username, email: form.email, password: form.password,
+        fullName: form.fullName, phone: form.phone, address: form.address,
+        avatar:   avatar || null,
       });
 
-      // ── Show success overlay, then navigate to login after 2 s ──
-      setRegisterSuccess(true);
-      setTimeout(() => navigate("/"), 2000);
+      /*
+       * ─── PERSIST ALL DATA TO localStorage ───────────────────────────────
+       * 1. JWT token (if the API returns one on register)
+       * 2. Full user profile object
+       * 3. Avatar (separate key – base64 can be large)
+       *
+       * Profile.js reads these same keys via userStorage helpers,
+       * so the data survives refresh AND re-login.
+       * ────────────────────────────────────────────────────────────────────
+       */
+      const token = res.data?.token || res.data?.accessToken || null;
+      if (token) saveToken(token);
 
+      saveUserProfile({
+        username:  form.username,
+        email:     form.email,
+        fullName:  form.fullName,
+        phone:     form.phone,
+        address:   form.address,
+        role:      res.data?.user?.role || res.data?.role || 'Customer',
+        createdAt: res.data?.user?.createdAt || new Date().toISOString(),
+      });
+
+      saveAvatar(avatar || null);  // null removes any previously stored avatar
+
+      setShowSuccess(true);
+      setTimeout(() => navigate('/'), 2300);
     } catch (err) {
-      console.error("Registration error:", err);
-      if (err.response) {
-        setError(err.response?.data?.message || "Registration failed. Please try again.");
-      } else if (err.request) {
-        setError("Cannot connect to server. Please make sure the backend is running.");
-      } else {
-        setError("An error occurred. Please try again.");
-      }
+      if (err.response)     setGlobalError(err.response?.data?.message || 'Registration failed. Please try again.');
+      else if (err.request) setGlobalError('Cannot connect to server. Please make sure the backend is running.');
+      else                  setGlobalError('An error occurred. Please try again.');
       setIsLoading(false);
     }
-    // intentionally no setIsLoading(false) on success — button stays "Creating Account…"
   };
 
-  const getInputStyle = (isFocused) => ({
-    width: "100%",
-    padding: "14px 16px",
-    fontSize: "15px",
-    border: isFocused ? "2px solid #f9a8d4" : "2px solid #fbcfe8",
-    borderRadius: "12px",
-    outline: "none",
-    transition: "all 0.3s ease",
-    boxSizing: "border-box",
-    backgroundColor: isFocused ? "#fff" : "#fdf2f8",
-    boxShadow: isFocused ? "0 0 0 4px rgba(249, 168, 212, 0.2)" : "none",
+  /* ── helpers ── */
+  const inp = (name, hasErr) => ({
+    width:'100%', padding:'13px 16px', fontSize:'14px',
+    border: hasErr ? '2px solid #f87171' : focused===name ? '2px solid #f9a8d4' : '2px solid #fbcfe8',
+    borderRadius:'10px', outline:'none', transition:'all .25s', boxSizing:'border-box',
+    backgroundColor: hasErr ? '#fff5f5' : focused===name ? '#fff' : '#fdf2f8',
+    boxShadow: focused===name && !hasErr ? '0 0 0 4px rgba(249,168,212,.18)' : 'none',
+    fontFamily:"'Segoe UI',sans-serif", color:'#1f2937',
   });
+  const fc = (name) => ({ onFocus:()=>setFocused(name), onBlur:()=>setFocused('') });
+  const ch = (field) => (e) => { setForm(p=>({...p,[field]:e.target.value})); setFieldErrors(p=>({...p,[field]:''})); };
 
-  const getButtonStyle = () => ({
-    width: "100%",
-    padding: "16px",
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#fff",
-    background: "linear-gradient(135deg, #f9a8d4 0%, #f472b6 50%, #ec4899 100%)",
-    border: "none",
-    borderRadius: "12px",
-    cursor: isLoading ? "not-allowed" : "pointer",
-    transition: "all 0.3s ease",
-    boxShadow:
-      isButtonHovered && !isLoading
-        ? "0 6px 20px rgba(249, 168, 212, 0.6)"
-        : "0 4px 15px rgba(249, 168, 212, 0.5)",
-    opacity: isLoading ? 0.7 : 1,
-    transform: isButtonHovered && !isLoading ? "translateY(-2px)" : "none",
-    marginTop: "10px",
-  });
-
-  const styles = {
-    container: {
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%)",
-      padding: "20px",
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    },
-    card: {
-      background: "#ffffff",
-      borderRadius: "20px",
-      boxShadow: "0 20px 60px rgba(249, 168, 212, 0.4)",
-      padding: "50px 40px",
-      width: "100%",
-      maxWidth: "420px",
-      animation: "fadeIn 0.5s ease-out",
-    },
-    logo: { textAlign: "center", marginBottom: "10px" },
-    logoIcon: {
-      fontSize: "48px",
-      marginBottom: "10px",
-      filter: "drop-shadow(0 4px 8px rgba(249, 168, 212, 0.4))",
-    },
-    title: {
-      textAlign: "center",
-      color: "#333",
-      fontSize: "28px",
-      fontWeight: "700",
-      margin: "0 0 8px 0",
-    },
-    subtitle: {
-      textAlign: "center",
-      color: "#666",
-      fontSize: "14px",
-      marginBottom: "35px",
-    },
-    formGroup: { marginBottom: "20px" },
-    label: {
-      display: "block",
-      color: "#555",
-      fontSize: "14px",
-      fontWeight: "600",
-      marginBottom: "10px",
-    },
-    inputWrapper: { position: "relative" },
-    passwordToggle: {
-      position: "absolute",
-      right: "14px",
-      top: "50%",
-      transform: "translateY(-50%)",
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      color: "#888",
-      fontSize: "18px",
-      padding: "5px",
-    },
-    errorBox: {
-      backgroundColor: "#fdf2f8",
-      border: "1px solid #f9a8d4",
-      borderRadius: "10px",
-      padding: "14px 16px",
-      marginBottom: "24px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
-    errorIcon: { color: "#ec4899", fontSize: "18px" },
-    errorText: { color: "#be185d", fontSize: "14px", margin: 0 },
-    loginLink: {
-      textAlign: "center",
-      marginTop: "25px",
-      color: "#666",
-      fontSize: "14px",
-    },
-    loginLinkA: { color: "#ec4899", textDecoration: "none", fontWeight: "600" },
-    passwordStrength: {
-      fontSize: "12px",
-      marginTop: "6px",
-      color: formData.password.length >= 6 ? "#48bb78" : "#a0aec0",
-    },
-  };
-
+  /* ═══════════════════════════════════════════════
+     RENDER
+  ═══════════════════════════════════════════════ */
   return (
     <>
-      {/* ── Success overlay ── */}
-      {registerSuccess && <RegisterSuccessOverlay username={formData.username} />}
+      {showSuccess  && <SuccessOverlay username={form.username}/>}
+      {showDisagree && <DisagreeModal onGoBack={()=>setShowDisagree(false)} onLeave={()=>navigate('/')}/>}
+      {showCrop && rawImage && (
+        <CircleCropper imageSrc={rawImage} onDone={url=>{setAvatar(url);setShowCrop(false);}} onCancel={()=>setShowCrop(false)}/>
+      )}
 
-      <div style={styles.container}>
+      <div style={st.page}>
         <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to   { opacity: 1; transform: translateY(0); }
-          }
-          input::placeholder { color: #aaa; }
-          input:-webkit-autofill,
-          input:-webkit-autofill:hover,
-          input:-webkit-autofill:focus {
-            -webkit-box-shadow: 0 0 0px 1000px #fdf2f8 inset !important;
-          }
-          * { scrollbar-width: none; -ms-overflow-style: none; }
-          *::-webkit-scrollbar { display: none; }
-          body { overflow: hidden; }
+          @keyframes fadeIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+          @keyframes popIn {0%{opacity:0;transform:scale(.6) translateY(20px)}65%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+          @keyframes spin  {to{transform:rotate(360deg)}}
+          input::placeholder{color:#bbb;}
+          input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px #fdf2f8 inset!important;}
+          .ferr{font-size:12px;color:#ef4444;margin-top:5px;display:flex;align-items:center;gap:5px;}
+          .fok {font-size:12px;color:#10b981;margin-top:5px;display:flex;align-items:center;gap:5px;}
+          .fnfo{font-size:12px;color:#9ca3af;margin-top:5px;}
+          ::-webkit-scrollbar{width:5px;}
+          ::-webkit-scrollbar-track{background:#fce7f3;border-radius:99px;}
+          ::-webkit-scrollbar-thumb{background:#f9a8d4;border-radius:99px;}
         `}</style>
 
-        <div style={styles.card}>
-          <div style={styles.logo}>
-            <div style={styles.logoIcon}>📝</div>
-            <h1 style={styles.title}>Create Account</h1>
-            <p style={styles.subtitle}>Sign up to get started</p>
+        <div style={st.card}>
+          {/* Logo */}
+          <div style={{textAlign:'center',marginBottom:'20px'}}>
+            <div style={{fontSize:'44px',marginBottom:'8px',filter:'drop-shadow(0 4px 8px rgba(249,168,212,.4))'}}>📝</div>
+            <h1 style={{margin:'0 0 6px',fontSize:'26px',fontWeight:700,color:'#1f2937',fontFamily:"'Segoe UI',sans-serif"}}>Create Account</h1>
+            <p  style={{margin:0,fontSize:'13px',color:'#9ca3af'}}>Sign up to get started</p>
           </div>
 
-          {error && (
-            <div style={styles.errorBox}>
-              <span style={styles.errorIcon}>⚠️</span>
-              <p style={styles.errorText}>{error}</p>
+          <StepBar current={step}/>
+
+          {/* ════ STEP 1 — Info ════ */}
+          {step === STEP_INFO && (
+            <div>
+              {globalError && (
+                <div style={st.errBox}>
+                  <span style={{color:'#ec4899'}}>⚠️</span>
+                  <p style={{color:'#be185d',fontSize:'14px',margin:0}}>{globalError}</p>
+                </div>
+              )}
+
+              {/* Username */}
+              <div style={st.fg}>
+                <label style={st.label}>👤 Username</label>
+                <div style={{position:'relative'}}>
+                  <input type="text" value={form.username} onChange={ch('username')}
+                    placeholder="Choose a unique username"
+                    style={{...inp('username',!!fieldErrors.username),paddingRight:'36px'}} {...fc('username')}/>
+                  <span style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',fontSize:'14px'}}>
+                    {uChecking?'⏳':uAvailable===true&&form.username.length>=3?'✅':uAvailable===false?'❌':''}
+                  </span>
+                </div>
+                {fieldErrors.username         ? <div className="ferr">⚠ {fieldErrors.username}</div>
+                 : uAvailable===false          ? <div className="ferr">⚠ This username is already taken. Please choose another.</div>
+                 : uAvailable===true&&form.username.length>=3 ? <div className="fok">✓ Username is available!</div>
+                 : form.username.length>0&&form.username.length<3 ? <div className="fnfo">At least 3 characters needed</div>
+                 : null}
+              </div>
+
+              {/* Full Name */}
+              <div style={st.fg}>
+                <label style={st.label}>🪪 Full Name</label>
+                <input type="text" value={form.fullName} onChange={ch('fullName')}
+                  placeholder="Your full name" style={inp('fullName',!!fieldErrors.fullName)} {...fc('fullName')}/>
+                {fieldErrors.fullName && <div className="ferr">⚠ {fieldErrors.fullName}</div>}
+              </div>
+
+              {/* Email */}
+              <div style={st.fg}>
+                <label style={st.label}>✉️ Email</label>
+                <input type="email" value={form.email} onChange={ch('email')}
+                  placeholder="Enter your email" style={inp('email',!!fieldErrors.email)} {...fc('email')}/>
+                {fieldErrors.email && <div className="ferr">⚠ {fieldErrors.email}</div>}
+              </div>
+
+              {/* Phone */}
+              <div style={st.fg}>
+                <label style={st.label}>📱 Phone Number</label>
+                <input type="tel" value={form.phone} onChange={ch('phone')}
+                  placeholder="+63 912 345 6789" style={inp('phone',!!fieldErrors.phone)} {...fc('phone')}/>
+                {fieldErrors.phone && <div className="ferr">⚠ {fieldErrors.phone}</div>}
+              </div>
+
+              {/* Address */}
+              <div style={st.fg}>
+                <label style={st.label}>📍 Address</label>
+                <input type="text" value={form.address} onChange={ch('address')}
+                  placeholder="Your address" style={inp('address',!!fieldErrors.address)} {...fc('address')}/>
+                {fieldErrors.address && <div className="ferr">⚠ {fieldErrors.address}</div>}
+              </div>
+
+              {/* Password */}
+              <div style={st.fg}>
+                <label style={st.label}>🔒 Password</label>
+                <div style={{position:'relative'}}>
+                  <input type={showPw?'text':'password'} value={form.password} onChange={ch('password')}
+                    placeholder="Create a password"
+                    style={{...inp('password',!!fieldErrors.password),paddingRight:'44px'}} {...fc('password')}/>
+                  <button type="button" style={st.eye} onClick={()=>setShowPw(p=>!p)}>{showPw?'🙈':'👁️'}</button>
+                </div>
+                {fieldErrors.password
+                  ? <div className="ferr">⚠ {fieldErrors.password}</div>
+                  : <div className="fnfo" style={{color:form.password.length>=6?'#10b981':'#9ca3af'}}>
+                      {form.password.length===0?'Minimum 6 characters':form.password.length<6?'Too short':'✓ Strength: Good'}
+                    </div>}
+              </div>
+
+              {/* Confirm Password */}
+              <div style={{...st.fg,marginBottom:0}}>
+                <label style={st.label}>🔐 Confirm Password</label>
+                <div style={{position:'relative'}}>
+                  <input type={showCfPw?'text':'password'} value={form.confirmPassword} onChange={ch('confirmPassword')}
+                    placeholder="Confirm your password"
+                    style={{...inp('confirmPassword',!!fieldErrors.confirmPassword),paddingRight:'44px'}} {...fc('confirmPassword')}/>
+                  <button type="button" style={st.eye} onClick={()=>setShowCfPw(p=>!p)}>{showCfPw?'🙈':'👁️'}</button>
+                </div>
+                {fieldErrors.confirmPassword
+                  ? <div className="ferr">⚠ {fieldErrors.confirmPassword}</div>
+                  : form.confirmPassword && form.password===form.confirmPassword
+                    ? <div className="fok">✓ Passwords match</div> : null}
+              </div>
+
+              <button style={{...st.primary,marginTop:'24px'}} onClick={goToAvatar}>
+                Continue to Photo →
+              </button>
+              <div style={st.loginHint}>
+                Already have an account? <Link to="/" style={st.loginLink}>Login</Link>
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleRegister}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>👤 Username</label>
-              <div style={styles.inputWrapper}>
-                <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  required
-                  onChange={handleChange}
-                  placeholder="Choose a username"
-                  style={getInputStyle(isUsernameFocused)}
-                  onFocus={() => setIsUsernameFocused(true)}
-                  onBlur={() => setIsUsernameFocused(false)}
-                />
+          {/* ════ STEP 2 — Avatar ════ */}
+          {step === STEP_AVATAR && (
+            <div style={{textAlign:'center'}}>
+              <p style={{fontSize:'14px',color:'#6b7280',marginBottom:'24px',lineHeight:1.65}}>
+                Add a profile picture so others can recognise you.<br/>
+                <span style={{color:'#f9a8d4'}}>You can skip this step if you prefer.</span>
+              </p>
+
+              {/* Circle preview */}
+              <div
+                style={{width:'130px',height:'130px',borderRadius:'50%',background:avatar?'transparent':'linear-gradient(135deg,#fce7f3,#fbcfe8)',margin:'0 auto 20px',border:'3px solid #f9a8d4',boxShadow:'0 8px 28px rgba(249,168,212,.4)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative'}}
+                onClick={()=>fileRef.current?.click()}
+              >
+                {avatar
+                  ? <img src={avatar} alt="avatar" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  : <span style={{fontSize:'42px'}}>📷</span>}
+                {avatar && (
+                  <div style={{position:'absolute',inset:0,background:'rgba(44,36,32,.5)',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity .2s',fontSize:'22px',borderRadius:'50%'}}
+                    onMouseEnter={e=>e.currentTarget.style.opacity='1'}
+                    onMouseLeave={e=>e.currentTarget.style.opacity='0'}>✏️</div>
+                )}
+              </div>
+
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleFilePick} style={{display:'none'}}/>
+
+              <button style={{...st.primary,display:'inline-flex',width:'auto',padding:'12px 28px',marginBottom:'12px'}} onClick={()=>fileRef.current?.click()}>
+                {avatar?'🔄 Change Photo':'📸 Choose Photo'}
+              </button>
+
+              {avatar && (
+                <div style={{marginBottom:'4px'}}>
+                  <button style={{background:'none',border:'none',color:'#f87171',fontSize:'12px',cursor:'pointer',textDecoration:'underline'}} onClick={()=>setAvatar(null)}>
+                    Remove photo
+                  </button>
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:'12px',marginTop:'28px'}}>
+                <button style={st.secondary} onClick={()=>setStep(STEP_INFO)}>← Back</button>
+                <button style={st.primary}   onClick={()=>setStep(STEP_TERMS)}>{avatar?'Next →':'Skip for Now →'}</button>
               </div>
             </div>
+          )}
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>✉️ Email</label>
-              <div style={styles.inputWrapper}>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  required
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  style={getInputStyle(isEmailFocused)}
-                  onFocus={() => setIsEmailFocused(true)}
-                  onBlur={() => setIsEmailFocused(false)}
-                />
+          {/* ════ STEP 3 — Terms ════ */}
+          {step === STEP_TERMS && (
+            <div>
+              <h3 style={{fontSize:'16px',fontWeight:700,color:'#1f2937',marginBottom:'8px',textAlign:'center',fontFamily:"'Segoe UI',sans-serif"}}>
+                📜 Terms &amp; Conditions
+              </h3>
+              <p style={{fontSize:'12px',color:'#9ca3af',textAlign:'center',marginBottom:'14px'}}>
+                Scroll to the bottom to enable the agree button.
+              </p>
+
+              <div ref={termsRef} onScroll={handleTermsScroll}
+                style={{height:'200px',overflowY:'auto',background:'#fdf2f8',border:'1.5px solid #fbcfe8',borderRadius:'12px',padding:'16px 18px',fontSize:'12.5px',color:'#374151',lineHeight:1.75,whiteSpace:'pre-wrap',marginBottom:'16px',fontFamily:"'Segoe UI',sans-serif"}}>
+                {TERMS}
               </div>
-            </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>🔒 Password</label>
-              <div style={styles.inputWrapper}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  required
-                  onChange={handleChange}
-                  placeholder="Create a password"
-                  style={getInputStyle(isPasswordFocused)}
-                  onFocus={() => setIsPasswordFocused(true)}
-                  onBlur={() => setIsPasswordFocused(false)}
-                />
+              {!termsRead && (
+                <div style={{textAlign:'center',fontSize:'11px',color:'#f9a8d4',marginBottom:'12px'}}>
+                  ↓ Scroll down to read all terms
+                </div>
+              )}
+
+              {globalError && (
+                <div style={{...st.errBox,marginBottom:'14px'}}>
+                  <span style={{color:'#ec4899'}}>⚠️</span>
+                  <p style={{color:'#be185d',fontSize:'13px',margin:0}}>{globalError}</p>
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:'12px'}}>
+                <button style={st.secondary} onClick={()=>setStep(STEP_AVATAR)}>← Back</button>
                 <button
-                  type="button"
-                  style={styles.passwordToggle}
-                  onClick={() => setShowPassword(!showPassword)}
+                  style={{...st.primary,opacity:termsRead?1:.45,cursor:termsRead?'pointer':'not-allowed'}}
+                  disabled={!termsRead||isLoading}
+                  onClick={handleSubmit}
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {isLoading
+                    ? <span style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                        <span style={{width:'14px',height:'14px',border:'2px solid rgba(255,255,255,.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'spin .8s linear infinite'}}/>
+                        Creating Account…
+                      </span>
+                    : '✓ I Agree & Create Account'}
                 </button>
               </div>
-              <div style={styles.passwordStrength}>
-                {formData.password.length === 0
-                  ? "Enter a password"
-                  : formData.password.length < 6
-                  ? "Password must be at least 6 characters"
-                  : "✓ Password strength: Good"}
-              </div>
-            </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>🔐 Confirm Password</label>
-              <div style={styles.inputWrapper}>
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  required
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  style={getInputStyle(isConfirmPasswordFocused)}
-                  onFocus={() => setIsConfirmPasswordFocused(true)}
-                  onBlur={() => setIsConfirmPasswordFocused(false)}
-                />
-                <button
-                  type="button"
-                  style={styles.passwordToggle}
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? "🙈" : "👁️"}
+              <div style={{textAlign:'center',marginTop:'14px'}}>
+                <button style={{background:'none',border:'none',color:'#f87171',fontSize:'12px',cursor:'pointer',textDecoration:'underline'}} onClick={()=>setShowDisagree(true)}>
+                  I Do Not Agree
                 </button>
               </div>
             </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={getButtonStyle()}
-              onMouseOver={() => setIsButtonHovered(true)}
-              onMouseOut={() => setIsButtonHovered(false)}
-            >
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </button>
-          </form>
-
-          <div style={styles.loginLink}>
-            Already have an account?{" "}
-            <Link to="/" style={styles.loginLinkA}>
-              Login
-            </Link>
-          </div>
+          )}
         </div>
       </div>
     </>
   );
+};
+
+const st = {
+  page:      {minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)',padding:'24px',fontFamily:"'Segoe UI',Tahoma,Geneva,Verdana,sans-serif"},
+  card:      {background:'#fff',borderRadius:'20px',boxShadow:'0 20px 60px rgba(249,168,212,.4)',padding:'40px 36px',width:'100%',maxWidth:'440px',animation:'fadeIn .5s ease-out'},
+  fg:        {marginBottom:'16px'},
+  label:     {display:'block',fontSize:'13px',fontWeight:600,color:'#4b5563',marginBottom:'7px'},
+  eye:       {position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#aaa',fontSize:'16px',padding:'4px'},
+  errBox:    {background:'#fdf2f8',border:'1px solid #f9a8d4',borderRadius:'10px',padding:'12px 14px',marginBottom:'18px',display:'flex',alignItems:'center',gap:'10px'},
+  primary:   {width:'100%',padding:'14px',fontSize:'15px',fontWeight:700,color:'#fff',background:'linear-gradient(135deg,#f9a8d4 0%,#f472b6 50%,#ec4899 100%)',border:'none',borderRadius:'12px',cursor:'pointer',transition:'all .25s',boxShadow:'0 4px 14px rgba(249,168,212,.5)',display:'flex',alignItems:'center',justifyContent:'center'},
+  secondary: {flex:1,padding:'14px',fontSize:'14px',fontWeight:600,color:'#9ca3af',background:'transparent',border:'2px solid #fbcfe8',borderRadius:'12px',cursor:'pointer',transition:'all .2s'},
+  loginHint: {textAlign:'center',marginTop:'20px',color:'#9ca3af',fontSize:'13px'},
+  loginLink: {color:'#ec4899',textDecoration:'none',fontWeight:700},
 };
 
 export default Register;
