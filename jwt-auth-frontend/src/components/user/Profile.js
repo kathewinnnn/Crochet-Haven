@@ -1154,7 +1154,7 @@ const styles = `
  
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
-    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
@@ -1180,6 +1180,17 @@ const styles = `
   @media (max-width: 400px) {
     .ch-profile-body { padding: 16px 12px 40px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-page { margin-left: 160px; padding-top: 0 }
+  .ch-header-inner { padding: 24px 30px; }
+  .ch-page-banner { padding: 36px 30px; }
+  .ch-banner-title { font-size: 2rem; }
+  .ch-profile-body { padding: 36px 30px 60px; }
+  .ch-profile-layout { grid-template-columns: 1fr; }
+  .ch-profile-aside { position: static; }
+  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+}
 `;
 
 /* ─── Toast ─── */

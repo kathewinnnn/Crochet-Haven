@@ -301,7 +301,7 @@ const sidebarStyles = `
     box-shadow: 0 4px 16px rgba(232,114,138,0.3);
   }
 
-  /* ── Mobile Topbar ── */
+  /* ── Mobile Topbar — only shown on mobile (≤ 768px) ── */
   .ch-mobile-topbar {
     display: none;
     position: fixed;
@@ -556,15 +556,43 @@ const sidebarStyles = `
      RESPONSIVE BREAKPOINTS
   ═══════════════════════════════════════════ */
 
-  /* ─── TABLET (769px – 1024px) ─── */
-  @media (max-width: 1024px) {
-    .ch-sidebar { display: none !important; }
-    .ch-mobile-topbar { display: flex; }
-    .ch-mobile-overlay.visible { display: block; }
+  /* ─── TABLET (769px – 1024px): slim icon+label sidebar ─── */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    :root { --sb-width: 160px; }
+
+    .ch-sidebar { display: flex !important; width: var(--sb-width); }
+    .ch-mobile-topbar { display: none !important; }
+    .ch-mobile-overlay { display: none !important; }
+    .ch-mobile-drawer { display: none !important; }
+
+    /* Tighten logo area */
+    .ch-sb-logo { padding: 18px 14px 14px; gap: 8px; }
+    .ch-sb-logo-img,
+    .ch-sb-logo-fallback { width: 34px; height: 34px; font-size: 1.1rem; }
+    .ch-sb-brand { font-size: 0.88rem; }
+    .ch-sb-tagline { font-size: 0.55rem; letter-spacing: 0.14em; }
+
+    /* Tighten section label */
+    .ch-sb-section-lbl { padding: 14px 14px 6px; font-size: 0.55rem; }
+
+    /* Tighten nav padding */
+    .ch-sb-nav { padding: 4px 8px; }
+
+    /* Tighten nav items */
+    .ch-sb-item { padding: 9px 10px; font-size: 0.8rem; gap: 7px; }
+    .ch-sb-icon { font-size: 0.9rem; width: 18px; }
+
+    /* Tighten submenu */
+    .ch-sb-sub-item { padding: 8px 10px 8px 34px; font-size: 0.76rem; }
+
+    /* Tighten footer */
+    .ch-sb-footer { padding: 10px; }
+    .ch-sb-logout { padding: 10px 8px; font-size: 0.72rem; gap: 5px; letter-spacing: 0.05em; }
   }
 
-  /* ─── MOBILE (≤ 768px) ─── */
+  /* ─── MOBILE (≤ 768px): hide sidebar, show topbar + drawer ─── */
   @media (max-width: 768px) {
+    .ch-sidebar { display: none !important; }
     .ch-mobile-topbar { display: flex; }
     .ch-mobile-overlay.visible { display: block; }
 
@@ -604,9 +632,9 @@ const NavContent = ({ activePage, showAccount, setShowAccount, onItemClick, tota
   ];
 
   const accountItems = [
-    { path: "/user/profile", label: "Profile" },
-    { path: "/user/orders",  label: "My Orders" },
-    { path: "/user/settings",label: "Settings" },
+    { path: "/user/profile",  label: "Profile" },
+    { path: "/user/orders",   label: "My Orders" },
+    { path: "/user/settings", label: "Settings" },
   ];
 
   return (
@@ -713,7 +741,7 @@ const UserSidebar = () => {
     <>
       <style>{sidebarStyles}</style>
 
-      {/* ── Desktop Sidebar (hidden on tablet + mobile via CSS) ── */}
+      {/* ── Desktop + Tablet Sidebar ── */}
       <aside className="ch-sidebar" aria-label="Navigation sidebar">
         <div className="ch-sb-inner">
           <div className="ch-sb-logo" onClick={() => navigate("/user")}>
@@ -748,7 +776,7 @@ const UserSidebar = () => {
         </div>
       </aside>
 
-      {/* ── Mobile Topbar ── */}
+      {/* ── Mobile Topbar (≤ 768px only) ── */}
       <div className="ch-mobile-topbar">
         <div className="ch-mobile-topbar-brand">Crochet <span>Haven</span></div>
         <button
@@ -769,7 +797,7 @@ const UserSidebar = () => {
         aria-hidden="true"
       />
 
-      {/* ── Mobile Drawer ── */}
+      {/* ── Mobile Drawer (≤ 768px only) ── */}
       <div className={`ch-mobile-drawer ${mobileOpen ? "open" : ""}`}>
         <div className="ch-mobile-drawer-inner">
           <NavContent

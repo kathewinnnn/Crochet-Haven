@@ -147,7 +147,7 @@ const styles = `
   /* ─── MOBILE ─── */
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
-    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
@@ -170,6 +170,17 @@ const styles = `
 
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-page { margin-left: 160px; padding-top: 0 }
+  .ch-header-inner { padding: 24px; }
+  .ch-cart-body { padding: 36px 24px 60px; }
+  .ch-cart-layout { grid-template-columns: 1fr; }
+  .ch-summary-panel { position: static; max-width: 100%; }
+  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+  .ch-page-banner { padding: 36px 24px; }
+  .ch-banner-title { font-size: 2rem; }
+}
 `;
 
 const Cart = () => {

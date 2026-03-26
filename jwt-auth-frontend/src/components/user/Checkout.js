@@ -18,6 +18,9 @@ const checkoutStyles = `
     --charcoal: #2c2420;
     --muted: #8a7a74;
     --border: rgba(212, 115, 94, 0.15);
+    --error: #d93025;
+    --error-bg: rgba(217, 48, 37, 0.06);
+    --error-border: rgba(217, 48, 37, 0.3);
   }
 
   /* ── Page wrapper ── */
@@ -303,6 +306,42 @@ const checkoutStyles = `
   .ch-co-textarea:focus {
     border-color: var(--rose);
     box-shadow: 0 0 0 3px rgba(232, 114, 138, 0.1);
+  }
+
+  /* ── Input error state ── */
+  .ch-co-input.has-error {
+    border-color: var(--error-border) !important;
+    background: var(--error-bg);
+    box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.07);
+  }
+
+  .ch-co-input.has-error:focus {
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
+  }
+
+  /* ── Error message ── */
+  .ch-co-field-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    color: var(--error);
+    letter-spacing: 0.01em;
+    margin-top: 2px;
+    animation: coErrorSlide 0.2s ease forwards;
+  }
+
+  @keyframes coErrorSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .ch-co-field-error::before {
+    content: '⚠';
+    font-size: 0.7rem;
+    flex-shrink: 0;
   }
 
   .ch-co-input::placeholder,
@@ -603,7 +642,7 @@ const checkoutStyles = `
  
   @media (max-width: 768px) {
     .ch-co-page { margin-left: 0; padding-top: 56px; }
-    .ch-co-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-co-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px;}
     .ch-co-logo-yarn { font-size: 1.8rem; }
     .ch-co-logo-text { font-size: 1.3rem; }
     .ch-co-tagline { display: none; }
@@ -615,7 +654,50 @@ const checkoutStyles = `
     .ch-co-card-head { padding: 16px 18px; }
     .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-co-page { margin-left: 160px; padding-top: 0 }
+  .ch-co-header-title {margin-left: 23%;}
+  .ch-co-header-inner { padding: 28px 30px; }
+  .ch-co-main { padding: 40px 30px 60px; }
+  .ch-co-grid { grid-template-columns: 1fr; }
+  .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 30px; }
+}
 `;
+
+// ── Mobile number validation helper ──────────────────────────────────────────
+// Accepts: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+// Returns an error string if invalid, or '' if valid.
+const validateMobileNumber = (value) => {
+  if (!value) return ''; // empty — let HTML `required` handle it
+
+  const trimmed = value.trim();
+
+  // Strip all spaces for length counting
+  const stripped = trimmed.replace(/\s+/g, '');
+
+  if (stripped.startsWith('+63')) {
+    // +63 format: must be exactly +63 followed by 10 digits = 13 chars total
+    const digits = stripped.slice(3); // everything after +63
+    if (!/^\d+$/.test(digits)) return 'Only digits are allowed after +63.';
+    if (digits.length < 10) return `Incomplete number — ${10 - digits.length} more digit(s) needed after +63.`;
+    if (digits.length > 10) return 'Too many digits — must be +63 followed by exactly 10 digits.';
+    if (!digits.startsWith('9')) return 'Number after +63 must start with 9 (e.g. +639XXXXXXXXX).';
+    return ''; // valid
+  }
+
+  if (stripped.startsWith('0')) {
+    // 09XXXXXXXXX format: exactly 11 digits
+    if (!/^\d+$/.test(stripped)) return 'Mobile number must contain digits only.';
+    if (stripped.length < 11) return `Incomplete number — must be 11 digits (currently ${stripped.length}).`;
+    if (stripped.length > 11) return 'Too many digits — mobile number must be exactly 11 digits.';
+    if (!stripped.startsWith('09')) return 'Number must start with 09 (e.g. 09XXXXXXXXX).';
+    return ''; // valid
+  }
+
+  // Doesn't start with 0 or +63
+  return 'Enter a valid PH number starting with 09 or +63.';
+};
 
 const Checkout = () => {
   const { cart, clearCart, selectedItems, getSelectedItems } = useCart();
@@ -627,6 +709,12 @@ const Checkout = () => {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // ── Live validation errors ──────────────────────────────────────────────
+  const [mobileErrors, setMobileErrors] = useState({
+    gcashNumber: '',
+    paymayaNumber: '',
+  });
 
   // Use selected items from cart instead of all cart items
   const safeCart = selectedItems.length > 0 ? getSelectedItems() : (Array.isArray(cart) ? cart : []);
@@ -642,10 +730,49 @@ const Checkout = () => {
     return isNaN(n) ? '0.00' : n.toFixed(2);
   };
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Validate mobile fields on every keystroke
+    if (name === 'gcashNumber' || name === 'paymayaNumber') {
+      setMobileErrors(prev => ({
+        ...prev,
+        [name]: value ? validateMobileNumber(value) : '',
+      }));
+    }
+
+    // Clear the sibling error when switching payment method
+    if (name === 'paymentMethod') {
+      setMobileErrors({ gcashNumber: '', paymayaNumber: '' });
+    }
+  };
+
+  // Determine if the form can be submitted (no active mobile errors)
+  const activeMobileField = formData.paymentMethod === 'gcash'
+    ? 'gcashNumber'
+    : formData.paymentMethod === 'paymaya'
+    ? 'paymayaNumber'
+    : null;
+
+  const hasMobileError = activeMobileField
+    ? (mobileErrors[activeMobileField] !== '' ||
+       (formData[activeMobileField] &&
+        validateMobileNumber(formData[activeMobileField]) !== ''))
+    : false;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Final guard: revalidate mobile number before submitting
+    if (activeMobileField) {
+      const err = validateMobileNumber(formData[activeMobileField]);
+      if (err) {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: err }));
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       const orderData = {
@@ -848,8 +975,19 @@ const Checkout = () => {
                       {formData.paymentMethod === 'gcash' && (
                         <div className="ch-co-form-group">
                           <label className="ch-co-label" htmlFor="gcashNumber">GCash Number</label>
-                          <input className="ch-co-input" type="tel" id="gcashNumber" name="gcashNumber"
-                            value={formData.gcashNumber} onChange={handleChange} required placeholder="+63 912 345 6789" />
+                          <input
+                            className={`ch-co-input${mobileErrors.gcashNumber ? ' has-error' : ''}`}
+                            type="tel"
+                            id="gcashNumber"
+                            name="gcashNumber"
+                            value={formData.gcashNumber}
+                            onChange={handleChange}
+                            required
+                            placeholder="09XXXXXXXXX"
+                          />
+                          {mobileErrors.gcashNumber && (
+                            <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>
+                          )}
                         </div>
                       )}
 
@@ -857,8 +995,19 @@ const Checkout = () => {
                       {formData.paymentMethod === 'paymaya' && (
                         <div className="ch-co-form-group">
                           <label className="ch-co-label" htmlFor="paymayaNumber">PayMaya Number</label>
-                          <input className="ch-co-input" type="tel" id="paymayaNumber" name="paymayaNumber"
-                            value={formData.paymayaNumber} onChange={handleChange} required placeholder="+63 912 345 6789" />
+                          <input
+                            className={`ch-co-input${mobileErrors.paymayaNumber ? ' has-error' : ''}`}
+                            type="tel"
+                            id="paymayaNumber"
+                            name="paymayaNumber"
+                            value={formData.paymayaNumber}
+                            onChange={handleChange}
+                            required
+                            placeholder="09XXXXXXXXX"
+                          />
+                          {mobileErrors.paymayaNumber && (
+                            <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>
+                          )}
                         </div>
                       )}
 
@@ -894,7 +1043,7 @@ const Checkout = () => {
                       <button
                         type="submit"
                         className="ch-co-submit"
-                        disabled={isLoading || !formData.paymentMethod}
+                        disabled={isLoading || !formData.paymentMethod || hasMobileError}
                       >
                         {isLoading ? (
                           <>

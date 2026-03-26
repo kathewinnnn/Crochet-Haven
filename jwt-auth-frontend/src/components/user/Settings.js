@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import API_BASE_URL from '../../apiConfig';
 
@@ -304,7 +304,6 @@ const styles = `
   .ch-twofa-panel h4 { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--charcoal); margin-bottom: 6px; }
   .ch-twofa-panel p { font-size: 0.82rem; color: var(--muted); font-weight: 300; margin-bottom: 18px; line-height: 1.6; }
 
-  /* Pending notice shown when toggle is ON but setup not done yet */
   .ch-twofa-notice {
     display: flex;
     align-items: flex-start;
@@ -456,6 +455,24 @@ const styles = `
   .ch-toast-error   .ch-toast-bar-fill { background: #ef4444; }
   .ch-toast-info    .ch-toast-bar-fill { background: var(--rose); }
 
+  /* ─── SCROLL DOT INDICATORS + ARROWS ─── */
+  /* Wrapper only visible on mobile/tablet */
+  .ch-snav-wrapper {
+    display: contents; /* transparent on desktop — nav renders as-is */
+  }
+
+  .ch-snav-dots {
+    display: none; /* hidden on desktop */
+  }
+
+  .ch-snav-controls {
+    display: none; /* hidden on desktop */
+  }
+
+  .ch-snav-arrow {
+    display: none; /* hidden on desktop */
+  }
+
   /* ─── FOOTER ─── */
   .ch-footer {
     position: relative;
@@ -480,11 +497,75 @@ const styles = `
     .ch-banner-title { font-size: 2rem; }
     .ch-settings-body { padding: 36px 30px 60px; }
     .ch-settings-layout { grid-template-columns: 1fr; }
-    .ch-settings-nav { position: static; display: flex; overflow-x: auto; }
+    .ch-settings-nav { position: static; display: flex; overflow-x: auto; scrollbar-width: none; }
+    .ch-settings-nav::-webkit-scrollbar { display: none; }
     .ch-snav-item { flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); }
     .ch-snav-item:last-child { border-right: none; }
     .ch-snav-item.active::before { top: 0; bottom: auto; left: 20%; right: 20%; width: auto; height: 3px; border-radius: 0 0 2px 2px; }
     .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 28px 30px; }
+
+    /* Show wrapper as block so dots sit below nav */
+    .ch-snav-wrapper {
+      display: block;
+    }
+
+    .ch-snav-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0 4px;
+    }
+
+    .ch-snav-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ch-snav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(212, 115, 94, 0.25);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .ch-snav-dot.active {
+      background: var(--rose);
+      width: 18px;
+      border-radius: 3px;
+    }
+
+    .ch-snav-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--warm-white);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      padding: 0;
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .ch-snav-arrow:hover:not(:disabled) {
+      border-color: var(--rose);
+      color: var(--rose);
+      background: rgba(232, 114, 138, 0.06);
+    }
+
+    .ch-snav-arrow:disabled {
+      opacity: 0.28;
+      cursor: default;
+    }
   }
 
   @media (max-width: 580px) {
@@ -505,15 +586,60 @@ const styles = `
     .ch-banner-title { font-size: 2rem; }
     .ch-settings-body { padding: 36px 30px 60px; }
     .ch-settings-layout { grid-template-columns: 1fr; }
-    .ch-settings-nav { position: static; display: flex; overflow-x: auto; }
+    .ch-settings-nav { position: static; display: flex; overflow-x: auto; scrollbar-width: none; }
+    .ch-settings-nav::-webkit-scrollbar { display: none; }
     .ch-snav-item { flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); }
     .ch-snav-item:last-child { border-right: none; }
     .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+
+    .ch-snav-wrapper { display: block; }
+
+    .ch-snav-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0 4px;
+    }
+
+    .ch-snav-dots { display: flex; align-items: center; gap: 6px; }
+
+    .ch-snav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(212, 115, 94, 0.25);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .ch-snav-dot.active { background: var(--rose); width: 18px; border-radius: 3px; }
+
+    .ch-snav-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--warm-white);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      padding: 0;
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .ch-snav-arrow:hover:not(:disabled) { border-color: var(--rose); color: var(--rose); background: rgba(232, 114, 138, 0.06); }
+    .ch-snav-arrow:disabled { opacity: 0.28; cursor: default; }
   }
  
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
-    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px;}
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
@@ -522,7 +648,8 @@ const styles = `
     .ch-banner-title { font-size: 1.7rem; }
     .ch-settings-body { padding: 20px 16px 48px; }
     .ch-settings-layout { grid-template-columns: 1fr; }
-    .ch-settings-nav { position: static; display: flex; overflow-x: auto; padding-bottom: 4px; }
+    .ch-settings-nav { position: static; display: flex; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .ch-settings-nav::-webkit-scrollbar { display: none; }
     .ch-snav-item { flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); padding: 10px 14px; font-size: 0.82rem; }
     .ch-snav-item:last-child { border-right: none; }
     .ch-snav-item.active::before { top: 0; bottom: auto; left: 20%; right: 20%; width: auto; height: 3px; border-radius: 0 0 2px 2px; }
@@ -530,7 +657,74 @@ const styles = `
     .ch-2fa-status { align-self: flex-end; }
     .ch-twofa-methods { flex-direction: column; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+
+    .ch-snav-wrapper { display: block; }
+
+    .ch-snav-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0 4px;
+    }
+
+    .ch-snav-dots { display: flex; align-items: center; gap: 6px; }
+
+    .ch-snav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(212, 115, 94, 0.25);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .ch-snav-dot.active { background: var(--rose); width: 18px; border-radius: 3px; }
+
+    .ch-snav-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--warm-white);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      padding: 0;
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .ch-snav-arrow:hover:not(:disabled) { border-color: var(--rose); color: var(--rose); background: rgba(232, 114, 138, 0.06); }
+    .ch-snav-arrow:disabled { opacity: 0.28; cursor: default; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-page { margin-left: 160px; padding-top: 0 }
+  .ch-header-inner { padding: 24px 30px; }
+  .ch-page-banner { padding: 36px 30px; }
+  .ch-banner-title { font-size: 2rem; }
+  .ch-settings-body { padding: 36px 30px 60px; }
+  .ch-settings-layout { grid-template-columns: 1fr; }
+  .ch-settings-nav { position: static; display: flex; overflow-x: auto; scrollbar-width: none; }
+  .ch-settings-nav::-webkit-scrollbar { display: none; }
+  .ch-snav-item { flex-shrink: 0; border-bottom: none; border-right: 1px solid var(--border); }
+  .ch-snav-item:last-child { border-right: none; }
+  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+  .ch-snav-wrapper { display: block; }
+  .ch-snav-controls { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 8px 0 4px; }
+  .ch-snav-dots { display: flex; align-items: center; gap: 6px; }
+  .ch-snav-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(212,115,94,0.25); transition: all 0.25s ease; flex-shrink: 0; }
+  .ch-snav-dot.active { background: var(--rose); width: 18px; border-radius: 3px; }
+  .ch-snav-arrow { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--warm-white); color: var(--muted); cursor: pointer; transition: all 0.2s ease; flex-shrink: 0; padding: 0; font-size: 0.75rem; line-height: 1; }
+  .ch-snav-arrow:hover:not(:disabled) { border-color: var(--rose); color: var(--rose); background: rgba(232,114,138,0.06); }
+  .ch-snav-arrow:disabled { opacity: 0.28; cursor: default; }
+}
+
 `;
 
 /* ─── Toast Component ─── */
@@ -576,6 +770,8 @@ const UserSettings = () => {
   const [twoFAError, setTwoFAError] = useState('');
   const [sending, setSending] = useState(false);
 
+  const navRef = useRef(null);
+
   const addToast = useCallback((type, message) => {
     const id = Date.now();
     setToasts(p => [...p, { id, type, message }]);
@@ -590,12 +786,10 @@ const UserSettings = () => {
 
   const handle2FAToggle = () => {
     if (!settings.twoFactorAuth) {
-      // OFF → ON: enable toggle right away, then show setup panel
       setSettings(p => ({ ...p, twoFactorAuth: true }));
       setShow2FA(true);
       reset2FAForm();
     } else {
-      // ON → OFF: disable and close everything
       setSettings(p => ({ ...p, twoFactorAuth: false }));
       setShow2FA(false);
       reset2FAForm();
@@ -612,7 +806,6 @@ const UserSettings = () => {
     setTwoFAError('');
   };
 
-  // Cancel during setup → revert toggle back to OFF
   const cancel2FA = () => {
     setSettings(p => ({ ...p, twoFactorAuth: false }));
     setShow2FA(false);
@@ -659,7 +852,6 @@ const UserSettings = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        // Setup completed — close the panel, keep toggle ON
         setShow2FA(false);
         reset2FAForm();
         addToast("success", "Two-Factor Authentication enabled!");
@@ -678,6 +870,20 @@ const UserSettings = () => {
     { key: "security", icon: "🔒", label: "Security" },
     { key: "privacy",  icon: "🛡️", label: "Privacy" },
   ];
+
+  const handleNavClick = (key) => {
+    setActiveSection(key);
+    // Scroll the clicked tab into view on mobile
+    if (navRef.current) {
+      const idx = navItems.findIndex(n => n.key === key);
+      const items = navRef.current.querySelectorAll('.ch-snav-item');
+      if (items[idx]) {
+        items[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  };
+
+  const activeIdx = navItems.findIndex(n => n.key === activeSection);
 
   const accountSettings = [
     { key: "emailNotifications", title: "Email Notifications", desc: "Receive order updates and promotions via email" },
@@ -722,19 +928,51 @@ const UserSettings = () => {
         <div className="ch-settings-body">
           <div className="ch-settings-layout">
 
-            {/* Sidebar */}
-            <nav className="ch-settings-nav">
-              {navItems.map(item => (
+            {/* Sidebar — wrapped so dots can sit beneath it on mobile/tablet */}
+            <div className="ch-snav-wrapper">
+              <nav className="ch-settings-nav" ref={navRef}>
+                {navItems.map(item => (
+                  <button
+                    key={item.key}
+                    className={`ch-snav-item${activeSection === item.key ? ' active' : ''}`}
+                    onClick={() => handleNavClick(item.key)}
+                  >
+                    <span className="ch-snav-icon">{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+
+              {/* Dot indicators + arrows — only visible on mobile/tablet via CSS */}
+              <div className="ch-snav-controls" aria-hidden="true">
                 <button
-                  key={item.key}
-                  className={`ch-snav-item${activeSection === item.key ? ' active' : ''}`}
-                  onClick={() => setActiveSection(item.key)}
+                  className="ch-snav-arrow"
+                  onClick={() => handleNavClick(navItems[activeIdx - 1].key)}
+                  disabled={activeIdx === 0}
+                  aria-label="Previous section"
                 >
-                  <span className="ch-snav-icon">{item.icon}</span>
-                  {item.label}
+                  ‹
                 </button>
-              ))}
-            </nav>
+
+                <div className="ch-snav-dots">
+                  {navItems.map((item, idx) => (
+                    <span
+                      key={item.key}
+                      className={`ch-snav-dot${idx === activeIdx ? ' active' : ''}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  className="ch-snav-arrow"
+                  onClick={() => handleNavClick(navItems[activeIdx + 1].key)}
+                  disabled={activeIdx === navItems.length - 1}
+                  aria-label="Next section"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
 
             {/* Main panel */}
             <main className="ch-settings-main">
@@ -783,7 +1021,6 @@ const UserSettings = () => {
                       </p>
                     </div>
 
-                    {/* Toggle + optional badge */}
                     <div className="ch-2fa-status">
                       {settings.twoFactorAuth && show2FA && (
                         <span className="ch-2fa-badge pending">Setup Pending</span>
@@ -803,11 +1040,8 @@ const UserSettings = () => {
                     </div>
                   </div>
 
-                  {/* 2FA setup panel — only visible when toggle is ON and setup not yet done */}
                   {settings.twoFactorAuth && show2FA && (
                     <div className="ch-twofa-panel">
-
-                      {/* Pending notice */}
                       <div className="ch-twofa-notice">
                         <span className="ch-twofa-notice-icon">⚠️</span>
                         <div className="ch-twofa-notice-text">
@@ -879,7 +1113,6 @@ const UserSettings = () => {
                     </div>
                   )}
 
-                  {/* Login Alerts */}
                   <div className="ch-setting-item">
                     <div className="ch-setting-info">
                       <h4>Login Alerts</h4>

@@ -26,6 +26,7 @@ const orderStyles = `
   .ch-filter-btn:hover { border-color: var(--rose); color: var(--rose); }
   .ch-filter-btn.active { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
 
+  /* ── Desktop table ── */
   .ch-orders-table-wrap { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 28px; overflow-x: auto; }
   .ch-orders-table { width: 100%; border-collapse: collapse; min-width: 700px; }
   .ch-orders-table thead tr { background: rgba(253,246,236,.8); }
@@ -58,6 +59,71 @@ const orderStyles = `
   .ch-status-select { padding: 6px 9px; border: 1.5px solid var(--border); border-radius: 3px; background: var(--cream); color: var(--charcoal); font-family: 'Lato',sans-serif; font-size: .74rem; cursor: pointer; outline: none; transition: border-color .15s; min-width: 120px; }
   .ch-status-select:focus { border-color: var(--rose); }
 
+  /* ── Tablet accordion list ── */
+  .ch-order-accordion { display: none; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+  .ch-acc-item { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+
+  .ch-acc-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; cursor: pointer;
+    background: rgba(253,246,236,.5);
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+    user-select: none;
+  }
+  .ch-acc-header:hover { background: rgba(253,246,236,.9); }
+  .ch-acc-item.open .ch-acc-header { border-bottom-color: var(--border); background: rgba(253,246,236,.85); }
+
+  .ch-acc-order-id { font-family: 'Playfair Display', serif; font-weight: 700; font-size: .9rem; color: var(--charcoal); flex-shrink: 0; }
+  .ch-acc-customer { font-size: .8rem; color: var(--muted); font-weight: 300; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch-acc-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ch-acc-total { font-family: 'Playfair Display', serif; font-weight: 700; font-size: .86rem; color: var(--charcoal); white-space: nowrap; }
+
+  .ch-acc-chevron {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(212,115,94,.08); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem; color: var(--muted); flex-shrink: 0;
+    transition: transform .25s ease, background .18s, color .18s;
+  }
+  .ch-acc-item.open .ch-acc-chevron { transform: rotate(180deg); background: var(--rose); color: #fff; border-color: var(--rose); }
+
+  .ch-acc-body {
+    max-height: 0; overflow: hidden;
+    transition: max-height .35s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ch-acc-item.open .ch-acc-body { max-height: 1000px; }
+
+  .ch-acc-body-inner { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Info rows */
+  .ch-acc-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .ch-acc-info-row { display: flex; flex-direction: column; gap: 2px; }
+  .ch-acc-info-label { font-size: .62rem; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .ch-acc-info-value { font-size: .81rem; color: var(--charcoal); font-weight: 400; }
+
+  /* Items list */
+  .ch-acc-items-title { font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+  .ch-acc-items-list { display: flex; flex-direction: column; gap: 8px; }
+  .ch-acc-item-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(253,246,236,.5); border: 1px solid var(--border); border-radius: 3px; }
+  .ch-acc-item-thumb { width: 44px; height: 44px; border-radius: 3px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; display: block; }
+  .ch-acc-item-no-img { width: 44px; height: 44px; border-radius: 3px; background: rgba(212,115,94,.07); display: flex; align-items: center; justify-content: center; font-size: .6rem; color: var(--muted); text-align: center; line-height: 1.3; flex-shrink: 0; }
+  .ch-acc-item-info { flex: 1; min-width: 0; }
+  .ch-acc-item-name { font-size: .82rem; font-weight: 600; color: var(--charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+  .ch-acc-item-sub { font-size: .73rem; color: var(--muted); font-weight: 300; }
+  .ch-acc-item-subtotal { font-family: 'Playfair Display', serif; font-weight: 700; font-size: .86rem; color: var(--charcoal); white-space: nowrap; flex-shrink: 0; }
+
+  /* Total row */
+  .ch-acc-total-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(232,114,138,.05); border: 1px solid rgba(232,114,138,.15); border-radius: 3px; }
+  .ch-acc-total-label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .ch-acc-total-value { font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1rem; color: var(--rose); }
+
+  /* Actions */
+  .ch-acc-actions { display: flex; align-items: center; gap: 10px; padding-top: 4px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ch-acc-actions-label { font-size: .65rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; flex-shrink: 0; }
+
+  /* Mobile cards (≤768px) */
   .ch-order-cards { display: none; flex-direction: column; gap: 14px; }
   .ch-order-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
   .ch-order-card-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); background: rgba(253,246,236,.6); }
@@ -93,17 +159,30 @@ const orderStyles = `
   .ch-btn-neutral { padding: 10px 22px; background: transparent; border: 1.5px solid var(--border); border-radius: 3px; color: var(--muted); font-family: 'Lato',sans-serif; font-size: .79rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: all .15s; }
   .ch-btn-neutral:hover { border-color: var(--rose); color: var(--rose); }
 
+  /* ── Breakpoints ── */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-orders-table-wrap { display: none; }
+    .ch-order-accordion { display: flex; }
+  }
+
   @media (max-width: 768px) {
     .ch-orders-title { font-size: 1.5rem; }
     .ch-order-filters { gap: 5px; margin-bottom: 16px; }
     .ch-filter-btn { padding: 5px 11px; font-size: .67rem; }
     .ch-orders-table-wrap { display: none; }
+    .ch-order-accordion { display: none !important; }
     .ch-order-cards { display: flex; }
     .ch-notification { min-width: unset; max-width: calc(100vw - 32px); top: 70px; right: 16px; left: 16px; }
   }
 `;
 
-const statusClass = s => ({ pending:"ch-status-pending", processing:"ch-status-processing", shipped:"ch-status-shipped", delivered:"ch-status-delivered", cancelled:"ch-status-cancelled" })[(s||"").toLowerCase()] || "ch-status-processing";
+const statusClass = s => ({
+  pending: "ch-status-pending",
+  processing: "ch-status-processing",
+  shipped: "ch-status-shipped",
+  delivered: "ch-status-delivered",
+  cancelled: "ch-status-cancelled"
+})[(s || "").toLowerCase()] || "ch-status-processing";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
@@ -113,6 +192,7 @@ const Order = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
   const [cancelModal, setCancelModal] = useState({ show: false, orderId: null });
+  const [openAccordions, setOpenAccordions] = useState({});
   const notifRef = useRef(null);
 
   const getLastSeenOrder = () => { try { const s = localStorage.getItem("lastSeenOrder"); return s ? JSON.parse(s) : { id: null }; } catch { return { id: null }; } };
@@ -146,7 +226,11 @@ const Order = () => {
   const updateStatus = async (id, status) => {
     if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+      const res = await fetch(`${API_BASE_URL}/orders/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
       if (res.ok) {
         setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
         window.dispatchEvent(new CustomEvent("ordersUpdated", { detail: { id, status } }));
@@ -157,15 +241,23 @@ const Order = () => {
   const confirmCancel = async () => {
     const { orderId } = cancelModal;
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "Cancelled" }) });
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Cancelled" })
+      });
       if (res.ok) setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "Cancelled" } : o));
     } catch (e) { console.error(e); }
     setCancelModal({ show: false, orderId: null });
   };
 
-  const fmt = ds => new Date(ds).toLocaleDateString("en-US", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+  const toggleAccordion = (id) => {
+    setOpenAccordions(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const fmt = ds => new Date(ds).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const fmtP = p => { const n = parseFloat(p); return isNaN(n) ? "0.00" : n.toFixed(2); };
-  const isDigital = m => ["gcash","paymaya","card"].includes(m);
+  const isDigital = m => ["gcash", "paymaya", "card"].includes(m);
 
   useEffect(() => () => { if (notifRef.current) clearTimeout(notifRef.current); }, []);
 
@@ -178,6 +270,7 @@ const Order = () => {
   return (
     <>
       <style>{orderStyles}</style>
+
       {showNotification && newOrderNotification && (
         <div className="ch-notification">
           <div className="ch-notification-icon">🔔</div>
@@ -193,12 +286,12 @@ const Order = () => {
       <h1 className="ch-orders-title">Order <em>Management</em></h1>
 
       <div className="ch-order-filters">
-        {["All","Processing","Shipped","Delivered","Cancelled"].map(s => (
+        {["All", "Processing", "Shipped", "Delivered", "Cancelled"].map(s => (
           <button key={s} className={`ch-filter-btn ${statusFilter === s ? "active" : ""}`} onClick={() => setStatusFilter(s)}>{s}</button>
         ))}
       </div>
 
-      {/* Desktop table */}
+      {/* ── Desktop table ── */}
       <div className="ch-orders-table-wrap">
         <table className="ch-orders-table">
           <thead>
@@ -240,7 +333,117 @@ const Order = () => {
         </table>
       </div>
 
-      {/* Mobile cards */}
+      {/* ── Tablet accordion list ── */}
+      <div className="ch-order-accordion">
+        {sorted.length === 0 ? (
+          <div className="ch-orders-empty"><span className="ch-orders-empty-emoji">📦</span>No orders found.</div>
+        ) : (
+          sorted.map(order => {
+            const isOpen = !!openAccordions[order.id];
+            return (
+              <div key={order.id} className={`ch-acc-item ${isOpen ? "open" : ""}`}>
+
+                {/* Clickable header row */}
+                <div className="ch-acc-header" onClick={() => toggleAccordion(order.id)}>
+                  <span className="ch-acc-order-id">#{order.id.slice(-6)}</span>
+                  <span className="ch-acc-customer">{order.customer?.fullName}</span>
+                  <div className="ch-acc-meta">
+                    <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Processing"}</span>
+                    <span className="ch-acc-total">₱{fmtP(order.total)}</span>
+                    <div className="ch-acc-chevron">▾</div>
+                  </div>
+                </div>
+
+                {/* Expandable body */}
+                <div className="ch-acc-body">
+                  <div className="ch-acc-body-inner">
+
+                    {/* Customer & order info grid */}
+                    <div className="ch-acc-info-grid">
+                      <div className="ch-acc-info-row">
+                        <span className="ch-acc-info-label">Customer</span>
+                        <span className="ch-acc-info-value">{order.customer?.fullName || "—"}</span>
+                      </div>
+                      <div className="ch-acc-info-row">
+                        <span className="ch-acc-info-label">Email</span>
+                        <span className="ch-acc-info-value">{order.customer?.email || "—"}</span>
+                      </div>
+                      <div className="ch-acc-info-row">
+                        <span className="ch-acc-info-label">Address</span>
+                        <span className="ch-acc-info-value">{order.customer?.address ? `${order.customer.address}, ${order.customer.city}` : "—"}</span>
+                      </div>
+                      <div className="ch-acc-info-row">
+                        <span className="ch-acc-info-label">Date</span>
+                        <span className="ch-acc-info-value">{fmt(order.createdAt)}</span>
+                      </div>
+                      <div className="ch-acc-info-row">
+                        <span className="ch-acc-info-label">Payment</span>
+                        <span className="ch-acc-info-value">
+                          <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>
+                            {isDigital(order.paymentMethod) ? "Paid" : order.paymentMethod || "COD"}
+                          </span>
+                        </span>
+                      </div>
+                      {order.customer?.orderNote && (
+                        <div className="ch-acc-info-row">
+                          <span className="ch-acc-info-label">Note</span>
+                          <span className="ch-acc-info-value" style={{ fontStyle: "italic", color: "var(--muted)" }}>{order.customer.orderNote}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Items */}
+                    <div>
+                      <div className="ch-acc-items-title">Order Items</div>
+                      <div className="ch-acc-items-list">
+                        {(order.items || []).map((item, i) => (
+                          <div key={i} className="ch-acc-item-row">
+                            {item.selectedImage
+                              ? <img src={item.selectedImage} alt={item.name} className="ch-acc-item-thumb" />
+                              : <div className="ch-acc-item-no-img">No img</div>
+                            }
+                            <div className="ch-acc-item-info">
+                              <div className="ch-acc-item-name">{item.name}</div>
+                              <div className="ch-acc-item-sub">×{item.quantity} · ₱{fmtP(item.price)} each</div>
+                            </div>
+                            <span className="ch-acc-item-subtotal">₱{fmtP(item.price * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div className="ch-acc-total-row">
+                      <span className="ch-acc-total-label">Order Total</span>
+                      <span className="ch-acc-total-value">₱{fmtP(order.total)}</span>
+                    </div>
+
+                    {/* Status update */}
+                    {order.status?.toLowerCase() !== "cancelled" && (
+                      <div className="ch-acc-actions">
+                        <span className="ch-acc-actions-label">Update Status:</span>
+                        <select
+                          value={order.status || "Processing"}
+                          onChange={e => updateStatus(order.id, e.target.value)}
+                          className="ch-status-select"
+                        >
+                          <option value="Processing">Processing</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Delivered">Delivered</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── Mobile cards (≤768px) ── */}
       <div className="ch-order-cards">
         {sorted.length === 0 ? (
           <div className="ch-orders-empty"><span className="ch-orders-empty-emoji">📦</span>No orders found.</div>
@@ -256,7 +459,11 @@ const Order = () => {
                 <p><span>Email: </span>{order.customer?.email}</p>
                 <p><span>Address: </span>{order.customer?.address}, {order.customer?.city}</p>
                 <p><span>Date: </span>{fmt(order.createdAt)}</p>
-                <p><span>Payment: </span><span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>{isDigital(order.paymentMethod) ? "Paid" : order.paymentMethod || "COD"}</span></p>
+                <p><span>Payment: </span>
+                  <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>
+                    {isDigital(order.paymentMethod) ? "Paid" : order.paymentMethod || "COD"}
+                  </span>
+                </p>
                 <div className="ch-order-items-preview">
                   {order.items?.map((item, i) => (
                     <div key={i} className="ch-order-item-line">

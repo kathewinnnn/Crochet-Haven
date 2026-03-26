@@ -159,7 +159,7 @@ const styles = `
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
-    .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; }
+    .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; width:55%}
     .ch-page-banner { padding: 36px 16px; }
     .ch-banner-title { font-size: 1.8rem; }
     .ch-about-body { padding: 32px 16px 48px; }
@@ -172,6 +172,20 @@ const styles = `
     .ch-quote-text { font-size: 1.1rem; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-page { margin-left: 160px; padding-top: 0 }
+  .ch-nav-cta {width:38%; padding: 12px; margin-left: 15.6px}
+  .ch-header-inner { padding: 24px 30px; }
+  .ch-page-banner { padding: 48px 30px; }
+  .ch-banner-title { font-size: 2.2rem; }
+  .ch-about-body { padding: 48px 30px 60px; }
+  .ch-why-grid, .ch-contact-grid { grid-template-columns: repeat(2, 1fr); }
+  .ch-story, .ch-mission { gap: 40px; }
+  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+  .ch-quote-strip { padding: 56px 30px; }
+  .ch-nav-cta { width: 38%; padding: 12px; }
+}
 `;
 
 function About() {

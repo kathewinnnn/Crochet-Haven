@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { useCart } from '../../context/CartContext';
@@ -290,7 +290,13 @@ const sharedStyles = `
     background: var(--border);
   }
 
-  /* ─── PRODUCT CAROUSEL ─── */
+  /* ─── PRODUCT CAROUSEL WRAPPER ─── */
+  .ch-carousel-wrapper {
+    position: relative;
+    margin-bottom: 8%;
+  }
+
+  /* ─── PRODUCT ROW ─── */
   .ch-products-row {
     display: flex;
     gap: 16px;
@@ -298,12 +304,16 @@ const sharedStyles = `
     padding-bottom: 12px;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
-    margin-bottom: 8%;
   }
 
   .ch-products-row::-webkit-scrollbar { height: 4px; }
   .ch-products-row::-webkit-scrollbar-track { background: transparent; }
   .ch-products-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ─── CAROUSEL CONTROLS — hidden on desktop ─── */
+  .ch-carousel-controls {
+    display: none;
+  }
 
   /* ─── PRODUCT CARD ─── */
   .ch-product-card {
@@ -477,7 +487,6 @@ const sharedStyles = `
 
   .ch-modal-close:hover { background: var(--rose); color: #fff; }
 
-  /* Quick View Modal */
   .ch-qv-image {
     background: linear-gradient(145deg, #f7e8d8, #f0cfc4);
     padding: 50px;
@@ -626,7 +635,6 @@ const sharedStyles = `
 
   .ch-btn-close:hover { border-color: var(--muted); color: var(--charcoal); }
 
-  /* Image Select Modal */
   .ch-select-body {
     padding: 40px;
   }
@@ -721,7 +729,6 @@ const sharedStyles = `
     font-weight: 700;
   }
 
-  /* Quantity */
   .ch-qty-row {
     display: flex;
     align-items: center;
@@ -931,6 +938,58 @@ const sharedStyles = `
     letter-spacing: 0.04em;
   }
 
+  /* ═══════════════════════════════════════
+     SHARED CAROUSEL CONTROL STYLES
+     (used on both tablet and mobile)
+  ═══════════════════════════════════════ */
+  .ch-carousel-controls {
+    display: none; /* shown via media queries below */
+  }
+
+  .ch-carousel-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--warm-white);
+    color: var(--muted);
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .ch-carousel-arrow:hover:not(:disabled) {
+    border-color: var(--rose);
+    color: var(--rose);
+    background: rgba(232, 114, 138, 0.07);
+  }
+
+  .ch-carousel-arrow:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  .ch-carousel-dots {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .ch-carousel-dot {
+    border-radius: 50%;
+    background: rgba(212, 115, 94, 0.25);
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+  }
+
+  .ch-carousel-dot.active {
+    background: var(--rose);
+    border-radius: 3px;
+  }
+
   /* ─── Responsive ─── */
   @media (max-width: 900px) {
     .ch-page { margin-left: 0; }
@@ -952,19 +1011,51 @@ const sharedStyles = `
     .ch-banner-title { font-size: 1.8rem; }
   }
 
-   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-page { margin-left: 220px; padding-top: 56px; }
+  /* ─── TABLET (769px – 1024px) ─── */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .ch-page { margin-left: 240px; }
     .ch-header-inner, .ch-page-banner, .ch-products-body { padding-left: 30px; padding-right: 30px; }
     .ch-banner-title { font-size: 2rem; }
     .ch-intro-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
     .ch-intro-stats { border-left: none; border-top: 1px solid var(--border); padding-top: 16px; width: 100%; justify-content: space-around; }
     .ch-intro-stat { border-right: none; padding: 0 16px; }
     .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+
+    /* ── Show carousel controls on tablet ── */
+    .ch-carousel-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 0 4px;
+    }
+
+    .ch-carousel-arrow {
+      width: 34px;
+      height: 34px;
+      font-size: 1.1rem;
+    }
+
+    .ch-carousel-dot {
+      width: 7px;
+      height: 7px;
+    }
+
+    .ch-carousel-dot.active {
+      width: 20px;
+    }
+
+    /* Hide native scrollbar since we have controls */
+    .ch-products-row {
+      scrollbar-width: none;
+    }
+    .ch-products-row::-webkit-scrollbar { display: none; }
   }
- 
+
+  /* ─── MOBILE (≤768px) ─── */
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
-    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
@@ -985,13 +1076,150 @@ const sharedStyles = `
     .ch-select-body { padding: 20px; }
     .ch-banner-title { font-size: 1.7rem; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+    .ch-section-count { width: 25%; }
+
+    /* ── Show carousel controls on mobile ── */
+    .ch-carousel-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 0 2px;
+    }
+
+    .ch-carousel-arrow {
+      width: 28px;
+      height: 28px;
+      font-size: 0.85rem;
+    }
+
+    .ch-carousel-dot {
+      width: 6px;
+      height: 6px;
+    }
+
+    .ch-carousel-dot.active {
+      width: 16px;
+    }
+
+    /* Hide native scrollbar on mobile */
+    .ch-products-row {
+      scrollbar-width: none;
+    }
+    .ch-products-row::-webkit-scrollbar { display: none; }
   }
- 
+
   @media (max-width: 480px) {
     .ch-product-card { flex: 0 0 175px; }
     .ch-image-grid { grid-template-columns: repeat(2, 1fr); }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-page { margin-left: 160px; }
+  .ch-header-inner, .ch-page-banner, .ch-products-body { padding-left: 24px; padding-right: 24px; }
+  .ch-banner-title { font-size: 2rem; }
+  .ch-intro-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .ch-intro-stats { border-left: none; border-top: 1px solid var(--border); padding-top: 16px; width: 100%; justify-content: space-around; }
+  .ch-intro-stat { border-right: none; padding: 0 16px; }
+  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+  .ch-carousel-controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 0 4px; }
+  .ch-carousel-arrow { width: 34px; height: 34px; font-size: 1.1rem; }
+  .ch-carousel-dot { width: 7px; height: 7px; }
+  .ch-carousel-dot.active { width: 20px; }
+  .ch-products-row { scrollbar-width: none; }
+  .ch-products-row::-webkit-scrollbar { display: none; }
+}
 `;
+
+/* ─── CategoryCarousel ─── */
+const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onAddClick }) => {
+  const rowRef = useRef(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const total = products.length;
+
+  const handleScroll = useCallback(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const cardWidth = el.firstChild?.offsetWidth + 16 || 216;
+    const idx = Math.round(el.scrollLeft / cardWidth);
+    setActiveIdx(Math.min(idx, total - 1));
+  }, [total]);
+
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  const scrollTo = (idx) => {
+    const el = rowRef.current;
+    if (!el) return;
+    const cardWidth = el.firstChild?.offsetWidth + 16 || 216;
+    el.scrollTo({ left: idx * cardWidth, behavior: 'smooth' });
+    setActiveIdx(idx);
+  };
+
+  const goPrev = () => scrollTo(Math.max(0, activeIdx - 1));
+  const goNext = () => scrollTo(Math.min(total - 1, activeIdx + 1));
+
+  return (
+    <div className="ch-carousel-wrapper">
+      <div className="ch-products-row" ref={rowRef}>
+        {products.map(product => (
+          <div key={product.id} className="ch-product-card">
+            <div className="ch-product-image-wrap">
+              <span>{categoryEmojis[category] || "🧶"}</span>
+              <div className="ch-product-overlay">
+                <button className="ch-quick-view-btn" onClick={() => onQuickView(product)}>
+                  Quick View
+                </button>
+              </div>
+            </div>
+            <div className="ch-product-info">
+              <div className="ch-product-name">{product.name}</div>
+              <div className="ch-product-desc">{product.description}</div>
+              <div className="ch-product-footer">
+                <span className="ch-product-price">₱{Number(product.price).toFixed(2)}</span>
+                <button className="ch-add-btn" onClick={() => onAddClick(product)}>Add</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls — CSS shows these on tablet + mobile, hides on desktop */}
+      <div className="ch-carousel-controls" aria-hidden="true">
+        <button
+          className="ch-carousel-arrow"
+          onClick={goPrev}
+          disabled={activeIdx === 0}
+          aria-label="Previous product"
+        >
+          ‹
+        </button>
+
+        <div className="ch-carousel-dots">
+          {products.map((_, idx) => (
+            <span
+              key={idx}
+              className={`ch-carousel-dot${idx === activeIdx ? ' active' : ''}`}
+            />
+          ))}
+        </div>
+
+        <button
+          className="ch-carousel-arrow"
+          onClick={goNext}
+          disabled={activeIdx === total - 1}
+          aria-label="Next product"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Products = () => {
   const { addToCart } = useCart();
@@ -1031,7 +1259,12 @@ const Products = () => {
     return acc;
   }, {});
 
-  const closeImageModal = () => { setShowImageModal(false); setProductToShow(null); setSelectedImageIndex(null); setQuantity(1); };
+  const closeImageModal = () => {
+    setShowImageModal(false);
+    setProductToShow(null);
+    setSelectedImageIndex(null);
+    setQuantity(1);
+  };
 
   const handleAddClick = (product) => {
     setProductToShow(product);
@@ -1154,28 +1387,14 @@ const Products = () => {
                 <span className="ch-section-count">{groupedProducts[category].length} items</span>
                 <div className="ch-section-line" />
               </div>
-              <div className="ch-products-row">
-                {groupedProducts[category].map(product => (
-                  <div key={product.id} className="ch-product-card">
-                    <div className="ch-product-image-wrap">
-                      <span>{categoryEmojis[category] || "🧶"}</span>
-                      <div className="ch-product-overlay">
-                        <button className="ch-quick-view-btn" onClick={() => handleQuickView(product)}>
-                          Quick View
-                        </button>
-                      </div>
-                    </div>
-                    <div className="ch-product-info">
-                      <div className="ch-product-name">{product.name}</div>
-                      <div className="ch-product-desc">{product.description}</div>
-                      <div className="ch-product-footer">
-                        <span className="ch-product-price">₱{Number(product.price).toFixed(2)}</span>
-                        <button className="ch-add-btn" onClick={() => handleAddClick(product)}>Add</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+
+              <CategoryCarousel
+                products={groupedProducts[category]}
+                categoryEmojis={categoryEmojis}
+                category={category}
+                onQuickView={handleQuickView}
+                onAddClick={handleAddClick}
+              />
             </div>
           ))}
         </div>

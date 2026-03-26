@@ -8,23 +8,12 @@ import Reports from "./Reports";
 import Settings from "./Settings";
 import Profile from "./Profile";
 
-/* ─────────────────────────────────────────────────────────────
-   SellerLayout owns the entire shell:
-     • sidebar offset
-     • shared top header
-     • shared footer
-     • scrollable content area
-
-   Every page component renders ONLY its inner content —
-   no per-page headers, no per-page footers, no margin hacks.
-───────────────────────────────────────────────────────────── */
-
 const layoutStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Lato:wght@300;400;700&display=swap');
 
   :root {
     --sl-sidebar: 240px;
-    --sl-topbar-h: 0px;       /* desktop: no topbar */
+    --sl-topbar-h: 0px;
     --cream: #fdf6ec;
     --warm-white: #fffbf5;
     --rose: #e8728a;
@@ -36,7 +25,6 @@ const layoutStyles = `
     --border: rgba(212,115,94,0.15);
   }
 
-  /* ── shell ── */
   .sl-shell {
     display: flex;
     min-height: 100vh;
@@ -44,7 +32,6 @@ const layoutStyles = `
     font-family: 'Lato', sans-serif;
   }
 
-  /* ── right column (everything to the right of sidebar) ── */
   .sl-body {
     margin-left: var(--sl-sidebar);
     flex: 1;
@@ -54,7 +41,6 @@ const layoutStyles = `
     min-width: 0;
   }
 
-  /* ── shared header ── */
   .sl-header {
     background: var(--warm-white);
     border-bottom: 1px solid var(--border);
@@ -97,14 +83,12 @@ const layoutStyles = `
     margin-top: 3px;
   }
 
-  /* ── scrollable page content ── */
   .sl-content {
     flex: 1;
     overflow-y: auto;
     padding: 40px 44px;
   }
 
-  /* ── shared footer ── */
   .sl-footer {
     background: var(--warm-white);
     border-top: 1px solid var(--border);
@@ -130,31 +114,30 @@ const layoutStyles = `
     color: var(--muted);
   }
 
-  /* ════════════════════════════════════
-     TABLET  (769px – 1024px)
-     SellerSidebar handles its own drawer;
-     we just zero out the body offset.
-  ════════════════════════════════════ */
+  /* ── TABLET (769px – 1024px)
+     Sidebar is visible at 200px wide (set in SellerSidebar).
+     We must keep --sl-sidebar in sync so .sl-body clears it.
+  ── */
   @media (max-width: 1024px) {
-    :root { --sl-sidebar: 0px; }
-    .sl-body { margin-left: 0; }
+    :root { --sl-sidebar: 200px; }
     .sl-header { padding: 16px 24px; }
-    .sl-content { padding: 28px 24px; }
-    .sl-footer { padding: 16px 24px; }
+    .sl-content { padding: 28px 20px; }
+    .sl-footer  { padding: 16px 24px; }
   }
 
-  /* ════════════════════════════════════
-     MOBILE  (≤ 768px)
-     SellerSidebar shows its mobile topbar
-     (56 px tall), so offset content down.
-  ════════════════════════════════════ */
+  /* ── MOBILE (≤ 768px)
+     SellerSidebar is hidden; its mobile topbar (56px) takes over.
+  ── */
   @media (max-width: 768px) {
     :root {
       --sl-sidebar: 0px;
       --sl-topbar-h: 56px;
     }
 
-    .sl-body { margin-left: 0; padding-top: var(--sl-topbar-h); }
+    .sl-body {
+      margin-left: 0;
+      padding-top: var(--sl-topbar-h);
+    }
 
     /* Hide our shared header on mobile — SellerSidebar's topbar replaces it */
     .sl-header { display: none; }
@@ -169,17 +152,6 @@ const layoutStyles = `
     }
   }
 `;
-
-/* Page title map — shown in the header breadcrumb */
-const PAGE_TITLES = {
-  dashboard:   { eyebrow: "Overview",   title: "Seller",  em: "Dashboard" },
-  "add-product": { eyebrow: "Inventory", title: "Manage",  em: "Products" },
-  categories:  { eyebrow: "Browse",     title: "Product", em: "Categories" },
-  orders:      { eyebrow: "Management", title: "Order",   em: "Management" },
-  reports:     { eyebrow: "Analytics",  title: "Sales",   em: "Reports" },
-  settings:    { eyebrow: "Config",     title: "Account", em: "Settings" },
-  profile:     { eyebrow: "Account",    title: "Seller",  em: "Profile" },
-};
 
 const SellerLayout = () => {
   const [activePage, setActivePage] = useState("dashboard");
@@ -202,10 +174,8 @@ const SellerLayout = () => {
       <style>{layoutStyles}</style>
 
       <div className="sl-shell">
-        {/* ── Sidebar (manages its own mobile drawer internally) ── */}
         <SellerSidebar setActivePage={setActivePage} activePage={activePage} />
 
-        {/* ── Right body ── */}
         <div className="sl-body">
 
           {/* Shared header — hidden on mobile, replaced by SellerSidebar's topbar */}
@@ -217,12 +187,10 @@ const SellerLayout = () => {
             </div>
           </header>
 
-          {/* Page content */}
           <main className="sl-content">
             {renderContent()}
           </main>
 
-          {/* Shared footer */}
           <footer className="sl-footer">
             <div className="sl-footer-logo">🧶 Crochet Haven</div>
             <p className="sl-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>

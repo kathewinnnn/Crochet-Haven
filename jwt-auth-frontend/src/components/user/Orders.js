@@ -253,7 +253,7 @@ const styles = `
  
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
-    .ch-header-inner { padding: 14px 16px 14px 68px; }
+    .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-logo-yarn { font-size: 1.8rem; }
     .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
@@ -265,13 +265,42 @@ const styles = `
     .ch-tab { flex-shrink: 0; padding: 8px 14px; font-size: 0.78rem; }
     .ch-order-head { flex-direction: column; align-items: flex-start; gap: 10px; }
     .ch-order-foot { flex-direction: column; gap: 14px; align-items: flex-start; }
-    .ch-order-actions { flex-wrap: wrap; }
     .ch-order-item { flex-wrap: wrap; }
     .ch-item-img { width: 56px; height: 56px; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
     .ch-buyagain-modal, .ch-chat-modal { max-width: 100%; }
     .ch-buyagain-footer { flex-wrap: wrap; }
+
+    /* ── Contact Seller + Cancel Order side-by-side on mobile ── */
+    .ch-order-actions {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* "Buy Again" and "Track Order" keep their natural size */
+    .ch-order-btn {
+      flex-shrink: 0;
+    }
+
+    /* Contact Seller and Cancel Order share a full-width row */
+    .ch-order-btn.contact-seller,
+    .ch-order-btn.cancel-order {
+      flex: 1 1 calc(50% - 4px);
+      text-align: center;
+      justify-content: center;
+    }
   }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+  .ch-page { margin-left: 160px; padding-top: 0 }
+  .ch-header-inner { padding: 24px 30px; }
+  .ch-page-banner { padding: 36px 30px; }
+  .ch-banner-title { font-size: 2rem; }
+  .ch-orders-body { padding: 36px 30px 60px; }
+  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
+  .ch-buyagain-modal, .ch-chat-modal { max-width: 100%; }
+}
 `;
 
 const BuyAgainModal = ({ order, onClose, onAddedToCart, navigate, addToCart, productsMap }) => {
@@ -282,10 +311,7 @@ const BuyAgainModal = ({ order, onClose, onAddedToCart, navigate, addToCart, pro
   const itemKey = (item, i) => `${item.id}-${i}`;
 
   const addItemToCart = (item, i) => {
-    // ✅ Merge order item with full product data from productsMap.
-    // This guarantees Cart.jsx always gets description + category.
     const product = productsMap[item.id] || {};
-
     const cartItem = {
       id: item.id,
       name: item.name,
@@ -296,7 +322,6 @@ const BuyAgainModal = ({ order, onClose, onAddedToCart, navigate, addToCart, pro
       category: product.category || "",
       addedAt: Date.now(),
     };
-
     addToCart(cartItem);
     setAddedKeys(prev => new Set([...prev, itemKey(item, i)]));
   };
@@ -343,13 +368,11 @@ const BuyAgainModal = ({ order, onClose, onAddedToCart, navigate, addToCart, pro
                 </div>
                 <div className="ch-buyagain-item-info">
                   <div className="ch-buyagain-item-name">{item.name}</div>
-                  {/* ✅ Description shown just like Cart.jsx */}
                   {product.description && (
                     <div className="ch-buyagain-item-desc">{product.description}</div>
                   )}
                   <div className="ch-buyagain-item-meta">
                     <span className="ch-buyagain-item-price">{fmt(item.price)} × {item.quantity}</span>
-                    {/* ✅ Category badge shown just like Cart.jsx */}
                     {product.category && (
                       <span className="ch-buyagain-item-cat">{product.category}</span>
                     )}
@@ -495,9 +518,6 @@ const Orders = () => {
   const [buyAgainModal, setBuyAgainModal] = useState({ show: false, order: null });
   const [contactModal, setContactModal] = useState({ show: false, order: null });
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
-
-  // ✅ Fetch all products once on mount and store as a map { id → product }
-  // so BuyAgainModal always has description + category without extra per-open fetches.
   const [productsMap, setProductsMap] = useState({});
 
   useEffect(() => {
@@ -511,7 +531,6 @@ const Orders = () => {
     return () => { window.removeEventListener('ordersUpdated', onUpdate); window.removeEventListener('storage', onStorage); };
   }, []);
 
-  // ✅ Single request for all products, converted into a lookup map by id
   const fetchProductsMap = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/products`);
@@ -521,7 +540,7 @@ const Orders = () => {
       data.forEach(p => { map[p.id] = p; });
       setProductsMap(map);
     } catch {
-      // Non-critical — cart items will just lack description/category if this fails
+      // Non-critical
     }
   };
 
@@ -740,12 +759,18 @@ const Orders = () => {
                       <button className="ch-order-btn">Track Order</button>
                     )}
                     {(order.status === "to_ship" || order.status === "to_receive") && (
-                      <button className="ch-order-btn" onClick={() => setContactModal({ show: true, order })}>
+                      <button
+                        className="ch-order-btn contact-seller"
+                        onClick={() => setContactModal({ show: true, order })}
+                      >
                         💬 Contact Seller
                       </button>
                     )}
                     {(order.status === "to_ship" || order.status === "to_pay") && (
-                      <button className="ch-order-btn danger" onClick={e => { e.stopPropagation(); setCancelModal({ show: true, displayId: order.id, backendId: order.backendId }); }}>
+                      <button
+                        className="ch-order-btn danger cancel-order"
+                        onClick={e => { e.stopPropagation(); setCancelModal({ show: true, displayId: order.id, backendId: order.backendId }); }}
+                      >
                         Cancel Order
                       </button>
                     )}
@@ -776,7 +801,6 @@ const Orders = () => {
           </div>
         )}
 
-        {/* ✅ productsMap passed in — description + category available immediately, no per-open fetch */}
         {buyAgainModal.show && buyAgainModal.order && (
           <BuyAgainModal
             order={buyAgainModal.order}

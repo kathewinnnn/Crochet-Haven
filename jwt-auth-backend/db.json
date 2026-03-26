@@ -45,6 +45,14 @@
       "password": "$2b$10$X6.xq7tyfr8sjfssWtmsGOUVds.qnfv31EKWnGa0QHuwGF3IienQO",
       "role": "user",
       "createdAt": "2026-03-24T10:47:49.283Z"
+    },
+    {
+      "id": "1774487905169",
+      "username": "testlogin",
+      "email": "testlogin@test.com",
+      "password": "$2b$10$KyWlUTz56kzbVTeW8GKAMe2i61B5H9JHJ2Uu4DzwQtxVWrdM1Rrbq",
+      "role": "user",
+      "createdAt": "2026-03-26T01:18:25.169Z"
     }
   ],
   "products": [
