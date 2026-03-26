@@ -5,11 +5,19 @@ import API_BASE_URL from '../apiConfig';
 import { saveToken, saveUserProfile, saveAvatar } from './userStorage';
 
 /* ═══════════════════════════════════════════════════
-   STEP CONSTANTS
+   CONSTANTS
 ═══════════════════════════════════════════════════ */
 const STEP_INFO   = 1;
 const STEP_AVATAR = 2;
 const STEP_TERMS  = 3;
+
+const U = {
+  IDLE:      'idle',
+  CHECKING:  'checking',
+  TAKEN:     'taken',
+  AVAILABLE: 'available',
+  ERROR:     'error',
+};
 
 /* ═══════════════════════════════════════════════════
    CIRCLE CROPPER
@@ -20,11 +28,11 @@ const CircleCropper = ({ imageSrc, onDone, onCancel }) => {
   const isDragging = useRef(false);
   const lastPos    = useRef({ x: 0, y: 0 });
   const imgRef     = useRef(new Image());
+  const SIZE = 260;
 
   const [offset,  setOffset]  = useState({ x: 0, y: 0 });
   const [scale,   setScale]   = useState(1);
   const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
-  const SIZE = 260;
 
   useEffect(() => {
     const img = imgRef.current;
@@ -32,7 +40,7 @@ const CircleCropper = ({ imageSrc, onDone, onCancel }) => {
       const ratio = SIZE / Math.min(img.naturalWidth, img.naturalHeight);
       setScale(ratio);
       setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
-      setOffset({ x:(SIZE - img.naturalWidth*ratio)/2, y:(SIZE - img.naturalHeight*ratio)/2 });
+      setOffset({ x: (SIZE - img.naturalWidth * ratio) / 2, y: (SIZE - img.naturalHeight * ratio) / 2 });
     };
     img.src = imageSrc;
   }, [imageSrc]);
@@ -44,35 +52,37 @@ const CircleCropper = ({ imageSrc, onDone, onCancel }) => {
     ctx.clearRect(0, 0, SIZE, SIZE);
     ctx.save();
     ctx.beginPath();
-    ctx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI*2);
+    ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
     ctx.clip();
-    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w*scale, imgSize.h*scale);
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
     ctx.restore();
   }, [offset, scale, imgSize]);
 
-  const onMouseDown = (e) => { isDragging.current=true; lastPos.current={x:e.clientX,y:e.clientY}; };
-  const onMouseUp   = ()  => { isDragging.current=false; };
-  const onMouseMove = useCallback((e) => {
+  const onMouseDown  = (e) => { isDragging.current = true; lastPos.current = { x: e.clientX, y: e.clientY }; };
+  const onMouseUp    = ()  => { isDragging.current = false; };
+  const onMouseMove  = useCallback((e) => {
     if (!isDragging.current) return;
-    const dx=e.clientX-lastPos.current.x, dy=e.clientY-lastPos.current.y;
-    lastPos.current={x:e.clientX,y:e.clientY};
-    setOffset(p=>({x:p.x+dx,y:p.y+dy}));
-  },[]);
-  const onTouchStart = (e) => { isDragging.current=true; lastPos.current={x:e.touches[0].clientX,y:e.touches[0].clientY}; };
-  const onTouchEnd   = ()  => { isDragging.current=false; };
+    const dx = e.clientX - lastPos.current.x, dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    setOffset(p => ({ x: p.x + dx, y: p.y + dy }));
+  }, []);
+  const onTouchStart = (e) => { isDragging.current = true; lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd   = ()  => { isDragging.current = false; };
   const onTouchMove  = (e) => {
     if (!isDragging.current) return;
-    const dx=e.touches[0].clientX-lastPos.current.x, dy=e.touches[0].clientY-lastPos.current.y;
-    lastPos.current={x:e.touches[0].clientX,y:e.touches[0].clientY};
-    setOffset(p=>({x:p.x+dx,y:p.y+dy}));
+    const dx = e.touches[0].clientX - lastPos.current.x, dy = e.touches[0].clientY - lastPos.current.y;
+    lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setOffset(p => ({ x: p.x + dx, y: p.y + dy }));
   };
 
   const handleCrop = () => {
-    const canvas=canvasRef.current; canvas.width=SIZE; canvas.height=SIZE;
-    const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,SIZE,SIZE); ctx.save();
-    ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.clip();
-    ctx.drawImage(imgRef.current,offset.x,offset.y,imgSize.w*scale,imgSize.h*scale);
+    const canvas = canvasRef.current;
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
     ctx.restore();
     onDone(canvas.toDataURL('image/png'));
   };
@@ -85,42 +95,44 @@ const CircleCropper = ({ imageSrc, onDone, onCancel }) => {
           <span style={cs.hsub}>Drag to reposition · slider to zoom</span>
         </div>
         <div style={cs.stage}>
-          <div style={cs.dimRing}/>
+          <div style={cs.dimRing} />
           <canvas ref={previewRef} width={SIZE} height={SIZE} style={cs.canvas}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}/>
-          <canvas ref={canvasRef} style={{display:'none'}}/>
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
           <div style={cs.hint}>↕ ↔ Drag to adjust</div>
         </div>
         <div style={cs.zoomRow}>
           <span>🔍</span>
           <input type="range" min={0.3} max={3} step={0.01} value={scale}
-            onChange={e=>setScale(parseFloat(e.target.value))}
-            style={{flex:1,accentColor:'#ec4899',cursor:'pointer'}}/>
-          <span style={{fontSize:'12px',color:'#6b7280',minWidth:'36px',textAlign:'right'}}>{Math.round(scale*100)}%</span>
+            onChange={e => setScale(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: '#ec4899', cursor: 'pointer' }} />
+          <span style={{ fontSize: '12px', color: '#6b7280', minWidth: '36px', textAlign: 'right' }}>
+            {Math.round(scale * 100)}%
+          </span>
         </div>
         <div style={cs.actions}>
           <button style={cs.cancelBtn} onClick={onCancel}>Cancel</button>
-          <button style={cs.doneBtn}   onClick={handleCrop}>Use This Photo ✓</button>
+          <button style={cs.doneBtn} onClick={handleCrop}>Use This Photo ✓</button>
         </div>
       </div>
     </div>
   );
 };
 const cs = {
-  backdrop:  {position:'fixed',inset:0,zIndex:10000,background:'rgba(10,6,6,.87)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',animation:'fadeIn .25s ease'},
-  modal:     {background:'#fff',borderRadius:'20px',boxShadow:'0 40px 100px rgba(249,168,212,.45)',width:'100%',maxWidth:'380px',overflow:'hidden',animation:'popIn .35s cubic-bezier(.34,1.56,.64,1)'},
-  header:    {padding:'20px 24px 16px',background:'linear-gradient(135deg,#fdf2f8,#fce7f3)',borderBottom:'1px solid #fbcfe8'},
-  htitle:    {display:'block',fontWeight:700,color:'#1f2937',fontSize:'15px'},
-  hsub:      {display:'block',fontSize:'12px',color:'#9ca3af',marginTop:'2px'},
-  stage:     {position:'relative',width:'260px',height:'260px',margin:'24px auto 0',cursor:'grab',userSelect:'none'},
-  dimRing:   {position:'absolute',inset:0,borderRadius:'50%',boxShadow:'0 0 0 9999px rgba(0,0,0,.5)',zIndex:1,pointerEvents:'none'},
-  canvas:    {display:'block',borderRadius:'50%',border:'3px solid #f472b6',boxShadow:'0 0 0 4px rgba(244,114,182,.25)',zIndex:2,position:'relative'},
-  hint:      {position:'absolute',bottom:'-22px',left:'50%',transform:'translateX(-50%)',fontSize:'11px',color:'#9ca3af',whiteSpace:'nowrap',zIndex:3},
-  zoomRow:   {display:'flex',alignItems:'center',gap:'10px',padding:'28px 24px 8px'},
-  actions:   {display:'flex',gap:'12px',padding:'16px 24px 24px'},
-  cancelBtn: {flex:1,padding:'12px',border:'2px solid #fbcfe8',borderRadius:'10px',background:'transparent',color:'#9ca3af',cursor:'pointer',fontWeight:600,fontSize:'14px'},
-  doneBtn:   {flex:2,padding:'12px',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',border:'none',borderRadius:'10px',color:'#fff',cursor:'pointer',fontWeight:700,fontSize:'14px',boxShadow:'0 4px 14px rgba(236,72,153,.4)'},
+  backdrop:  { position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(10,6,6,.87)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
+  modal:     { background: '#fff', borderRadius: '20px', boxShadow: '0 40px 100px rgba(249,168,212,.45)', width: '100%', maxWidth: '380px', overflow: 'hidden' },
+  header:    { padding: '20px 24px 16px', background: 'linear-gradient(135deg,#fdf2f8,#fce7f3)', borderBottom: '1px solid #fbcfe8' },
+  htitle:    { display: 'block', fontWeight: 700, color: '#1f2937', fontSize: '15px' },
+  hsub:      { display: 'block', fontSize: '12px', color: '#9ca3af', marginTop: '2px' },
+  stage:     { position: 'relative', width: '260px', height: '260px', margin: '24px auto 0', cursor: 'grab', userSelect: 'none' },
+  dimRing:   { position: 'absolute', inset: 0, borderRadius: '50%', boxShadow: '0 0 0 9999px rgba(0,0,0,.5)', zIndex: 1, pointerEvents: 'none' },
+  canvas:    { display: 'block', borderRadius: '50%', border: '3px solid #f472b6', boxShadow: '0 0 0 4px rgba(244,114,182,.25)', zIndex: 2, position: 'relative' },
+  hint:      { position: 'absolute', bottom: '-22px', left: '50%', transform: 'translateX(-50%)', fontSize: '11px', color: '#9ca3af', whiteSpace: 'nowrap', zIndex: 3 },
+  zoomRow:   { display: 'flex', alignItems: 'center', gap: '10px', padding: '28px 24px 8px' },
+  actions:   { display: 'flex', gap: '12px', padding: '16px 24px 24px' },
+  cancelBtn: { flex: 1, padding: '12px', border: '2px solid #fbcfe8', borderRadius: '10px', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontWeight: 600, fontSize: '14px' },
+  doneBtn:   { flex: 2, padding: '12px', background: 'linear-gradient(135deg,#f9a8d4,#ec4899)', border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px', boxShadow: '0 4px 14px rgba(236,72,153,.4)' },
 };
 
 /* ═══════════════════════════════════════════════════
@@ -139,57 +151,57 @@ const SuccessOverlay = ({ username }) => (
       @keyframes ovFetti{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(80px) rotate(360deg);opacity:0}}
     `}</style>
     {[['15%','#f9a8d4','0s','8px'],['30%','#ec4899','.1s','6px'],['50%','#fbcfe8','.15s','10px'],
-      ['65%','#f472b6','.05s','7px'],['80%','#f9a8d4','.2s','9px'],['22%','#fce7f3','.25s','5px'],['70%','#ec4899','.3s','6px']
-    ].map(([l,c,d,sz],i)=>(
-      <div key={i} style={{position:'fixed',top:'18%',left:l,width:sz,height:sz,borderRadius:'50%',background:c,animation:`ovFetti 1.4s ${d} ease-out forwards`,pointerEvents:'none'}}/>
+      ['65%','#f472b6','.05s','7px'],['80%','#f9a8d4','.2s','9px'],['22%','#fce7f3','.25s','5px'],['70%','#ec4899','.3s','6px'],
+    ].map(([l, c, d, sz], i) => (
+      <div key={i} style={{ position: 'fixed', top: '18%', left: l, width: sz, height: sz, borderRadius: '50%', background: c, animation: `ovFetti 1.4s ${d} ease-out forwards`, pointerEvents: 'none' }} />
     ))}
     <div style={ov.card}>
       <div style={ov.ringWrap}>
-        <div style={ov.ro}/><div style={ov.ri}/>
+        <div style={ov.ro} /><div style={ov.ri} />
         <div style={ov.check}>
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <polyline points="8,18 15,25 28,11" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{animation:'ovPopIn .5s .2s both'}}/>
+            <polyline points="8,18 15,25 28,11" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
       <h2 style={ov.h2}>Account Created! 🎉</h2>
-      <p  style={ov.sub}>Welcome aboard, <strong style={{color:'#ec4899'}}>{username}</strong>!</p>
-      <p  style={ov.red}>Taking you to login…</p>
-      <div style={ov.track}><div style={ov.bar}/></div>
-      <div style={ov.dots}>{[0,1,2].map(i=><span key={i} style={{...ov.dot,animation:`ovDot 1.2s ${i*.2}s infinite ease-in-out`}}/>)}</div>
+      <p style={ov.sub}>Welcome aboard, <strong style={{ color: '#ec4899' }}>{username}</strong>!</p>
+      <p style={ov.red}>Taking you to login…</p>
+      <div style={ov.track}><div style={ov.bar} /></div>
+      <div style={ov.dots}>{[0, 1, 2].map(i => <span key={i} style={{ ...ov.dot, animation: `ovDot 1.2s ${i * .2}s infinite ease-in-out` }} />)}</div>
     </div>
   </div>
 );
 const ov = {
-  backdrop:{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,rgba(253,242,248,.96),rgba(251,207,232,.96))',backdropFilter:'blur(6px)',animation:'ovFadeIn .35s ease'},
-  card:    {background:'#fff',borderRadius:'24px',boxShadow:'0 32px 80px rgba(249,168,212,.45)',padding:'52px 44px 44px',display:'flex',flexDirection:'column',alignItems:'center',minWidth:'340px',animation:'ovPopIn .45s cubic-bezier(.34,1.56,.64,1) both'},
-  ringWrap:{position:'relative',width:'96px',height:'96px',marginBottom:'28px',display:'flex',alignItems:'center',justifyContent:'center'},
-  ro:      {position:'absolute',inset:0,borderRadius:'50%',border:'3px solid transparent',borderTopColor:'#f472b6',borderRightColor:'#f9a8d4',animation:'ovSpin 1s linear infinite'},
-  ri:      {position:'absolute',inset:'10px',borderRadius:'50%',border:'2px solid transparent',borderBottomColor:'#fbcfe8',borderLeftColor:'#ec4899',animation:'ovSpin .7s linear infinite reverse'},
-  check:   {width:'64px',height:'64px',borderRadius:'50%',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 24px rgba(236,72,153,.35)'},
-  h2:      {margin:'0 0 8px',fontSize:'24px',fontWeight:700,color:'#1f2937',animation:'ovSlide .4s .15s both',fontFamily:"'Segoe UI',sans-serif"},
-  sub:     {margin:'0 0 6px',fontSize:'15px',color:'#6b7280',animation:'ovSlide .4s .25s both',fontFamily:"'Segoe UI',sans-serif"},
-  red:     {margin:'0 0 24px',fontSize:'13px',color:'#9ca3af',animation:'ovSlide .4s .35s both',fontFamily:"'Segoe UI',sans-serif"},
-  track:   {width:'220px',height:'5px',background:'#fce7f3',borderRadius:'99px',overflow:'hidden',marginBottom:'20px',animation:'ovSlide .4s .4s both'},
-  bar:     {height:'100%',borderRadius:'99px',background:'linear-gradient(90deg,#f9a8d4,#ec4899,#f472b6)',backgroundSize:'400px 100%',animation:'ovFill 1.8s cubic-bezier(.4,0,.2,1) forwards, ovShimmer 1.5s linear infinite'},
-  dots:    {display:'flex',gap:'8px',animation:'ovSlide .4s .5s both'},
-  dot:     {width:'8px',height:'8px',borderRadius:'50%',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',display:'inline-block'},
+  backdrop: { position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,rgba(253,242,248,.96),rgba(251,207,232,.96))', backdropFilter: 'blur(6px)', animation: 'ovFadeIn .35s ease' },
+  card:     { background: '#fff', borderRadius: '24px', boxShadow: '0 32px 80px rgba(249,168,212,.45)', padding: '52px 44px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '340px', animation: 'ovPopIn .45s cubic-bezier(.34,1.56,.64,1) both' },
+  ringWrap: { position: 'relative', width: '96px', height: '96px', marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  ro:       { position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid transparent', borderTopColor: '#f472b6', borderRightColor: '#f9a8d4', animation: 'ovSpin 1s linear infinite' },
+  ri:       { position: 'absolute', inset: '10px', borderRadius: '50%', border: '2px solid transparent', borderBottomColor: '#fbcfe8', borderLeftColor: '#ec4899', animation: 'ovSpin .7s linear infinite reverse' },
+  check:    { width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg,#f9a8d4,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(236,72,153,.35)' },
+  h2:       { margin: '0 0 8px', fontSize: '24px', fontWeight: 700, color: '#1f2937', animation: 'ovSlide .4s .15s both', fontFamily: "'Segoe UI',sans-serif" },
+  sub:      { margin: '0 0 6px', fontSize: '15px', color: '#6b7280', animation: 'ovSlide .4s .25s both', fontFamily: "'Segoe UI',sans-serif" },
+  red:      { margin: '0 0 24px', fontSize: '13px', color: '#9ca3af', animation: 'ovSlide .4s .35s both', fontFamily: "'Segoe UI',sans-serif" },
+  track:    { width: '220px', height: '5px', background: '#fce7f3', borderRadius: '99px', overflow: 'hidden', marginBottom: '20px', animation: 'ovSlide .4s .4s both' },
+  bar:      { height: '100%', borderRadius: '99px', background: 'linear-gradient(90deg,#f9a8d4,#ec4899,#f472b6)', backgroundSize: '400px 100%', animation: 'ovFill 1.8s cubic-bezier(.4,0,.2,1) forwards, ovShimmer 1.5s linear infinite' },
+  dots:     { display: 'flex', gap: '8px', animation: 'ovSlide .4s .5s both' },
+  dot:      { width: '8px', height: '8px', borderRadius: '50%', background: 'linear-gradient(135deg,#f9a8d4,#ec4899)', display: 'inline-block' },
 };
 
 /* ═══════════════════════════════════════════════════
    DISAGREE MODAL
 ═══════════════════════════════════════════════════ */
 const DisagreeModal = ({ onGoBack, onLeave }) => (
-  <div style={{position:'fixed',inset:0,zIndex:10001,background:'rgba(10,6,6,.7)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',animation:'fadeIn .25s ease'}}>
-    <div style={{background:'#fff',borderRadius:'20px',padding:'40px 36px 36px',maxWidth:'380px',width:'100%',boxShadow:'0 32px 80px rgba(0,0,0,.25)',animation:'popIn .35s cubic-bezier(.34,1.56,.64,1)',textAlign:'center'}}>
-      <div style={{fontSize:'52px',marginBottom:'16px'}}>🤔</div>
-      <h3 style={{fontSize:'20px',fontWeight:700,color:'#1f2937',marginBottom:'10px'}}>No worries!</h3>
-      <p  style={{fontSize:'14px',color:'#6b7280',lineHeight:1.7,marginBottom:'28px'}}>
+  <div style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(10,6,6,.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+    <div style={{ background: '#fff', borderRadius: '20px', padding: '40px 36px 36px', maxWidth: '380px', width: '100%', boxShadow: '0 32px 80px rgba(0,0,0,.25)', textAlign: 'center' }}>
+      <div style={{ fontSize: '52px', marginBottom: '16px' }}>🤔</div>
+      <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1f2937', marginBottom: '10px' }}>No worries!</h3>
+      <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.7, marginBottom: '28px' }}>
         You need to agree to our Terms &amp; Conditions to create an account. You can go back and review them, or leave and come back anytime.
       </p>
-      <div style={{display:'flex',gap:'12px'}}>
-        <button onClick={onGoBack} style={{flex:1,padding:'13px',border:'2px solid #fbcfe8',borderRadius:'12px',background:'transparent',color:'#6b7280',fontWeight:600,fontSize:'14px',cursor:'pointer'}}>← Go Back</button>
-        <button onClick={onLeave}  style={{flex:1,padding:'13px',background:'linear-gradient(135deg,#f9a8d4,#ec4899)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:700,fontSize:'14px',cursor:'pointer',boxShadow:'0 4px 14px rgba(236,72,153,.4)'}}>Leave for Now</button>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <button onClick={onGoBack} style={{ flex: 1, padding: '13px', border: '2px solid #fbcfe8', borderRadius: '12px', background: 'transparent', color: '#6b7280', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>← Go Back</button>
+        <button onClick={onLeave}  style={{ flex: 1, padding: '13px', background: 'linear-gradient(135deg,#f9a8d4,#ec4899)', border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(236,72,153,.4)' }}>Leave for Now</button>
       </div>
     </div>
   </div>
@@ -199,16 +211,16 @@ const DisagreeModal = ({ onGoBack, onLeave }) => (
    STEP BAR
 ═══════════════════════════════════════════════════ */
 const StepBar = ({ current }) => (
-  <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'28px',gap:0}}>
-    {[{n:1,label:'Info'},{n:2,label:'Photo'},{n:3,label:'Terms'}].map((s,i,arr)=>(
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '28px' }}>
+    {[{ n: 1, label: 'Info' }, { n: 2, label: 'Photo' }, { n: 3, label: 'Terms' }].map((s, i, arr) => (
       <React.Fragment key={s.n}>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'6px'}}>
-          <div style={{width:'32px',height:'32px',borderRadius:'50%',background:current>=s.n?'linear-gradient(135deg,#f9a8d4,#ec4899)':'#fce7f3',color:current>=s.n?'#fff':'#f9a8d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'13px',boxShadow:current>=s.n?'0 4px 12px rgba(236,72,153,.4)':'none',transition:'all .3s',border:current===s.n?'2.5px solid #ec4899':'2px solid transparent'}}>
-            {current>s.n?'✓':s.n}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: current >= s.n ? 'linear-gradient(135deg,#f9a8d4,#ec4899)' : '#fce7f3', color: current >= s.n ? '#fff' : '#f9a8d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', boxShadow: current >= s.n ? '0 4px 12px rgba(236,72,153,.4)' : 'none', transition: 'all .3s', border: current === s.n ? '2.5px solid #ec4899' : '2px solid transparent' }}>
+            {current > s.n ? '✓' : s.n}
           </div>
-          <span style={{fontSize:'10px',fontWeight:600,color:current>=s.n?'#ec4899':'#d1d5db',letterSpacing:'.08em',textTransform:'uppercase'}}>{s.label}</span>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: current >= s.n ? '#ec4899' : '#d1d5db', letterSpacing: '.08em', textTransform: 'uppercase' }}>{s.label}</span>
         </div>
-        {i<arr.length-1&&<div style={{height:'2px',width:'48px',marginBottom:'18px',background:current>s.n?'linear-gradient(90deg,#f9a8d4,#ec4899)':'#fce7f3',transition:'background .3s'}}/>}
+        {i < arr.length - 1 && <div style={{ height: '2px', width: '48px', marginBottom: '18px', background: current > s.n ? 'linear-gradient(90deg,#f9a8d4,#ec4899)' : '#fce7f3', transition: 'background .3s' }} />}
       </React.Fragment>
     ))}
   </div>
@@ -249,120 +261,178 @@ These terms are governed by the laws of the Republic of the Philippines.
 By clicking "I Agree & Create Account" you confirm you have read and accept these Terms & Conditions.`;
 
 /* ═══════════════════════════════════════════════════
+   HELPERS — detect server username-taken error
+═══════════════════════════════════════════════════ */
+const isUsernameTakenError = (msg = '') => {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('username') &&
+    (lower.includes('taken') || lower.includes('already') || lower.includes('exist') || lower.includes('unavailable'))
+  );
+};
+
+/* ═══════════════════════════════════════════════════
    MAIN REGISTER COMPONENT
 ═══════════════════════════════════════════════════ */
 const Register = () => {
   const navigate = useNavigate();
   const fileRef  = useRef(null);
   const termsRef = useRef(null);
+  const uTimer   = useRef(null);
 
   const [step, setStep] = useState(STEP_INFO);
-  const [form, setForm] = useState({ username:'', fullName:'', email:'', phone:'', address:'', password:'', confirmPassword:'' });
-  const [fieldErrors,   setFieldErrors]   = useState({});
-  const [globalError,   setGlobalError]   = useState('');
-  const [isLoading,     setIsLoading]     = useState(false);
-  const [showSuccess,   setShowSuccess]   = useState(false);
+  const [form, setForm] = useState({
+    username: '', fullName: '', email: '', phone: '', address: '', password: '', confirmPassword: '',
+  });
 
-  // username uniqueness
-  const [uChecking,  setUChecking]  = useState(false);
-  const [uAvailable, setUAvailable] = useState(null);
-  const uTimer = useRef(null);
+  const [uStatus, setUStatus] = useState(U.IDLE);
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  // password visibility
-  const [showPw,   setShowPw]   = useState(false);
-  const [showCfPw, setShowCfPw] = useState(false);
-
-  // avatar
-  const [rawImage, setRawImage] = useState(null);
-  const [avatar,   setAvatar]   = useState(null);
-  const [showCrop, setShowCrop] = useState(false);
-
-  // terms
+  // Step-3-only generic server error (NOT username conflicts — those go back to Step 1)
+  const [globalError,  setGlobalError]  = useState('');
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [showSuccess,  setShowSuccess]  = useState(false);
+  const [showPw,       setShowPw]       = useState(false);
+  const [showCfPw,     setShowCfPw]     = useState(false);
+  const [rawImage,     setRawImage]     = useState(null);
+  const [avatar,       setAvatar]       = useState(null);
+  const [showCrop,     setShowCrop]     = useState(false);
   const [termsRead,    setTermsRead]    = useState(false);
   const [showDisagree, setShowDisagree] = useState(false);
+  const [focused,      setFocused]      = useState('');
 
-  // focus
-  const [focused, setFocused] = useState('');
+  /* ─── USERNAME CHECKING ───────────────────────────────────────
+     Strategy:
+       • While typing: show ⏳ CHECKING immediately (≥8 chars).
+         A 600ms debounce fires the API — so if the user is still
+         typing we don't spam the server.
+       • On blur (tab/click away): cancel the debounce and fire NOW
+         so the result is instant when they move to the next field.
+       • ch('username') resets to IDLE only when the value actually
+         changes, so blur-check results aren't wiped on re-render.
+  ─────────────────────────────────────────────────────────── */
 
-  /* ── username debounce ── */
+  // Refs so async callbacks always see the latest values without stale closures
+  const usernameRef = useRef(form.username);
+  usernameRef.current = form.username;
+
+  // The actual API call — shared by debounce and blur
+  const fireUsernameCheck = useCallback(async (u) => {
+    setUStatus(U.CHECKING);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
+      );
+      // Guard: ignore stale response if the username changed while we awaited
+      if (usernameRef.current.trim() === u) {
+        setUStatus(res.data?.available === true ? U.AVAILABLE : U.TAKEN);
+      }
+    } catch {
+      if (usernameRef.current.trim() === u) setUStatus(U.IDLE);
+    }
+  }, []);
+
+  // Debounce effect: sets CHECKING immediately, calls API after 600ms idle
   useEffect(() => {
-    if (uTimer.current) clearTimeout(uTimer.current);
+    clearTimeout(uTimer.current);
     const u = form.username.trim();
-    if (u.length < 3) { setUAvailable(null); return; }
-    setUChecking(true); setUAvailable(null);
-    uTimer.current = setTimeout(async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/api/auth/check-username?username=${u}`);
-        setUAvailable(res.data.available !== false);
-      } catch { setUAvailable(true); }
-      finally  { setUChecking(false); }
-    }, 600);
+    if (u.length < 8) { setUStatus(U.IDLE); return; }
+    setUStatus(U.CHECKING);
+    uTimer.current = setTimeout(() => fireUsernameCheck(u), 600);
     return () => clearTimeout(uTimer.current);
-  }, [form.username]);
+  }, [form.username, fireUsernameCheck]);
 
-  /* ── file → cropper ── */
-  const handleFilePick = (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => { setRawImage(reader.result); setShowCrop(true); };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+  // Called on blur — cancels pending debounce and fires instantly
+  const runUsernameCheck = useCallback(() => {
+    const u = usernameRef.current.trim();
+    if (u.length < 8) return;
+    clearTimeout(uTimer.current); // kill the 600ms timer
+    fireUsernameCheck(u);         // fire right now
+  }, [fireUsernameCheck]);
+
+  const uIndicator = { [U.IDLE]: '', [U.CHECKING]: '⏳', [U.AVAILABLE]: '✅', [U.TAKEN]: '❌', [U.ERROR]: '' }[uStatus];
+
+  const renderUsernameMsg = () => {
+    const len = form.username.trim().length;
+    if (len === 0) return null;
+    if (len < 8)   return <div className="ferr">⚠ Must be at least 8 characters ({len}/8)</div>;
+    switch (uStatus) {
+      case U.CHECKING:  return <div className="fnfo">⏳ Checking availability…</div>;
+      case U.AVAILABLE: return <div className="fok">✓ Username is available!</div>;
+      case U.TAKEN:     return <div className="ferr">❌ This username is already taken. Please choose another.</div>;
+      default:          return null;
+    }
   };
 
-  /* ── terms scroll ── */
-  const handleTermsScroll = (e) => {
-    const el = e.target;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 32) setTermsRead(true);
-  };
-
-  /* ── validate step 1 ── */
-  const validateInfo = () => {
+  /* ─── STEP 1 VALIDATION ─── */
+  const validateInfoWithStatus = (resolvedStatus) => {
     const errs = {};
     const u = form.username.trim();
-    if (!u)                        errs.username = 'Username is required.';
-    else if (u.length < 3)         errs.username = 'Must be at least 3 characters.';
-    else if (uAvailable === false)  errs.username = 'This username is already taken.';
-    else if (uChecking)             errs.username = 'Still checking availability…';
-    if (!form.fullName.trim())     errs.fullName = 'Full name is required.';
+    if (!u)              errs.username = 'Username is required.';
+    else if (u.length < 8) errs.username = 'Username must be at least 8 characters.';
+    else if (resolvedStatus === U.CHECKING) errs.username = 'Please wait — still checking username availability.';
+    else if (resolvedStatus === U.TAKEN)    errs.username = 'This username is already taken. Please choose another.';
+
+    if (!form.fullName.trim()) errs.fullName = 'Full name is required.';
     const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!form.email.trim())        errs.email = 'Email is required.';
+    if (!form.email.trim())             errs.email = 'Email is required.';
     else if (!emailRx.test(form.email)) errs.email = 'Enter a valid email address.';
-    if (!form.phone.trim())        errs.phone = 'Phone number is required.';
-    if (!form.address.trim())      errs.address = 'Address is required.';
-    if (form.password.length < 6)  errs.password = 'Password must be at least 6 characters.';
+    if (!form.phone.trim())   errs.phone   = 'Phone number is required.';
+    if (!form.address.trim()) errs.address = 'Address is required.';
+    if (form.password.length < 6) errs.password = 'Password must be at least 6 characters.';
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match.';
     return errs;
   };
 
-  const goToAvatar = () => {
-    const errs = validateInfo();
+  const goToAvatar = async () => {
+    // If still pending or never checked, force-run the check now and wait
+    const u = form.username.trim();
+    if (u.length >= 8 && (uStatus === U.IDLE || uStatus === U.CHECKING || uStatus === U.ERROR)) {
+      clearTimeout(uTimer.current);
+      setUStatus(U.CHECKING);
+      try {
+        const res = await axios.get(
+          `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
+        );
+        const resolved = res.data?.available === true ? U.AVAILABLE : U.TAKEN;
+        setUStatus(resolved);
+        // Validate with resolved status
+        const errs = validateInfoWithStatus(resolved);
+        setFieldErrors(errs);
+        if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+      } catch {
+        setUStatus(U.IDLE);
+        const errs = validateInfoWithStatus(U.IDLE);
+        setFieldErrors(errs);
+        if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+      }
+      return;
+    }
+    const errs = validateInfoWithStatus(uStatus);
     setFieldErrors(errs);
     if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
   };
 
-  /* ── final submit ── */
+  /* ─── FINAL SUBMIT ───
+     KEY FIX: if the server says username is taken, go BACK to Step 1
+     and show the error on the username field — not as a generic Step 3 error.
+  ─── */
   const handleSubmit = async () => {
-    setIsLoading(true); setGlobalError('');
+    setIsLoading(true);
+    setGlobalError('');
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
-        username: form.username, email: form.email, password: form.password,
-        fullName: form.fullName, phone: form.phone, address: form.address,
+        username: form.username,
+        email:    form.email,
+        password: form.password,
+        fullName: form.fullName,
+        phone:    form.phone,
+        address:  form.address,
         avatar:   avatar || null,
       });
 
-      /*
-       * ─── PERSIST ALL DATA TO localStorage ───────────────────────────────
-       * 1. JWT token (if the API returns one on register)
-       * 2. Full user profile object
-       * 3. Avatar (separate key – base64 can be large)
-       *
-       * Profile.js reads these same keys via userStorage helpers,
-       * so the data survives refresh AND re-login.
-       * ────────────────────────────────────────────────────────────────────
-       */
       const token = res.data?.token || res.data?.accessToken || null;
       if (token) saveToken(token);
-
       saveUserProfile({
         username:  form.username,
         email:     form.email,
@@ -372,100 +442,161 @@ const Register = () => {
         role:      res.data?.user?.role || res.data?.role || 'Customer',
         createdAt: res.data?.user?.createdAt || new Date().toISOString(),
       });
-
-      saveAvatar(avatar || null);  // null removes any previously stored avatar
-
+      saveAvatar(avatar || null);
       setShowSuccess(true);
       setTimeout(() => navigate('/'), 2300);
+
     } catch (err) {
-      if (err.response)     setGlobalError(err.response?.data?.message || 'Registration failed. Please try again.');
-      else if (err.request) setGlobalError('Cannot connect to server. Please make sure the backend is running.');
-      else                  setGlobalError('An error occurred. Please try again.');
       setIsLoading(false);
+      const serverMsg = err.response?.data?.message || '';
+
+      // ── Username taken: route back to Step 1, highlight the field ──
+      if (err.response && isUsernameTakenError(serverMsg)) {
+        setUStatus(U.TAKEN);
+        setFieldErrors({ username: 'This username is already taken. Please choose another.' });
+        setStep(STEP_INFO);
+        return;
+      }
+
+      // ── Email conflict ──
+      if (err.response && serverMsg.toLowerCase().includes('email')) {
+        setFieldErrors({ email: serverMsg || 'This email is already registered.' });
+        setStep(STEP_INFO);
+        return;
+      }
+
+      // ── Generic server / network error — stays on Step 3 ──
+      if (err.response)     setGlobalError(serverMsg || 'Registration failed. Please try again.');
+      else if (err.request) setGlobalError('Cannot connect to server. Please make sure the backend is running.');
+      else                  setGlobalError('An unexpected error occurred. Please try again.');
     }
   };
 
-  /* ── helpers ── */
+  /* ─── MISC HELPERS ─── */
+  const handleFilePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => { setRawImage(reader.result); setShowCrop(true); };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleTermsScroll = (e) => {
+    const el = e.target;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 32) setTermsRead(true);
+  };
+
   const inp = (name, hasErr) => ({
-    width:'100%', padding:'13px 16px', fontSize:'14px',
-    border: hasErr ? '2px solid #f87171' : focused===name ? '2px solid #f9a8d4' : '2px solid #fbcfe8',
-    borderRadius:'10px', outline:'none', transition:'all .25s', boxSizing:'border-box',
-    backgroundColor: hasErr ? '#fff5f5' : focused===name ? '#fff' : '#fdf2f8',
-    boxShadow: focused===name && !hasErr ? '0 0 0 4px rgba(249,168,212,.18)' : 'none',
-    fontFamily:"'Segoe UI',sans-serif", color:'#1f2937',
+    width: '100%', padding: '13px 16px', fontSize: '14px', boxSizing: 'border-box',
+    border: hasErr ? '2px solid #f87171' : focused === name ? '2px solid #f9a8d4' : '2px solid #fbcfe8',
+    borderRadius: '10px', outline: 'none', transition: 'all .25s',
+    backgroundColor: hasErr ? '#fff5f5' : focused === name ? '#fff' : '#fdf2f8',
+    boxShadow: focused === name && !hasErr ? '0 0 0 4px rgba(249,168,212,.18)' : 'none',
+    fontFamily: "'Segoe UI',sans-serif", color: '#1f2937',
   });
-  const fc = (name) => ({ onFocus:()=>setFocused(name), onBlur:()=>setFocused('') });
-  const ch = (field) => (e) => { setForm(p=>({...p,[field]:e.target.value})); setFieldErrors(p=>({...p,[field]:''})); };
+
+  const fc = (name) => ({
+    onFocus: () => setFocused(name),
+    onBlur:  () => { setFocused(''); if (name === 'username') runUsernameCheck(); },
+  });
+  const ch = (field) => (e) => {
+    const newVal = e.target.value;
+    setForm(p => ({ ...p, [field]: newVal }));
+    if (fieldErrors[field]) setFieldErrors(p => ({ ...p, [field]: '' }));
+    // Reset username status only when the value actually changes (so blur results aren't wiped)
+    if (field === 'username' && newVal.trim() !== usernameRef.current.trim()) {
+      setUStatus(newVal.trim().length < 8 ? U.IDLE : U.CHECKING);
+    }
+  };
 
   /* ═══════════════════════════════════════════════
      RENDER
   ═══════════════════════════════════════════════ */
   return (
     <>
-      {showSuccess  && <SuccessOverlay username={form.username}/>}
-      {showDisagree && <DisagreeModal onGoBack={()=>setShowDisagree(false)} onLeave={()=>navigate('/')}/>}
+      {showSuccess  && <SuccessOverlay username={form.username} />}
+      {showDisagree && <DisagreeModal onGoBack={() => setShowDisagree(false)} onLeave={() => navigate('/')} />}
       {showCrop && rawImage && (
-        <CircleCropper imageSrc={rawImage} onDone={url=>{setAvatar(url);setShowCrop(false);}} onCancel={()=>setShowCrop(false)}/>
+        <CircleCropper
+          imageSrc={rawImage}
+          onDone={url => { setAvatar(url); setShowCrop(false); }}
+          onCancel={() => setShowCrop(false)}
+        />
       )}
 
       <div style={st.page}>
         <style>{`
-          @keyframes fadeIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
-          @keyframes popIn {0%{opacity:0;transform:scale(.6) translateY(20px)}65%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
-          @keyframes spin  {to{transform:rotate(360deg)}}
-          input::placeholder{color:#bbb;}
-          input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px #fdf2f8 inset!important;}
-          .ferr{font-size:12px;color:#ef4444;margin-top:5px;display:flex;align-items:center;gap:5px;}
-          .fok {font-size:12px;color:#10b981;margin-top:5px;display:flex;align-items:center;gap:5px;}
-          .fnfo{font-size:12px;color:#9ca3af;margin-top:5px;}
-          ::-webkit-scrollbar{width:5px;}
-          ::-webkit-scrollbar-track{background:#fce7f3;border-radius:99px;}
-          ::-webkit-scrollbar-thumb{background:#f9a8d4;border-radius:99px;}
+          @keyframes fadeIn { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes popIn  { 0%{opacity:0;transform:scale(.6) translateY(20px)} 65%{transform:scale(1.05)} 100%{opacity:1;transform:scale(1)} }
+          @keyframes spin   { to{transform:rotate(360deg)} }
+          @keyframes shake  { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+          input::placeholder { color:#bbb; }
+          input:-webkit-autofill { -webkit-box-shadow:0 0 0 1000px #fdf2f8 inset !important; }
+          .ferr { font-size:12px; color:#ef4444; margin-top:5px; display:flex; align-items:center; gap:5px; }
+          .fok  { font-size:12px; color:#10b981; margin-top:5px; display:flex; align-items:center; gap:5px; }
+          .fnfo { font-size:12px; color:#9ca3af; margin-top:5px; }
+          .shake { animation: shake .4s ease; }
+          ::-webkit-scrollbar       { width:5px; }
+          ::-webkit-scrollbar-track { background:#fce7f3; border-radius:99px; }
+          ::-webkit-scrollbar-thumb { background:#f9a8d4; border-radius:99px; }
         `}</style>
 
         <div style={st.card}>
-          {/* Logo */}
-          <div style={{textAlign:'center',marginBottom:'20px'}}>
-            <div style={{fontSize:'44px',marginBottom:'8px',filter:'drop-shadow(0 4px 8px rgba(249,168,212,.4))'}}>📝</div>
-            <h1 style={{margin:'0 0 6px',fontSize:'26px',fontWeight:700,color:'#1f2937',fontFamily:"'Segoe UI',sans-serif"}}>Create Account</h1>
-            <p  style={{margin:0,fontSize:'13px',color:'#9ca3af'}}>Sign up to get started</p>
+
+          {/* ── Logo ── */}
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '44px', marginBottom: '8px', filter: 'drop-shadow(0 4px 8px rgba(249,168,212,.4))' }}>📝</div>
+            <h1 style={{ margin: '0 0 6px', fontSize: '26px', fontWeight: 700, color: '#1f2937', fontFamily: "'Segoe UI',sans-serif" }}>Create Account</h1>
+            <p style={{ margin: 0, fontSize: '13px', color: '#9ca3af' }}>Sign up to get started</p>
           </div>
 
-          <StepBar current={step}/>
+          <StepBar current={step} />
 
           {/* ════ STEP 1 — Info ════ */}
           {step === STEP_INFO && (
             <div>
-              {globalError && (
-                <div style={st.errBox}>
-                  <span style={{color:'#ec4899'}}>⚠️</span>
-                  <p style={{color:'#be185d',fontSize:'14px',margin:0}}>{globalError}</p>
+
+              {/* ── Server-redirected username error banner ── */}
+              {uStatus === U.TAKEN && (
+                <div style={{ background: '#fff1f2', border: '1.5px solid #fca5a5', borderRadius: '10px', padding: '11px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '16px' }}>⚠️</span>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: 500 }}>
+                    This username is already taken — please choose a different one.
+                  </p>
                 </div>
               )}
 
               {/* Username */}
               <div style={st.fg}>
                 <label style={st.label}>👤 Username</label>
-                <div style={{position:'relative'}}>
-                  <input type="text" value={form.username} onChange={ch('username')}
-                    placeholder="Choose a unique username"
-                    style={{...inp('username',!!fieldErrors.username),paddingRight:'36px'}} {...fc('username')}/>
-                  <span style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',fontSize:'14px'}}>
-                    {uChecking?'⏳':uAvailable===true&&form.username.length>=3?'✅':uAvailable===false?'❌':''}
-                  </span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={form.username}
+                    onChange={ch('username')}
+                    placeholder="Choose a unique username (min. 8 characters)"
+                    style={{ ...inp('username', uStatus === U.TAKEN || (!!fieldErrors.username && form.username.trim().length < 8)), paddingRight: '40px' }}
+                    {...fc('username')}
+                  />
+                  {uIndicator && (
+                    <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1, pointerEvents: 'none' }}>
+                      {uIndicator}
+                    </span>
+                  )}
                 </div>
-                {fieldErrors.username         ? <div className="ferr">⚠ {fieldErrors.username}</div>
-                 : uAvailable===false          ? <div className="ferr">⚠ This username is already taken. Please choose another.</div>
-                 : uAvailable===true&&form.username.length>=3 ? <div className="fok">✓ Username is available!</div>
-                 : form.username.length>0&&form.username.length<3 ? <div className="fnfo">At least 3 characters needed</div>
-                 : null}
+                {renderUsernameMsg() ?? (fieldErrors.username && uStatus !== U.TAKEN
+                  ? <div className="ferr">⚠ {fieldErrors.username}</div>
+                  : null
+                )}
               </div>
 
               {/* Full Name */}
               <div style={st.fg}>
                 <label style={st.label}>🪪 Full Name</label>
                 <input type="text" value={form.fullName} onChange={ch('fullName')}
-                  placeholder="Your full name" style={inp('fullName',!!fieldErrors.fullName)} {...fc('fullName')}/>
+                  placeholder="Your full name"
+                  style={inp('fullName', !!fieldErrors.fullName)} {...fc('fullName')} />
                 {fieldErrors.fullName && <div className="ferr">⚠ {fieldErrors.fullName}</div>}
               </div>
 
@@ -473,7 +604,8 @@ const Register = () => {
               <div style={st.fg}>
                 <label style={st.label}>✉️ Email</label>
                 <input type="email" value={form.email} onChange={ch('email')}
-                  placeholder="Enter your email" style={inp('email',!!fieldErrors.email)} {...fc('email')}/>
+                  placeholder="Enter your email"
+                  style={inp('email', !!fieldErrors.email)} {...fc('email')} />
                 {fieldErrors.email && <div className="ferr">⚠ {fieldErrors.email}</div>}
               </div>
 
@@ -481,7 +613,8 @@ const Register = () => {
               <div style={st.fg}>
                 <label style={st.label}>📱 Phone Number</label>
                 <input type="tel" value={form.phone} onChange={ch('phone')}
-                  placeholder="+63 912 345 6789" style={inp('phone',!!fieldErrors.phone)} {...fc('phone')}/>
+                  placeholder="+63 912 345 6789"
+                  style={inp('phone', !!fieldErrors.phone)} {...fc('phone')} />
                 {fieldErrors.phone && <div className="ferr">⚠ {fieldErrors.phone}</div>}
               </div>
 
@@ -489,42 +622,44 @@ const Register = () => {
               <div style={st.fg}>
                 <label style={st.label}>📍 Address</label>
                 <input type="text" value={form.address} onChange={ch('address')}
-                  placeholder="Your address" style={inp('address',!!fieldErrors.address)} {...fc('address')}/>
+                  placeholder="Your address"
+                  style={inp('address', !!fieldErrors.address)} {...fc('address')} />
                 {fieldErrors.address && <div className="ferr">⚠ {fieldErrors.address}</div>}
               </div>
 
               {/* Password */}
               <div style={st.fg}>
                 <label style={st.label}>🔒 Password</label>
-                <div style={{position:'relative'}}>
-                  <input type={showPw?'text':'password'} value={form.password} onChange={ch('password')}
+                <div style={{ position: 'relative' }}>
+                  <input type={showPw ? 'text' : 'password'} value={form.password} onChange={ch('password')}
                     placeholder="Create a password"
-                    style={{...inp('password',!!fieldErrors.password),paddingRight:'44px'}} {...fc('password')}/>
-                  <button type="button" style={st.eye} onClick={()=>setShowPw(p=>!p)}>{showPw?'🙈':'👁️'}</button>
+                    style={{ ...inp('password', !!fieldErrors.password), paddingRight: '44px' }} {...fc('password')} />
+                  <button type="button" style={st.eye} onClick={() => setShowPw(p => !p)}>{showPw ? '🙈' : '👁️'}</button>
                 </div>
                 {fieldErrors.password
                   ? <div className="ferr">⚠ {fieldErrors.password}</div>
-                  : <div className="fnfo" style={{color:form.password.length>=6?'#10b981':'#9ca3af'}}>
-                      {form.password.length===0?'Minimum 6 characters':form.password.length<6?'Too short':'✓ Strength: Good'}
+                  : <div className="fnfo" style={{ color: form.password.length >= 6 ? '#10b981' : '#9ca3af' }}>
+                      {form.password.length === 0 ? 'Minimum 6 characters' : form.password.length < 6 ? 'Too short' : '✓ Strength: Good'}
                     </div>}
               </div>
 
               {/* Confirm Password */}
-              <div style={{...st.fg,marginBottom:0}}>
+              <div style={{ ...st.fg, marginBottom: 0 }}>
                 <label style={st.label}>🔐 Confirm Password</label>
-                <div style={{position:'relative'}}>
-                  <input type={showCfPw?'text':'password'} value={form.confirmPassword} onChange={ch('confirmPassword')}
+                <div style={{ position: 'relative' }}>
+                  <input type={showCfPw ? 'text' : 'password'} value={form.confirmPassword} onChange={ch('confirmPassword')}
                     placeholder="Confirm your password"
-                    style={{...inp('confirmPassword',!!fieldErrors.confirmPassword),paddingRight:'44px'}} {...fc('confirmPassword')}/>
-                  <button type="button" style={st.eye} onClick={()=>setShowCfPw(p=>!p)}>{showCfPw?'🙈':'👁️'}</button>
+                    style={{ ...inp('confirmPassword', !!fieldErrors.confirmPassword), paddingRight: '44px' }} {...fc('confirmPassword')} />
+                  <button type="button" style={st.eye} onClick={() => setShowCfPw(p => !p)}>{showCfPw ? '🙈' : '👁️'}</button>
                 </div>
                 {fieldErrors.confirmPassword
                   ? <div className="ferr">⚠ {fieldErrors.confirmPassword}</div>
-                  : form.confirmPassword && form.password===form.confirmPassword
-                    ? <div className="fok">✓ Passwords match</div> : null}
+                  : form.confirmPassword && form.password === form.confirmPassword
+                    ? <div className="fok">✓ Passwords match</div>
+                    : null}
               </div>
 
-              <button style={{...st.primary,marginTop:'24px'}} onClick={goToAvatar}>
+              <button style={{ ...st.primary, marginTop: '24px' }} onClick={goToAvatar}>
                 Continue to Photo →
               </button>
               <div style={st.loginHint}>
@@ -535,44 +670,38 @@ const Register = () => {
 
           {/* ════ STEP 2 — Avatar ════ */}
           {step === STEP_AVATAR && (
-            <div style={{textAlign:'center'}}>
-              <p style={{fontSize:'14px',color:'#6b7280',marginBottom:'24px',lineHeight:1.65}}>
-                Add a profile picture so others can recognise you.<br/>
-                <span style={{color:'#f9a8d4'}}>You can skip this step if you prefer.</span>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', lineHeight: 1.65 }}>
+                Add a profile picture so others can recognise you.<br />
+                <span style={{ color: '#f9a8d4' }}>You can skip this step if you prefer.</span>
               </p>
-
-              {/* Circle preview */}
               <div
-                style={{width:'130px',height:'130px',borderRadius:'50%',background:avatar?'transparent':'linear-gradient(135deg,#fce7f3,#fbcfe8)',margin:'0 auto 20px',border:'3px solid #f9a8d4',boxShadow:'0 8px 28px rgba(249,168,212,.4)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative'}}
-                onClick={()=>fileRef.current?.click()}
+                style={{ width: '130px', height: '130px', borderRadius: '50%', background: avatar ? 'transparent' : 'linear-gradient(135deg,#fce7f3,#fbcfe8)', margin: '0 auto 20px', border: '3px solid #f9a8d4', boxShadow: '0 8px 28px rgba(249,168,212,.4)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+                onClick={() => fileRef.current?.click()}
               >
                 {avatar
-                  ? <img src={avatar} alt="avatar" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                  : <span style={{fontSize:'42px'}}>📷</span>}
+                  ? <img src={avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontSize: '42px' }}>📷</span>}
                 {avatar && (
-                  <div style={{position:'absolute',inset:0,background:'rgba(44,36,32,.5)',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity .2s',fontSize:'22px',borderRadius:'50%'}}
-                    onMouseEnter={e=>e.currentTarget.style.opacity='1'}
-                    onMouseLeave={e=>e.currentTarget.style.opacity='0'}>✏️</div>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(44,36,32,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity .2s', fontSize: '22px', borderRadius: '50%' }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '0'}>✏️</div>
                 )}
               </div>
-
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleFilePick} style={{display:'none'}}/>
-
-              <button style={{...st.primary,display:'inline-flex',width:'auto',padding:'12px 28px',marginBottom:'12px'}} onClick={()=>fileRef.current?.click()}>
-                {avatar?'🔄 Change Photo':'📸 Choose Photo'}
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleFilePick} style={{ display: 'none' }} />
+              <button style={{ ...st.primary, display: 'inline-flex', width: 'auto', padding: '12px 28px', marginBottom: '12px' }} onClick={() => fileRef.current?.click()}>
+                {avatar ? '🔄 Change Photo' : '📸 Choose Photo'}
               </button>
-
               {avatar && (
-                <div style={{marginBottom:'4px'}}>
-                  <button style={{background:'none',border:'none',color:'#f87171',fontSize:'12px',cursor:'pointer',textDecoration:'underline'}} onClick={()=>setAvatar(null)}>
+                <div style={{ marginBottom: '4px' }}>
+                  <button style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setAvatar(null)}>
                     Remove photo
                   </button>
                 </div>
               )}
-
-              <div style={{display:'flex',gap:'12px',marginTop:'28px'}}>
-                <button style={st.secondary} onClick={()=>setStep(STEP_INFO)}>← Back</button>
-                <button style={st.primary}   onClick={()=>setStep(STEP_TERMS)}>{avatar?'Next →':'Skip for Now →'}</button>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
+                <button style={st.secondary} onClick={() => setStep(STEP_INFO)}>← Back</button>
+                <button style={st.primary} onClick={() => setStep(STEP_TERMS)}>{avatar ? 'Next →' : 'Skip for Now →'}</button>
               </div>
             </div>
           )}
@@ -580,54 +709,53 @@ const Register = () => {
           {/* ════ STEP 3 — Terms ════ */}
           {step === STEP_TERMS && (
             <div>
-              <h3 style={{fontSize:'16px',fontWeight:700,color:'#1f2937',marginBottom:'8px',textAlign:'center',fontFamily:"'Segoe UI',sans-serif"}}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1f2937', marginBottom: '8px', textAlign: 'center', fontFamily: "'Segoe UI',sans-serif" }}>
                 📜 Terms &amp; Conditions
               </h3>
-              <p style={{fontSize:'12px',color:'#9ca3af',textAlign:'center',marginBottom:'14px'}}>
+              <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginBottom: '14px' }}>
                 Scroll to the bottom to enable the agree button.
               </p>
-
               <div ref={termsRef} onScroll={handleTermsScroll}
-                style={{height:'200px',overflowY:'auto',background:'#fdf2f8',border:'1.5px solid #fbcfe8',borderRadius:'12px',padding:'16px 18px',fontSize:'12.5px',color:'#374151',lineHeight:1.75,whiteSpace:'pre-wrap',marginBottom:'16px',fontFamily:"'Segoe UI',sans-serif"}}>
+                style={{ height: '200px', overflowY: 'auto', background: '#fdf2f8', border: '1.5px solid #fbcfe8', borderRadius: '12px', padding: '16px 18px', fontSize: '12.5px', color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '16px', fontFamily: "'Segoe UI',sans-serif" }}>
                 {TERMS}
               </div>
-
               {!termsRead && (
-                <div style={{textAlign:'center',fontSize:'11px',color:'#f9a8d4',marginBottom:'12px'}}>
+                <div style={{ textAlign: 'center', fontSize: '11px', color: '#f9a8d4', marginBottom: '12px' }}>
                   ↓ Scroll down to read all terms
                 </div>
               )}
 
+              {/* Generic server error ONLY — username/email conflicts go back to Step 1 */}
               {globalError && (
-                <div style={{...st.errBox,marginBottom:'14px'}}>
-                  <span style={{color:'#ec4899'}}>⚠️</span>
-                  <p style={{color:'#be185d',fontSize:'13px',margin:0}}>{globalError}</p>
+                <div style={{ ...st.errBox, marginBottom: '14px' }}>
+                  <span style={{ color: '#ec4899' }}>⚠️</span>
+                  <p style={{ color: '#be185d', fontSize: '13px', margin: 0 }}>{globalError}</p>
                 </div>
               )}
 
-              <div style={{display:'flex',gap:'12px'}}>
-                <button style={st.secondary} onClick={()=>setStep(STEP_AVATAR)}>← Back</button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button style={st.secondary} onClick={() => setStep(STEP_AVATAR)}>← Back</button>
                 <button
-                  style={{...st.primary,opacity:termsRead?1:.45,cursor:termsRead?'pointer':'not-allowed'}}
-                  disabled={!termsRead||isLoading}
+                  style={{ ...st.primary, opacity: termsRead ? 1 : .45, cursor: termsRead ? 'pointer' : 'not-allowed' }}
+                  disabled={!termsRead || isLoading}
                   onClick={handleSubmit}
                 >
                   {isLoading
-                    ? <span style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                        <span style={{width:'14px',height:'14px',border:'2px solid rgba(255,255,255,.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'spin .8s linear infinite'}}/>
+                    ? <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .8s linear infinite' }} />
                         Creating Account…
                       </span>
                     : '✓ I Agree & Create Account'}
                 </button>
               </div>
-
-              <div style={{textAlign:'center',marginTop:'14px'}}>
-                <button style={{background:'none',border:'none',color:'#f87171',fontSize:'12px',cursor:'pointer',textDecoration:'underline'}} onClick={()=>setShowDisagree(true)}>
+              <div style={{ textAlign: 'center', marginTop: '14px' }}>
+                <button style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowDisagree(true)}>
                   I Do Not Agree
                 </button>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </>
@@ -635,16 +763,16 @@ const Register = () => {
 };
 
 const st = {
-  page:      {minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)',padding:'24px',fontFamily:"'Segoe UI',Tahoma,Geneva,Verdana,sans-serif"},
-  card:      {background:'#fff',borderRadius:'20px',boxShadow:'0 20px 60px rgba(249,168,212,.4)',padding:'40px 36px',width:'100%',maxWidth:'440px',animation:'fadeIn .5s ease-out'},
-  fg:        {marginBottom:'16px'},
-  label:     {display:'block',fontSize:'13px',fontWeight:600,color:'#4b5563',marginBottom:'7px'},
-  eye:       {position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#aaa',fontSize:'16px',padding:'4px'},
-  errBox:    {background:'#fdf2f8',border:'1px solid #f9a8d4',borderRadius:'10px',padding:'12px 14px',marginBottom:'18px',display:'flex',alignItems:'center',gap:'10px'},
-  primary:   {width:'100%',padding:'14px',fontSize:'15px',fontWeight:700,color:'#fff',background:'linear-gradient(135deg,#f9a8d4 0%,#f472b6 50%,#ec4899 100%)',border:'none',borderRadius:'12px',cursor:'pointer',transition:'all .25s',boxShadow:'0 4px 14px rgba(249,168,212,.5)',display:'flex',alignItems:'center',justifyContent:'center'},
-  secondary: {flex:1,padding:'14px',fontSize:'14px',fontWeight:600,color:'#9ca3af',background:'transparent',border:'2px solid #fbcfe8',borderRadius:'12px',cursor:'pointer',transition:'all .2s'},
-  loginHint: {textAlign:'center',marginTop:'20px',color:'#9ca3af',fontSize:'13px'},
-  loginLink: {color:'#ec4899',textDecoration:'none',fontWeight:700},
+  page:      { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)', padding: '24px', fontFamily: "'Segoe UI',Tahoma,Geneva,Verdana,sans-serif" },
+  card:      { background: '#fff', borderRadius: '20px', boxShadow: '0 20px 60px rgba(249,168,212,.4)', padding: '40px 36px', width: '100%', maxWidth: '440px', animation: 'fadeIn .5s ease-out' },
+  fg:        { marginBottom: '16px' },
+  label:     { display: 'block', fontSize: '13px', fontWeight: 600, color: '#4b5563', marginBottom: '7px' },
+  eye:       { position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '16px', padding: '4px' },
+  errBox:    { background: '#fdf2f8', border: '1px solid #f9a8d4', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' },
+  primary:   { width: '100%', padding: '14px', fontSize: '15px', fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#f9a8d4 0%,#f472b6 50%,#ec4899 100%)', border: 'none', borderRadius: '12px', cursor: 'pointer', transition: 'all .25s', boxShadow: '0 4px 14px rgba(249,168,212,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  secondary: { flex: 1, padding: '14px', fontSize: '14px', fontWeight: 600, color: '#9ca3af', background: 'transparent', border: '2px solid #fbcfe8', borderRadius: '12px', cursor: 'pointer', transition: 'all .2s' },
+  loginHint: { textAlign: 'center', marginTop: '20px', color: '#9ca3af', fontSize: '13px' },
+  loginLink: { color: '#ec4899', textDecoration: 'none', fontWeight: 700 },
 };
 
 export default Register;

@@ -53,6 +53,14 @@
       "password": "$2b$10$KyWlUTz56kzbVTeW8GKAMe2i61B5H9JHJ2Uu4DzwQtxVWrdM1Rrbq",
       "role": "user",
       "createdAt": "2026-03-26T01:18:25.169Z"
+    },
+    {
+      "id": "1774506570487",
+      "username": "katherine",
+      "email": "kathewinnnn@gmail.com",
+      "password": "$2b$10$Xd7vzI0WwttJh8Ex6zbZfO.wxYs849RSw0RZy0hVmJYDnUj8m1lfm",
+      "role": "user",
+      "createdAt": "2026-03-26T06:29:30.487Z"
     }
   ],
   "products": [
