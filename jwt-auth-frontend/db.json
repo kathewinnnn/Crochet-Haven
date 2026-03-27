@@ -4,7 +4,7 @@
       "id": "1",
       "username": "admin",
       "email": "admin@admin.com",
-      "password": "$2b$10$PWU6Tqe8YvEnfK1rI6dAVeENC7wTre1tVza0866ZqGsLigFult5OW",
+      "password": "$2b$10$x5hV4mJ966Q1MB0McT7NkuQvCQuqorur8jIKpvozVK7rGXhat1JE.",
       "role": "admin",
       "createdAt": "2024-01-01T00:00:00.000Z",
       "name": "Admin",

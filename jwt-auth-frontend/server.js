@@ -160,6 +160,48 @@ app.post('/api/auth/delete-account', async (req, res) => {
   }
 });
 
+// ─── CHANGE password ───────────────────────────────────────────────────────────
+app.put('/api/auth/change-password', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ message: "Current password and new password are required" });
+
+    if (newPassword.length < 6)
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+
+    const db = readDb();
+    const userIndex = db.users.findIndex(u => u.id === decoded.id);
+    
+    if (userIndex === -1)
+      return res.status(404).json({ message: "User not found" });
+
+    const user = db.users[userIndex];
+    
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Current password is incorrect" });
+
+    // Hash new password and update
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    db.users[userIndex].password = hashedNewPassword;
+    writeDb(db);
+
+    console.log(`✅ Password changed for user: ${user.username}`);
+    return res.json({ message: "Password changed successfully. You can now login with your new password." });
+  } catch {
+    return res.status(500).json({ message: "Server error during password change" });
+  }
+});
+
 // ─── Products routes ──────────────────────────────────────────────────────────
 app.get('/products', (req, res) => {
   try { res.json(readDb().products); }
@@ -432,6 +474,41 @@ exports.handler = async (event, context) => {
             db.orders = db.orders.filter(o => o.userId !== user.id);
             writeDb(db);
             responseData = { message: "Account deleted successfully" };
+          }
+        }
+      }
+    }
+
+    // ── CHANGE PASSWORD ────────────────────────────────────────────────────────
+    else if (p === '/api/auth/change-password' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const { currentPassword, newPassword } = body;
+        if (!currentPassword || !newPassword) {
+          statusCode = 400; responseData = { message: "Current password and new password are required" };
+        } else if (newPassword.length < 6) {
+          statusCode = 400; responseData = { message: "Password must be at least 6 characters" };
+        } else {
+          const db = readDb();
+          const userIndex = db.users.findIndex(u => u.id === decoded.id);
+          
+          if (userIndex === -1) {
+            statusCode = 404; responseData = { message: "User not found" };
+          } else {
+            const user = db.users[userIndex];
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+              statusCode = 401; responseData = { message: "Current password is incorrect" };
+            } else {
+              const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+              db.users[userIndex].password = hashedNewPassword;
+              writeDb(db);
+              responseData = { message: "Password changed successfully. You can now login with your new password." };
+            }
           }
         }
       }

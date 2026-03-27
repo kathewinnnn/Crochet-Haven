@@ -239,4 +239,46 @@ router.post("/delete-account", verifyToken, async (req, res) => {
   }
 });
 
+// ── PUT /api/auth/change-password ─────────────────────────────────────
+router.put("/change-password", verifyToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const db = readDb();
+    const userIndex = db.users.findIndex((u) => u.id === req.user.id);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = db.users[userIndex];
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password and update
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    db.users[userIndex].password = hashedNewPassword;
+    writeDb(db);
+
+    console.log(`✅ Password changed for user: ${user.username}`);
+    return res.json({ message: "Password changed successfully. You can now login with your new password." });
+
+  } catch (err) {
+    console.error("❌ Change password error:", err);
+    return res.status(500).json({ message: "Server error during password change" });
+  }
+});
+
 module.exports = router;

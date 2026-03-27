@@ -425,6 +425,41 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // ── CHANGE PASSWORD ────────────────────────────────────────────────────────
+    else if (p === '/api/auth/change-password' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const { currentPassword, newPassword } = body;
+        if (!currentPassword || !newPassword) {
+          statusCode = 400; responseData = { message: "Current password and new password are required" };
+        } else if (newPassword.length < 6) {
+          statusCode = 400; responseData = { message: "Password must be at least 6 characters" };
+        } else {
+          const db = readDb();
+          const userIndex = db.users.findIndex(u => u.id === decoded.id);
+          
+          if (userIndex === -1) {
+            statusCode = 404; responseData = { message: "User not found" };
+          } else {
+            const user = db.users[userIndex];
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+              statusCode = 401; responseData = { message: "Current password is incorrect" };
+            } else {
+              const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+              db.users[userIndex].password = hashedNewPassword;
+              writeDb(db);
+              responseData = { message: "Password changed successfully. You can now login with your new password." };
+            }
+          }
+        }
+      }
+    }
+
     // ── Products ──────────────────────────────────────────────────────────────
     else if (p === '/products' && method === 'GET') {
       responseData = readDb().products;
