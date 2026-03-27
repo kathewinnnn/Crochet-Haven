@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DeleteConfirmModal from './DeleteConfirmModal';
 import API_BASE_URL from '../../apiConfig';
+import { loadToken } from "../../pages/userStorage";
 
 const orderStyles = `
   :root {
@@ -27,7 +28,6 @@ const orderStyles = `
   .ch-filter-btn:hover { border-color: var(--rose); color: var(--rose); }
   .ch-filter-btn.active { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
 
-  /* ── Desktop table ── */
   .ch-orders-table-wrap { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 28px; overflow-x: auto; }
   .ch-orders-table { width: 100%; border-collapse: collapse; min-width: 700px; }
   .ch-orders-table thead tr { background: rgba(253,246,236,.8); }
@@ -62,49 +62,24 @@ const orderStyles = `
   .ch-delete-btn { padding: 6px 12px; background: #c0392b; color: #fff; border: none; border-radius: 3px; font-family: 'Lato',sans-serif; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background .18s; }
   .ch-delete-btn:hover { background: #a93226; }
 
-  /* ── Tablet accordion list ── */
   .ch-order-accordion { display: none; flex-direction: column; gap: 10px; margin-bottom: 28px; }
-
   .ch-acc-item { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-
-  .ch-acc-header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 16px; cursor: pointer;
-    background: rgba(253,246,236,.5);
-    border-bottom: 1px solid transparent;
-    transition: background .15s;
-    user-select: none;
-  }
+  .ch-acc-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; background: rgba(253,246,236,.5); border-bottom: 1px solid transparent; transition: background .15s; user-select: none; }
   .ch-acc-header:hover { background: rgba(253,246,236,.9); }
   .ch-acc-item.open .ch-acc-header { border-bottom-color: var(--border); background: rgba(253,246,236,.85); }
-
   .ch-acc-order-id { font-family: 'Playfair Display', serif; font-weight: 700; font-size: .9rem; color: var(--charcoal); flex-shrink: 0; }
   .ch-acc-customer { font-size: .8rem; color: var(--muted); font-weight: 300; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ch-acc-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .ch-acc-total { font-family: 'Playfair Display', serif; font-weight: 700; font-size: .86rem; color: var(--charcoal); white-space: nowrap; }
-
-  .ch-acc-chevron {
-    width: 26px; height: 26px; border-radius: 50%;
-    background: rgba(212,115,94,.08); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .65rem; color: var(--muted); flex-shrink: 0;
-    transition: transform .25s ease, background .18s, color .18s;
-  }
+  .ch-acc-chevron { width: 26px; height: 26px; border-radius: 50%; background: rgba(212,115,94,.08); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: .65rem; color: var(--muted); flex-shrink: 0; transition: transform .25s ease, background .18s, color .18s; }
   .ch-acc-item.open .ch-acc-chevron { transform: rotate(180deg); background: var(--rose); color: #fff; border-color: var(--rose); }
-
-  .ch-acc-body {
-    max-height: 0; overflow: hidden;
-    transition: max-height .35s cubic-bezier(0.4,0,0.2,1);
-  }
+  .ch-acc-body { max-height: 0; overflow: hidden; transition: max-height .35s cubic-bezier(0.4,0,0.2,1); }
   .ch-acc-item.open .ch-acc-body { max-height: 1000px; }
-
   .ch-acc-body-inner { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-
   .ch-acc-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
   .ch-acc-info-row { display: flex; flex-direction: column; gap: 2px; }
   .ch-acc-info-label { font-size: .62rem; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
   .ch-acc-info-value { font-size: .81rem; color: var(--charcoal); font-weight: 400; }
-
   .ch-acc-items-title { font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
   .ch-acc-items-list { display: flex; flex-direction: column; gap: 8px; }
   .ch-acc-item-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(253,246,236,.5); border: 1px solid var(--border); border-radius: 3px; }
@@ -114,15 +89,12 @@ const orderStyles = `
   .ch-acc-item-name { font-size: .82rem; font-weight: 600; color: var(--charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
   .ch-acc-item-sub { font-size: .73rem; color: var(--muted); font-weight: 300; }
   .ch-acc-item-subtotal { font-family: 'Playfair Display', serif; font-weight: 700; font-size: .86rem; color: var(--charcoal); white-space: nowrap; flex-shrink: 0; }
-
   .ch-acc-total-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(232,114,138,.05); border: 1px solid rgba(232,114,138,.15); border-radius: 3px; }
   .ch-acc-total-label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
   .ch-acc-total-value { font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1rem; color: var(--rose); }
-
   .ch-acc-actions { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
   .ch-acc-actions-label { font-size: .65rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; flex-shrink: 0; }
 
-  /* Mobile cards */
   .ch-order-cards { display: none; flex-direction: column; gap: 14px; }
   .ch-order-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
   .ch-order-card-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); background: rgba(253,246,236,.6); }
@@ -136,16 +108,19 @@ const orderStyles = `
   .ch-order-item-info span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ch-order-thumb-sm { width: 36px; height: 36px; border-radius: 3px; object-fit: cover; border: 1px solid var(--border); display: block; flex-shrink: 0; }
   .ch-no-img-sm { width: 36px; height: 36px; border-radius: 3px; background: rgba(212,115,94,.07); display: flex; align-items: center; justify-content: center; font-size: .55rem; color: var(--muted); text-align: center; line-height: 1.2; flex-shrink: 0; }
-  .ch-order-item-line span:last-child { font-family: 'Playfair Display', serif; font-weight: 600; white-space: nowrap; }
+  .ch-order-item-line span:last-child { font-family: 'Playfair Display',serif; font-weight: 600; white-space: nowrap; }
   .ch-order-card-actions { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
   .ch-order-card-actions label { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 
   .ch-orders-empty { padding: 52px 24px; text-align: center; color: var(--muted); }
   .ch-orders-empty-emoji { font-size: 2.8rem; display: block; margin-bottom: 10px; opacity: .4; }
+  .ch-orders-empty p { font-size: .85rem; margin: 6px 0 0; }
 
   .ch-orders-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 260px; gap: 14px; color: var(--muted); font-size: .83rem; }
   .ch-orders-loader { width: 32px; height: 32px; border: 2.5px solid rgba(232,114,138,.2); border-top-color: var(--rose); border-radius: 50%; animation: oSpin .8s linear infinite; }
   @keyframes oSpin { to { transform: rotate(360deg); } }
+
+  .ch-error-box { background: rgba(192,57,43,.07); border: 1px solid rgba(192,57,43,.2); border-radius: 4px; padding: 16px 20px; margin-bottom: 20px; color: #c0392b; font-size: .82rem; display: flex; align-items: center; gap: 10px; }
 
   .ch-modal-backdrop { position: fixed; inset: 0; background: rgba(44,36,32,.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9998; padding: 16px; }
   .ch-modal-box { background: var(--warm-white); border-radius: 6px; padding: 36px 28px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 30px 80px rgba(44,36,32,.22); border: 1px solid var(--border); font-family: 'Lato',sans-serif; animation: oModalIn .22s ease; }
@@ -175,7 +150,6 @@ const orderStyles = `
 `;
 
 const statusClass = s => ({
-  pending: "ch-status-pending",
   processing: "ch-status-processing",
   shipped: "ch-status-shipped",
   delivered: "ch-status-delivered",
@@ -224,41 +198,77 @@ const Order = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/orders`);
-      if (res.ok) {
-        const data = await res.json();
-        setOrders(data);
-        if (data.length > 0) {
-          const latest = data[data.length - 1];
-          if (latest.id !== getLastSeenOrder().id) saveLastSeenOrder(latest.id);
+      setError(null);
+      const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
+      const url = `${API_BASE_URL}/orders`;
+
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
-      } else setError("Failed to fetch orders");
-    } catch { setError("Error connecting to server"); }
-    finally { setLoading(false); }
+      });
+
+      if (!res.ok) {
+        let errorMsg = `Server responded with ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          if (errorData.error) errorMsg = errorData.error;
+          if (errorData.message) errorMsg = errorData.message;
+        } catch (e) {}
+        throw new Error(errorMsg);
+      }
+
+      const data = await res.json();
+      const ordersArray = Array.isArray(data) ? data : [];
+      setOrders(ordersArray);
+
+      if (ordersArray.length > 0) {
+        const latest = ordersArray[ordersArray.length - 1];
+        if (latest.id !== getLastSeenOrder().id) saveLastSeenOrder(latest.id);
+      }
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+      setError(`Could not load orders: ${err.message}. Make sure json-server is running on ${API_BASE_URL}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateStatus = async (id, status) => {
     if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
     try {
+      const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/orders/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ status })
       });
       if (res.ok) {
         setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
         window.dispatchEvent(new CustomEvent("ordersUpdated", { detail: { id, status } }));
+      } else {
+        console.error("Failed to update status:", res.status);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("Error updating status:", e);
+    }
   };
 
   const confirmCancel = async () => {
     const { orderId } = cancelModal;
     setCancelModal({ show: false, orderId: null });
+    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
     try {
       const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ status: "Cancelled" })
       });
       if (res.ok) {
@@ -268,39 +278,120 @@ const Order = () => {
     } catch (e) { console.error(e); }
   };
 
-  // ── FIXED: optimistically remove order from state immediately on confirm ──
+  // FIXED: Read response body only once, avoid the "body stream already read" error
   const confirmDeleteOrder = async (orderId) => {
+    console.log('🗑️ Delete confirm:', { orderId: String(orderId), type: typeof orderId });
+    
     setShowDeleteModal(false);
     setDeletingOrderId(null);
-    // Remove from UI instantly — no waiting for API round-trip
-    setOrders(prev => prev.filter(o => o.id !== orderId));
-    try {
-      setNotification({ type: 'loading', message: 'Deleting order...' });
-      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, { method: "DELETE" });
-      if (res.ok) {
-        setNotification({ type: 'success', message: 'Order deleted successfully!' });
-        window.dispatchEvent(new CustomEvent("ordersUpdated", { detail: { id: orderId, deleted: true } }));
-      } else {
-        throw new Error('Delete failed');
+    setNotification({ type: 'loading', message: 'Deleting order...' });
+
+    // Optimistic removal with string ID match
+    const stringId = String(orderId);
+    console.log('🗑️ Optimistic filter using ID:', stringId);
+    const prevOrders = orders.filter(order => String(order.id) !== stringId);
+    console.log('🗑️ Orders before:', orders.length, 'after:', prevOrders.length);
+    setOrders(prevOrders);
+
+    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    };
+
+    let deleted = false;
+    let lastError = null;
+
+    // Try both endpoints with explicit JSON parsing to avoid "body stream already read"
+    const endpoints = [
+      { url: `${API_BASE_URL}/orders/${stringId}`, desc: 'API_BASE_URL' },
+      { url: `/orders/${stringId}`, desc: 'proxy' },
+      { url: `http://localhost:5000/orders/${stringId}`, desc: 'direct' }
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log('🗑️ Trying DELETE:', endpoint.url, '(' + endpoint.desc + ')');
+        const res = await fetch(endpoint.url, { 
+          method: 'DELETE', 
+          headers 
+        });
+        
+        console.log('🗑️ Response status:', res.status, 'ok:', res.ok);
+        
+        if (res.ok) {
+          console.log('✅ DELETE succeeded:', endpoint.url);
+          deleted = true;
+          break;
+        } else {
+          // Read error body only once
+          let errorBody = '';
+          try {
+            const jsonData = await res.json();
+            errorBody = JSON.stringify(jsonData);
+          } catch {
+            try {
+              errorBody = await res.text();
+            } catch {
+              errorBody = '(could not read response body)';
+            }
+          }
+          console.warn('❌ DELETE failed:', res.status, endpoint.url, '-', errorBody);
+          lastError = errorBody;
+        }
+      } catch (e) {
+        console.warn('❌ DELETE error:', e.message, endpoint.url);
+        lastError = e.message;
       }
-    } catch (e) {
-      console.error("Failed to delete order:", e);
-      setNotification({ type: 'error', message: 'Failed to delete order. Please try again.' });
-      await fetchOrders(); // Restore accurate state on failure
     }
-    setTimeout(() => setNotification(null), 4000);
+
+    if (deleted) {
+      // API success: refetch to confirm
+      await fetchOrders();
+      setNotification({ 
+        type: 'success', 
+        message: 'Order deleted successfully!' 
+      });
+      window.dispatchEvent(new CustomEvent("ordersUpdated", { 
+        detail: { id: stringId, deleted: true } 
+      }));
+    } else {
+      // API failed: restore optimistic removal and show error
+      console.error('💥 All DELETE attempts failed - restoring orders');
+      console.error('💥 Last error:', lastError);
+      await fetchOrders();
+      setNotification({ 
+        type: 'error', 
+        message: lastError || 'Failed to delete order. Please try again.' 
+      });
+    }
+
+    setTimeout(() => setNotification(null), 5000);
   };
 
   const toggleAccordion = (id) => setOpenAccordions(prev => ({ ...prev, [id]: !prev[id] }));
 
-  const fmt = ds => new Date(ds).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const fmt = ds => {
+    if (!ds) return "—";
+    try {
+      return new Date(ds).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch { return ds; }
+  };
+
   const fmtP = p => { const n = parseFloat(p); return isNaN(n) ? "0.00" : n.toFixed(2); };
-  const isDigital = m => ["gcash", "paymaya", "card"].includes(m);
+  const isDigital = m => ["gcash", "paymaya", "card"].includes((m || "").toLowerCase());
 
-  if (loading) return (<><style>{orderStyles}</style><div className="ch-orders-loading"><div className="ch-orders-loader" /><span>Loading orders…</span></div></>);
-  if (error) return (<><style>{orderStyles}</style><div className="ch-orders-empty"><span className="ch-orders-empty-emoji">⚠️</span>{error}</div></>);
+  if (loading) return (
+    <>
+      <style>{orderStyles}</style>
+      <div className="ch-orders-loading">
+        <div className="ch-orders-loader" />
+        <span>Loading orders…</span>
+      </div>
+    </>
+  );
 
-  const filtered = statusFilter === "All" ? orders : orders.filter(o => o.status === statusFilter);
+  const filtered = statusFilter === "All" ? orders : orders.filter(o => (o.status || "Processing") === statusFilter);
   const sorted = [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
@@ -310,9 +401,21 @@ const Order = () => {
       <p className="ch-orders-eyebrow">Management</p>
       <h1 className="ch-orders-title">Order <em>Management</em></h1>
 
+      {error && (
+        <div className="ch-error-box">
+          ⚠️ {error}
+        </div>
+      )}
+
       <div className="ch-order-filters">
         {["All", "Processing", "Shipped", "Delivered", "Cancelled"].map(s => (
-          <button key={s} className={`ch-filter-btn ${statusFilter === s ? "active" : ""}`} onClick={() => setStatusFilter(s)}>{s}</button>
+          <button
+            key={s}
+            className={`ch-filter-btn ${statusFilter === s ? "active" : ""}`}
+            onClick={() => setStatusFilter(s)}
+          >
+            {s} {s === "All" ? `(${orders.length})` : `(${orders.filter(o => (o.status || "Processing") === s).length})`}
+          </button>
         ))}
       </div>
 
@@ -320,39 +423,102 @@ const Order = () => {
       <div className="ch-orders-table-wrap">
         <table className="ch-orders-table">
           <thead>
-            <tr><th>Order ID</th><th>Image</th><th>Customer</th><th>Product</th><th>Total</th><th>Date</th><th>Status</th><th>Payment</th><th>Notes</th><th>Actions</th></tr>
+            <tr>
+              <th>Order ID</th>
+              <th>Image</th>
+              <th>Customer</th>
+              <th>Product</th>
+              <th>Total</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
-              <tr><td colSpan="10"><div className="ch-orders-empty"><span className="ch-orders-empty-emoji">📦</span>No orders found.</div></td></tr>
+              <tr>
+                <td colSpan="10">
+                  <div className="ch-orders-empty">
+                    <span className="ch-orders-empty-emoji">📦</span>
+                    <strong>No orders found</strong>
+                    <p>{statusFilter !== "All" ? `No ${statusFilter} orders.` : "No orders have been placed yet."}</p>
+                  </div>
+                </td>
+              </tr>
             ) : (
               sorted.flatMap(order =>
                 (order.items || []).map((item, idx) => {
                   const isFirst = idx === 0;
-                  const subtotal = item.price * item.quantity;
+                  const subtotal = (item.price || 0) * (item.quantity || 1);
+                  const orderStatus = order.status || "Processing";
                   return (
                     <tr key={`${order.id}-${idx}`}>
-                      <td>{isFirst && <span className="ch-order-id">#{order.id.slice(-6)}</span>}</td>
-                      <td>{item.selectedImage ? <img src={item.selectedImage} alt={item.name} className="ch-order-thumb" /> : <div className="ch-no-img">No img</div>}</td>
-                      <td>{isFirst && <div className="ch-customer-block"><strong>{order.customer?.fullName}</strong><span>{order.customer?.email}</span><span>{order.customer?.address}, {order.customer?.city}</span></div>}</td>
-                      <td><div className="ch-product-item-row"><span>{item.name}</span><span className="ch-item-qty">×{item.quantity}</span><span className="ch-item-price">₱{fmtP(item.price)}</span><span className="ch-item-sub">= ₱{fmtP(subtotal)}</span></div></td>
+                      <td>{isFirst && <span className="ch-order-id">#{String(order.id).slice(-6)}</span>}</td>
+                      <td>
+                        {item.selectedImage
+                          ? <img src={item.selectedImage} alt={item.name} className="ch-order-thumb" onError={e => { e.target.style.display = 'none'; }} />
+                          : <div className="ch-no-img">No img</div>
+                        }
+                      </td>
+                      <td>
+                        {isFirst && (
+                          <div className="ch-customer-block">
+                            <strong>{order.customer?.fullName || "—"}</strong>
+                            <span>{order.customer?.email || "—"}</span>
+                            <span>{[order.customer?.address, order.customer?.city].filter(Boolean).join(", ") || "—"}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div className="ch-product-item-row">
+                          <span>{item.name}</span>
+                          <span className="ch-item-qty">×{item.quantity || 1}</span>
+                          <span className="ch-item-price">₱{fmtP(item.price)}</span>
+                          <span className="ch-item-sub">= ₱{fmtP(subtotal)}</span>
+                        </div>
+                      </td>
                       <td>{isFirst && <span className="ch-order-total">₱{fmtP(order.total)}</span>}</td>
                       <td>{isFirst && <span className="ch-order-date">{fmt(order.createdAt)}</span>}</td>
-                      <td>{isFirst && <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Processing"}</span>}</td>
-                      <td>{isFirst && <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>{isDigital(order.paymentMethod) ? "Paid" : order.paymentMethod || "COD"}</span>}</td>
+                      <td>
+                        {isFirst && (
+                          <span className={`ch-status-badge ${statusClass(orderStatus)}`}>
+                            {orderStatus}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {isFirst && (
+                          <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>
+                            {isDigital(order.paymentMethod) ? "Paid" : (order.paymentMethod || "COD").toUpperCase()}
+                          </span>
+                        )}
+                      </td>
                       <td>{isFirst && <span className="ch-order-note">{order.customer?.orderNote || "—"}</span>}</td>
-                      <td>{isFirst && (
-                        order.status?.toLowerCase() !== "cancelled" ? (
-                          <select value={order.status || "Processing"} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
-                            <option value="Processing">Processing</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
-                        ) : (
-                          <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete</button>
-                        )
-                      )}</td>
+                      <td>
+                        {isFirst && (
+                          orderStatus.toLowerCase() !== "cancelled" ? (
+                            <select
+                              value={orderStatus}
+                              onChange={e => updateStatus(order.id, e.target.value)}
+                              className="ch-status-select"
+                            >
+                              <option value="Processing">Processing</option>
+                              <option value="Shipped">Shipped</option>
+                              <option value="Delivered">Delivered</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          ) : (
+                            <button
+                              onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }}
+                              className="ch-delete-btn"
+                            >
+                              Delete
+                            </button>
+                          )
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -365,17 +531,21 @@ const Order = () => {
       {/* ── Tablet accordion list ── */}
       <div className="ch-order-accordion">
         {sorted.length === 0 ? (
-          <div className="ch-orders-empty"><span className="ch-orders-empty-emoji">📦</span>No orders found.</div>
+          <div className="ch-orders-empty">
+            <span className="ch-orders-empty-emoji">📦</span>
+            <strong>No orders found</strong>
+          </div>
         ) : (
           sorted.map(order => {
             const isOpen = !!openAccordions[order.id];
+            const orderStatus = order.status || "Processing";
             return (
               <div key={order.id} className={`ch-acc-item ${isOpen ? "open" : ""}`}>
                 <div className="ch-acc-header" onClick={() => toggleAccordion(order.id)}>
-                  <span className="ch-acc-order-id">#{order.id.slice(-6)}</span>
-                  <span className="ch-acc-customer">{order.customer?.fullName}</span>
+                  <span className="ch-acc-order-id">#{String(order.id).slice(-6)}</span>
+                  <span className="ch-acc-customer">{order.customer?.fullName || "Unknown"}</span>
                   <div className="ch-acc-meta">
-                    <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Processing"}</span>
+                    <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{orderStatus}</span>
                     <span className="ch-acc-total">₱{fmtP(order.total)}</span>
                     <div className="ch-acc-chevron">▾</div>
                   </div>
@@ -385,27 +555,34 @@ const Order = () => {
                     <div className="ch-acc-info-grid">
                       <div className="ch-acc-info-row"><span className="ch-acc-info-label">Customer</span><span className="ch-acc-info-value">{order.customer?.fullName || "—"}</span></div>
                       <div className="ch-acc-info-row"><span className="ch-acc-info-label">Email</span><span className="ch-acc-info-value">{order.customer?.email || "—"}</span></div>
-                      <div className="ch-acc-info-row"><span className="ch-acc-info-label">Address</span><span className="ch-acc-info-value">{order.customer?.address ? `${order.customer.address}, ${order.customer.city}` : "—"}</span></div>
+                      <div className="ch-acc-info-row"><span className="ch-acc-info-label">Address</span><span className="ch-acc-info-value">{[order.customer?.address, order.customer?.city].filter(Boolean).join(", ") || "—"}</span></div>
                       <div className="ch-acc-info-row"><span className="ch-acc-info-label">Date</span><span className="ch-acc-info-value">{fmt(order.createdAt)}</span></div>
                       <div className="ch-acc-info-row">
                         <span className="ch-acc-info-label">Payment</span>
-                        <span className="ch-acc-info-value"><span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>{isDigital(order.paymentMethod) ? "Paid" : order.paymentMethod || "COD"}</span></span>
+                        <span className="ch-acc-info-value">
+                          <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>
+                            {isDigital(order.paymentMethod) ? "Paid" : (order.paymentMethod || "COD").toUpperCase()}
+                          </span>
+                        </span>
                       </div>
                       {order.customer?.orderNote && (
                         <div className="ch-acc-info-row"><span className="ch-acc-info-label">Note</span><span className="ch-acc-info-value" style={{ fontStyle: "italic", color: "var(--muted)" }}>{order.customer.orderNote}</span></div>
                       )}
                     </div>
                     <div>
-                      <div className="ch-acc-items-title">Order Items</div>
+                      <div className="ch-acc-items-title">Order Items ({(order.items || []).length})</div>
                       <div className="ch-acc-items-list">
                         {(order.items || []).map((item, i) => (
                           <div key={i} className="ch-acc-item-row">
-                            {item.selectedImage ? <img src={item.selectedImage} alt={item.name} className="ch-acc-item-thumb" /> : <div className="ch-acc-item-no-img">No img</div>}
+                            {item.selectedImage
+                              ? <img src={item.selectedImage} alt={item.name} className="ch-acc-item-thumb" onError={e => { e.target.style.display = 'none'; }} />
+                              : <div className="ch-acc-item-no-img">No img</div>
+                            }
                             <div className="ch-acc-item-info">
                               <div className="ch-acc-item-name">{item.name}</div>
-                              <div className="ch-acc-item-sub">×{item.quantity} · ₱{fmtP(item.price)} each</div>
+                              <div className="ch-acc-item-sub">×{item.quantity || 1} · ₱{fmtP(item.price)} each</div>
                             </div>
-                            <span className="ch-acc-item-subtotal">₱{fmtP(item.price * item.quantity)}</span>
+                            <span className="ch-acc-item-subtotal">₱{fmtP((item.price || 0) * (item.quantity || 1))}</span>
                           </div>
                         ))}
                       </div>
@@ -414,10 +591,10 @@ const Order = () => {
                       <span className="ch-acc-total-label">Order Total</span>
                       <span className="ch-acc-total-value">₱{fmtP(order.total)}</span>
                     </div>
-                    {order.status?.toLowerCase() !== "cancelled" ? (
+                    {orderStatus.toLowerCase() !== "cancelled" ? (
                       <div className="ch-acc-actions">
                         <span className="ch-acc-actions-label">Update Status:</span>
-                        <select value={order.status || "Processing"} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
+                        <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
                           <option value="Processing">Processing</option>
                           <option value="Shipped">Shipped</option>
                           <option value="Delivered">Delivered</option>
@@ -441,33 +618,40 @@ const Order = () => {
       {/* ── Mobile cards ── */}
       <div className="ch-order-cards">
         {sorted.length === 0 ? (
-          <div className="ch-orders-empty"><span className="ch-orders-empty-emoji">📦</span>No orders found.</div>
+          <div className="ch-orders-empty">
+            <span className="ch-orders-empty-emoji">📦</span>
+            <strong>No orders found</strong>
+          </div>
         ) : (
           sorted.map(order => {
+            const orderStatus = order.status || "Processing";
             return (
               <div key={order.id} className="ch-order-card">
                 <div className="ch-order-card-head">
-                  <span className="ch-order-card-id">Order #{order.id.slice(-6)}</span>
-                  <span className={`ch-status-badge ${statusClass(order.status)}`}>{order.status || "Processing"}</span>
+                  <span className="ch-order-card-id">Order #{String(order.id).slice(-6)}</span>
+                  <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{orderStatus}</span>
                 </div>
                 <div className="ch-order-card-body">
-                  <p><span>Customer: </span>{order.customer?.fullName}</p>
-                  <p><span>Email: </span>{order.customer?.email}</p>
-                  <p><span>Address: </span>{order.customer?.address}, {order.customer?.city}</p>
+                  <p><span>Customer: </span>{order.customer?.fullName || "—"}</p>
+                  <p><span>Email: </span>{order.customer?.email || "—"}</p>
+                  <p><span>Address: </span>{[order.customer?.address, order.customer?.city].filter(Boolean).join(", ") || "—"}</p>
                   <p><span>Date: </span>{fmt(order.createdAt)}</p>
                   <p><span>Payment: </span>
                     <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>
-                      {isDigital(order.paymentMethod) ? "Paid" : order.paymentMethod || "COD"}
+                      {isDigital(order.paymentMethod) ? "Paid" : (order.paymentMethod || "COD").toUpperCase()}
                     </span>
                   </p>
                   <div className="ch-order-items-preview">
-                    {order.items?.map((item, i) => (
+                    {(order.items || []).map((item, i) => (
                       <div key={i} className="ch-order-item-line">
                         <div className="ch-order-item-info">
-                          {item.selectedImage ? <img src={item.selectedImage} alt={item.name} className="ch-order-thumb-sm" /> : <div className="ch-no-img-sm">No img</div>}
-                          <span>{item.name} ×{item.quantity}</span>
+                          {item.selectedImage
+                            ? <img src={item.selectedImage} alt={item.name} className="ch-order-thumb-sm" onError={e => { e.target.style.display = 'none'; }} />
+                            : <div className="ch-no-img-sm">No img</div>
+                          }
+                          <span>{item.name} ×{item.quantity || 1}</span>
                         </div>
-                        <span>₱{fmtP(item.price * item.quantity)}</span>
+                        <span>₱{fmtP((item.price || 0) * (item.quantity || 1))}</span>
                       </div>
                     ))}
                     <div className="ch-order-item-line" style={{ borderTop: "1px solid var(--border)", paddingTop: 5, marginTop: 3 }}>
@@ -476,10 +660,10 @@ const Order = () => {
                     </div>
                   </div>
                 </div>
-                {order.status?.toLowerCase() !== "cancelled" ? (
+                {orderStatus.toLowerCase() !== "cancelled" ? (
                   <div className="ch-order-card-actions">
                     <label>Update:</label>
-                    <select value={order.status || "Processing"} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
+                    <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
                       <option value="Processing">Processing</option>
                       <option value="Shipped">Shipped</option>
                       <option value="Delivered">Delivered</option>

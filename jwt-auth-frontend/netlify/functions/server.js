@@ -217,7 +217,7 @@ app.post('/orders', (req, res) => {
       username:  decoded?.username || null,
       ...req.body,
       createdAt: new Date().toISOString(),
-      status:    "Pending",
+      status:    "Processing",
     };
     if (!db.orders) db.orders = [];
     db.orders.push(order);
@@ -266,6 +266,18 @@ app.post('/orders/:id/cancel', (req, res) => {
     writeDb(db);
     res.json(db.orders[index]);
   } catch { res.status(500).json({ error: "Failed to cancel order" }); }
+});
+
+app.delete('/orders/:id', (req, res) => {
+  try {
+    const db    = readDb();
+    const orderIdParam = String(req.params.id); // Ensure string comparison
+    const index = db.orders.findIndex(o => String(o.id) === orderIdParam);
+    if (index === -1) return res.status(404).json({ error: "Order not found" });
+    db.orders.splice(index, 1);
+    writeDb(db);
+    res.json({ success: true, message: "Order deleted successfully" });
+  } catch { res.status(500).json({ error: "Failed to delete order" }); }
 });
 
 module.exports = app;
@@ -460,7 +472,7 @@ exports.handler = async (event, context) => {
         username: decoded?.username || null,
         ...body,
         createdAt: new Date().toISOString(),
-        status:    "Pending",
+        status:    "Processing",
       };
       if (!db.orders) db.orders = [];
       db.orders.push(order); writeDb(db);
@@ -479,6 +491,13 @@ exports.handler = async (event, context) => {
       const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
       if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
       else { db.orders[i] = { ...db.orders[i], status: body.status }; writeDb(db); responseData = db.orders[i]; }
+    }
+
+    else if (p.startsWith('/orders/') && method === 'DELETE') {
+      const id = p.split('/orders/')[1];
+      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
+      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
+      else { db.orders.splice(i, 1); writeDb(db); responseData = { success: true, message: "Order deleted successfully" }; }
     }
 
     else { statusCode = 404; responseData = { error: "Not found" }; }

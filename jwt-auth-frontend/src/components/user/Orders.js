@@ -521,7 +521,7 @@ const Orders = () => {
     }
   };
 
-  const mapStatus = (s) => ({ Pending: 'to_ship', Processing: 'to_ship', Shipped: 'to_receive', Delivered: 'completed', Cancelled: 'cancelled' }[s] || 'to_ship');
+  const mapStatus = (s) => ({ Processing: 'to_ship', Shipped: 'to_receive', Delivered: 'completed', Cancelled: 'cancelled' }[s] || 'to_ship');
   const statusLabel = (s) => ({ to_pay: 'To Pay', to_ship: 'To Ship', to_receive: 'To Receive', out_for_delivery: 'Out for Delivery', completed: 'Completed', cancelled: 'Cancelled' }[s] || s);
   const statusColor = (s) => ({ to_pay: '#e8a45a', to_ship: '#3b82f6', to_receive: '#8b5cf6', out_for_delivery: '#d4735e', completed: '#8aab8e', cancelled: '#8a7a74' }[s] || '#8a7a74');
   const fmt = (p) => `₱${parseFloat(p).toFixed(2)}`;
