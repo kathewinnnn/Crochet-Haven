@@ -1079,6 +1079,25 @@ const checkoutStyles = `
   .ch-sa-change-btn:hover { background: rgba(232,114,138,0.08); }
 
   /* ── Responsive ── */
+
+  /* -- Modal field errors -- */
+  .ch-sa-field-error {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--error);
+    margin-top: 3px;
+    animation: coErrorSlide 0.18s ease forwards;
+  }
+  .ch-sa-field-error::before { content: "!"; font-size: 0.65rem; flex-shrink: 0; font-weight: 900; }
+  .ch-sa-input-error {
+    border-color: var(--error-border) !important;
+    background: var(--error-bg) !important;
+    box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.07) !important;
+  }
+
   @media (max-width: 900px) {
     .ch-co-page { margin-left: 0; }
     .ch-co-main { padding: 40px 24px 60px; }
@@ -1232,11 +1251,31 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
       ? { fullName: initial.fullName, email: initial.email, phone: initial.phone, address: initial.address, city: initial.city, zipCode: initial.zipCode }
       : { ...emptyShipping }
   );
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    // Clear error on change
+    setFieldErrors(prev => ({ ...prev, [e.target.name]: '' }));
+  };
 
   const handleSave = () => {
-    if (!form.fullName.trim()) { alert('Full name is required.'); return; }
+    const errors = {};
+    if (!form.fullName.trim())  errors.fullName  = 'Full name is required.';
+    if (!form.email.trim())     errors.email     = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Enter a valid email address.';
+    if (!form.phone.trim())     errors.phone     = 'Phone number is required.';
+    else if (validateMobileNumber(form.phone)) errors.phone = validateMobileNumber(form.phone);
+    if (!form.address.trim())   errors.address   = 'Address is required.';
+    if (!form.city.trim())      errors.city      = 'City / Province is required.';
+    if (!form.zipCode.trim())   errors.zipCode   = 'ZIP code is required.';
+    else if (!/^\d{4}$/.test(form.zipCode.trim())) errors.zipCode = 'ZIP code must be 4 digits.';
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
     onSave({
       id: initial?.id || Date.now().toString(),
       type,
@@ -1271,59 +1310,112 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
           </button>
         </div>
 
-        {/* Nickname */}
+        {/* Nickname — optional */}
         <div className="ch-co-form-group" style={{ marginBottom: 16 }}>
           <label className="ch-co-label" htmlFor="sa-nickname">
-            Label
+            Label / Nickname
+            <span style={{ opacity: 0.5, fontWeight: 300, textTransform: 'none', letterSpacing: 0, marginLeft: 6 }}>
+              (optional — e.g. "Mom", "Office", "Kaye")
+            </span>
           </label>
           <input
             className="ch-co-input"
             style={{ width: '95%' }}
             id="sa-nickname"
-            placeholder={type === 'friend' ? "Home, Work, Dorm, etc." : "Home, Work, Dorm, etc."}
+            placeholder={type === 'friend' ? "Friend's nickname" : "Home, Work, etc."}
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
           />
         </div>
 
-        {/* Shipping fields */}
+        {/* Full Name */}
         <div className="ch-co-form-group">
           <label className="ch-co-label" htmlFor="sa-fullName">
             {type === 'friend' ? "Recipient's Full Name" : 'Full Name'}
+            <span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
           </label>
-          <input className="ch-co-input" style={{ width: '95%' }} id="sa-fullName" name="fullName"
-            placeholder="Full name" value={form.fullName} onChange={handleChange} />
+          <input
+            className={`ch-co-input${fieldErrors.fullName ? ' ch-sa-input-error' : ''}`}
+            style={{ width: '95%' }} id="sa-fullName" name="fullName"
+            placeholder="Full name" value={form.fullName} onChange={handleChange}
+          />
+          {fieldErrors.fullName && (
+            <span className="ch-sa-field-error">{fieldErrors.fullName}</span>
+          )}
         </div>
 
-        <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+        {/* Email + Phone row */}
+        <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
-            <label className="ch-co-label" htmlFor="sa-email">Email</label>
-            <input className="ch-co-input" id="sa-email" name="email"
-              placeholder="you@email.com" type="email" value={form.email} onChange={handleChange} />
+            <label className="ch-co-label" htmlFor="sa-email">
+              Email<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+            </label>
+            <input
+              className={`ch-co-input${fieldErrors.email ? ' ch-sa-input-error' : ''}`}
+              id="sa-email" name="email"
+              placeholder="you@email.com" type="email" value={form.email} onChange={handleChange}
+            />
+            {fieldErrors.email && (
+              <span className="ch-sa-field-error">{fieldErrors.email}</span>
+            )}
           </div>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
-            <label className="ch-co-label" htmlFor="sa-phone">Phone</label>
-            <input className="ch-co-input" style={{ width: '90%' }} id="sa-phone" name="phone"
-              placeholder="09XXXXXXXXX" type="tel" value={form.phone} onChange={handleChange} />
+            <label className="ch-co-label" htmlFor="sa-phone">
+              Phone<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+            </label>
+            <input
+              className={`ch-co-input${fieldErrors.phone ? ' ch-sa-input-error' : ''}`}
+              style={{ width: '90%' }} id="sa-phone" name="phone"
+              placeholder="09XXXXXXXXX" type="tel" value={form.phone} onChange={handleChange}
+            />
+            {fieldErrors.phone && (
+              <span className="ch-sa-field-error">{fieldErrors.phone}</span>
+            )}
           </div>
         </div>
 
-        <div className="ch-co-form-group">
-          <label className="ch-co-label" htmlFor="sa-address">Address</label>
-          <input className="ch-co-input" style={{ width: '95%' }} id="sa-address" name="address"
-            placeholder="Street address" value={form.address} onChange={handleChange} />
+        {/* Address */}
+        <div className="ch-co-form-group" style={{ marginTop: 10 }}>
+          <label className="ch-co-label" htmlFor="sa-address">
+            Address<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+          </label>
+          <input
+            className={`ch-co-input${fieldErrors.address ? ' ch-sa-input-error' : ''}`}
+            style={{ width: '95%' }} id="sa-address" name="address"
+            placeholder="Street address" value={form.address} onChange={handleChange}
+          />
+          {fieldErrors.address && (
+            <span className="ch-sa-field-error">{fieldErrors.address}</span>
+          )}
         </div>
 
+        {/* City + ZIP row */}
         <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
-            <label className="ch-co-label" htmlFor="sa-city">City / Province</label>
-            <input className="ch-co-input" id="sa-city" name="city"
-              placeholder="City" value={form.city} onChange={handleChange} />
+            <label className="ch-co-label" htmlFor="sa-city">
+              City / Province<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+            </label>
+            <input
+              className={`ch-co-input${fieldErrors.city ? ' ch-sa-input-error' : ''}`}
+              id="sa-city" name="city"
+              placeholder="City" value={form.city} onChange={handleChange}
+            />
+            {fieldErrors.city && (
+              <span className="ch-sa-field-error">{fieldErrors.city}</span>
+            )}
           </div>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
-            <label className="ch-co-label" htmlFor="sa-zip">ZIP Code</label>
-            <input className="ch-co-input" style={{ width: '88%' }} id="sa-zip" name="zipCode"
-              placeholder="0000" value={form.zipCode} onChange={handleChange} />
+            <label className="ch-co-label" htmlFor="sa-zip">
+              ZIP Code<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+            </label>
+            <input
+              className={`ch-co-input${fieldErrors.zipCode ? ' ch-sa-input-error' : ''}`}
+              style={{ width: '88%' }} id="sa-zip" name="zipCode"
+              placeholder="0000" value={form.zipCode} onChange={handleChange}
+            />
+            {fieldErrors.zipCode && (
+              <span className="ch-sa-field-error">{fieldErrors.zipCode}</span>
+            )}
           </div>
         </div>
 
@@ -1364,6 +1456,7 @@ const Checkout = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [mobileErrors, setMobileErrors] = useState({ gcashNumber: '', paymayaNumber: '' });
+  const [shippingErrors, setShippingErrors] = useState({});
 
   // ── Auth guard ──
   useEffect(() => {
@@ -1401,6 +1494,7 @@ const Checkout = () => {
       zipCode: addr.zipCode || '',
     }));
     setWantToSave(false);
+    setShippingErrors({});  // clear any stale errors when address is selected
   };
 
   // ── Deselect (fill manually) ──
@@ -1445,6 +1539,24 @@ const Checkout = () => {
     setShowModal(true);
   };
 
+  const validateShippingField = (name, value) => {
+    switch (name) {
+      case 'fullName':  return value.trim() ? '' : 'Full name is required.';
+      case 'email':
+        if (!value.trim()) return 'Email is required.';
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? '' : 'Enter a valid email address.';
+      case 'phone':
+        if (!value.trim()) return 'Phone number is required.';
+        return validateMobileNumber(value) || '';
+      case 'address': return value.trim() ? '' : 'Address is required.';
+      case 'city':    return value.trim() ? '' : 'City / Province is required.';
+      case 'zipCode':
+        if (!value.trim()) return 'ZIP code is required.';
+        return /^\d{4}$/.test(value.trim()) ? '' : 'ZIP code must be 4 digits.';
+      default: return '';
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -1454,10 +1566,28 @@ const Checkout = () => {
     if (name === 'paymentMethod') {
       setMobileErrors({ gcashNumber: '', paymayaNumber: '' });
     }
-    // If user manually changes a shipping field, deselect the saved address
+    // If user manually changes a shipping field, deselect saved address + live-validate
     if (['fullName', 'email', 'phone', 'address', 'city', 'zipCode'].includes(name)) {
       setSelectedAddressId(null);
+      // Only show error if field was already touched (had an error before)
+      setShippingErrors(prev => {
+        if (name in prev) {
+          return { ...prev, [name]: validateShippingField(name, value) };
+        }
+        return prev;
+      });
     }
+  };
+
+  const validateAllShipping = () => {
+    const shippingFields = ['fullName', 'email', 'phone', 'address', 'city', 'zipCode'];
+    const errors = {};
+    shippingFields.forEach(f => {
+      const msg = validateShippingField(f, formData[f]);
+      if (msg) errors[f] = msg;
+    });
+    setShippingErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const activeMobileField = formData.paymentMethod === 'gcash'
@@ -1474,6 +1604,9 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate shipping fields first
+    if (!validateAllShipping()) return;
 
     if (activeMobileField) {
       const currentValue = formData[activeMobileField];
@@ -1740,44 +1873,98 @@ const Checkout = () => {
                       )}
 
                       <div className="ch-co-form-group">
-                        <label className="ch-co-label" htmlFor="fullName">Full Name</label>
-                        <input style={{ width: '95%' }} className="ch-co-input" type="text"
-                          id="fullName" name="fullName" value={formData.fullName}
-                          onChange={handleChange} required placeholder="Your full name" />
+                        <label className="ch-co-label" htmlFor="fullName">
+                          Full Name<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+                        </label>
+                        <input
+                          style={{ width: '95%' }}
+                          className={`ch-co-input${shippingErrors.fullName ? ' has-error' : ''}`}
+                          type="text" id="fullName" name="fullName"
+                          value={formData.fullName} onChange={handleChange}
+                          required placeholder="Your full name"
+                        />
+                        {shippingErrors.fullName && (
+                          <span className="ch-co-field-error">{shippingErrors.fullName}</span>
+                        )}
                       </div>
 
                       <div className="ch-co-form-row">
                         <div className="ch-co-form-group">
-                          <label className="ch-co-label" htmlFor="email">Email</label>
-                          <input className="ch-co-input" type="email" id="email" name="email"
-                            value={formData.email} onChange={handleChange} required placeholder="you@email.com" />
+                          <label className="ch-co-label" htmlFor="email">
+                            Email<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+                          </label>
+                          <input
+                            className={`ch-co-input${shippingErrors.email ? ' has-error' : ''}`}
+                            type="email" id="email" name="email"
+                            value={formData.email} onChange={handleChange}
+                            required placeholder="you@email.com"
+                          />
+                          {shippingErrors.email && (
+                            <span className="ch-co-field-error">{shippingErrors.email}</span>
+                          )}
                         </div>
                         <div className="ch-co-form-group">
-                          <label className="ch-co-label" htmlFor="phone">Phone</label>
-                          <input style={{ width: '90%' }} className="ch-co-input" type="tel"
-                            id="phone" name="phone" value={formData.phone}
-                            onChange={handleChange} required placeholder="+63 912 345 6789" />
+                          <label className="ch-co-label" htmlFor="phone">
+                            Phone<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+                          </label>
+                          <input
+                            style={{ width: '90%' }}
+                            className={`ch-co-input${shippingErrors.phone ? ' has-error' : ''}`}
+                            type="tel" id="phone" name="phone"
+                            value={formData.phone} onChange={handleChange}
+                            required placeholder="+63 912 345 6789"
+                          />
+                          {shippingErrors.phone && (
+                            <span className="ch-co-field-error">{shippingErrors.phone}</span>
+                          )}
                         </div>
                       </div>
 
                       <div className="ch-co-form-group">
-                        <label className="ch-co-label" htmlFor="address">Address</label>
-                        <input style={{ width: '95%' }} className="ch-co-input" type="text"
-                          id="address" name="address" value={formData.address}
-                          onChange={handleChange} required placeholder="Street address" />
+                        <label className="ch-co-label" htmlFor="address">
+                          Address<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+                        </label>
+                        <input
+                          style={{ width: '95%' }}
+                          className={`ch-co-input${shippingErrors.address ? ' has-error' : ''}`}
+                          type="text" id="address" name="address"
+                          value={formData.address} onChange={handleChange}
+                          required placeholder="Street address"
+                        />
+                        {shippingErrors.address && (
+                          <span className="ch-co-field-error">{shippingErrors.address}</span>
+                        )}
                       </div>
 
                       <div className="ch-co-form-row">
                         <div className="ch-co-form-group">
-                          <label className="ch-co-label" htmlFor="city">City / Province</label>
-                          <input className="ch-co-input" type="text" id="city" name="city"
-                            value={formData.city} onChange={handleChange} required placeholder="City" />
+                          <label className="ch-co-label" htmlFor="city">
+                            City / Province<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+                          </label>
+                          <input
+                            className={`ch-co-input${shippingErrors.city ? ' has-error' : ''}`}
+                            type="text" id="city" name="city"
+                            value={formData.city} onChange={handleChange}
+                            required placeholder="City"
+                          />
+                          {shippingErrors.city && (
+                            <span className="ch-co-field-error">{shippingErrors.city}</span>
+                          )}
                         </div>
                         <div className="ch-co-form-group">
-                          <label className="ch-co-label" htmlFor="zipCode">ZIP Code</label>
-                          <input style={{ width: '90%' }} className="ch-co-input" type="text"
-                            id="zipCode" name="zipCode" value={formData.zipCode}
-                            onChange={handleChange} required placeholder="0000" />
+                          <label className="ch-co-label" htmlFor="zipCode">
+                            ZIP Code<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
+                          </label>
+                          <input
+                            style={{ width: '90%' }}
+                            className={`ch-co-input${shippingErrors.zipCode ? ' has-error' : ''}`}
+                            type="text" id="zipCode" name="zipCode"
+                            value={formData.zipCode} onChange={handleChange}
+                            required placeholder="0000"
+                          />
+                          {shippingErrors.zipCode && (
+                            <span className="ch-co-field-error">{shippingErrors.zipCode}</span>
+                          )}
                         </div>
                       </div>
 
