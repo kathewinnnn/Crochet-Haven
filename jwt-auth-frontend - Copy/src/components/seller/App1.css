@@ -1,0 +1,460 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Crochet Shop Styles */
+.shop-container {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #fce4ec, #f8bbd9);
+}
+
+.shop-header {
+  background-color: #fce4ec;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem 0;
+}
+
+.header-content {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.shop-title {
+  font-size: 2.25rem;
+  font-weight: bold;
+  text-align: center;
+  color: #e91e63;
+}
+
+.shop-subtitle {
+  text-align: center;
+  color: #c2185b;
+  margin-top: 0.5rem;
+}
+
+.main-content {
+  padding: 1.5rem;
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.add-product-form {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  border: 1px solid #f8bbd9;
+}
+
+.form-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #e91e63;
+  text-align: center;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #c2185b;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  border: 1px solid #f8bbd9;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #e91e63;
+  box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
+}
+
+.add-button {
+  background-color: #e91e63;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  margin-top: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.add-button:hover {
+  background-color: #c2185b;
+}
+
+.products-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.category-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #e91e63;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #f8bbd9;
+  padding-bottom: 0.5rem;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.product-card {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border: 1px solid #f8bbd9;
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.edit-input {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  width: 100%;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.save-button {
+  background-color: #16a34a;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.save-button:hover {
+  background-color: #15803d;
+}
+
+.cancel-button {
+  background-color: #6b7280;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background-color: #4b5563;
+}
+
+.product-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.product-description {
+  color: #4b5563;
+}
+
+.product-price {
+  color: #e91e63;
+  font-weight: bold;
+}
+
+.edit-button {
+  background-color: #eab308;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-button:hover {
+  background-color: #ca8a04;
+}
+
+.delete-button {
+  background-color: #dc2626;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  background-color: #b91c1c;
+}
+
+.view-image-button {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+}
+
+.view-image-button:hover {
+  background-color: #1d4ed8;
+}
+
+.image-nav-group {
+  display: flex;
+  justify-content: space-between;
+  margin: 1rem 0;
+}
+
+.nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  color: #e91e63;
+  border: 2px solid #e91e63;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+  background: rgba(233, 30, 99, 0.1);
+}
+
+.nav-button.prev {
+  left: 10px;
+}
+
+.nav-button.next {
+  right: 10px;
+}
+
+.shop-footer {
+  background-color: #fce4ec;
+  padding: 1.5rem 0;
+  margin-top: 3rem;
+}
+
+.footer-content {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  text-align: center;
+  color: #c2185b;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #fef3c7;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  border: 1px solid #fed7aa;
+  position: relative;
+}
+
+.delete-confirm-button {
+  background-color: #dc2626;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.delete-confirm-button:hover {
+  background-color: #b91c1c;
+}
+
+.view-images-button {
+  background-color: #f59e0b;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.view-images-button:hover {
+  background-color: #d97706;
+}
+
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.image-container:hover .product-image {
+  transform: scale(1.05);
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  color: white;
+}
+
+.image-container:hover .image-overlay {
+  opacity: 1;
+}
+
+.overlay-name {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.overlay-price {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #fbbf24;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-title {
+    font-size: 1.8rem;
+  }
+
+  .add-product-form {
+    padding: 1.5rem;
+  }
+
+  .product-card {
+    padding: 1rem;
+  }
+}
