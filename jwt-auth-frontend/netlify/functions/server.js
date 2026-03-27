@@ -10,7 +10,33 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
-const dbPath = path.join(__dirname, '../../db.json');
+
+// For Netlify functions, we need to find the db.json from the project root
+// In local dev: process.cwd() = project root
+// In Netlify: /var/task is typically the project root
+const getDbPath = () => {
+  const possiblePaths = [
+    path.join(process.cwd(), 'db.json'),                    // project root
+    path.join(__dirname, 'db.json'),                       // netlify/functions folder
+    path.join(__dirname, '../db.json'),                    // relative to functions
+    path.join(__dirname, '../../db.json'),                 // from root
+    path.join(__dirname, '../../build/db.json'),           // build folder
+  ];
+  
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        console.log('Found db.json at:', p);
+        return p;
+      }
+    } catch {}
+  }
+  
+  console.log('Warning: db.json not found in any location');
+  return path.join(process.cwd(), 'db.json'); // fallback
+};
+
+const dbPath = getDbPath();
 
 const PORT = process.env.PORT || 5000;
 

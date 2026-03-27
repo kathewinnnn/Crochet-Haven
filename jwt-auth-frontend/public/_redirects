@@ -3,3 +3,6 @@
 # Required for React Router to work properly
 
 /*    /index.html   200
+
+# API redirect - forward /api/* to Netlify function
+/api/*   /.netlify/functions/server/:splat   200
