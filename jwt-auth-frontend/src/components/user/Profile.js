@@ -403,13 +403,14 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, password }), // Backend only needs password (uses req.user.id from token)
       });
 
       const data = await res.json().catch(() => ({}));
+      console.log("Delete response:", { status: res.status, data }); // Debug log
 
       if (!res.ok) {
-        const msg = data.message || data.error || "Deletion failed. Please try again.";
+        const msg = data.message || `Server error ${res.status}`;
         setIsDeleting(false);
         setStep(2);
         setPwdError(msg);

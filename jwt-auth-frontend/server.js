@@ -10,7 +10,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
-const dbPath = path.join(__dirname, '../db.json');
+const dbPath = path.join(__dirname, 'db.json');
+
+const PORT = process.env.PORT || 5000;
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 const readDb = () => {
@@ -467,3 +469,8 @@ exports.handler = async (event, context) => {
     body: JSON.stringify(responseData),
   };
 };
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -1,9 +1,15 @@
 [build]
   command = "npm run build"
   publish = "build"
-  environment = { NODE_VERSION = "18", REACT_APP_API_URL = "https://crochet-haven-r62p.onrender.com" }
+  functions = "netlify/functions"
+  environment = { NODE_VERSION = "18" }
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
   status = 200
