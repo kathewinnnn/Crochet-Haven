@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from '../../context/CartContext';
 import API_BASE_URL from '../../apiConfig';
 
@@ -587,7 +587,7 @@ const sharedStyles = `
   }
 
   .ch-btn-add-main {
-    flex: 2;
+    flex: 1;
     padding: 16px 28px;
     background: var(--charcoal);
     color: var(--cream);
@@ -619,10 +619,10 @@ const sharedStyles = `
 
   .ch-btn-close {
     flex: 1;
-    padding: 16px 20px;
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border);
+    padding: 16px 28px;
+    background: var(--rose);
+    color: var(--cream);
+    border: none;
     border-radius: 2px;
     font-family: 'Lato', sans-serif;
     font-size: 0.82rem;
@@ -633,7 +633,7 @@ const sharedStyles = `
     transition: all 0.2s ease;
   }
 
-  .ch-btn-close:hover { border-color: var(--muted); color: var(--charcoal); }
+  .ch-btn-close:hover { background: var(--deep-rose); }
 
   .ch-select-body {
     padding: 40px;
@@ -940,10 +940,9 @@ const sharedStyles = `
 
   /* ═══════════════════════════════════════
      SHARED CAROUSEL CONTROL STYLES
-     (used on both tablet and mobile)
   ═══════════════════════════════════════ */
   .ch-carousel-controls {
-    display: none; /* shown via media queries below */
+    display: none;
   }
 
   .ch-carousel-arrow {
@@ -1011,48 +1010,22 @@ const sharedStyles = `
     .ch-banner-title { font-size: 1.8rem; }
   }
 
-  /* ─── TABLET (769px – 1024px) ─── */
   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-page { margin-left: 240px; }
-    .ch-header-inner, .ch-page-banner, .ch-products-body { padding-left: 30px; padding-right: 30px; }
+    .ch-page { margin-left: 160px; }
+    .ch-header-inner, .ch-page-banner, .ch-products-body { padding-left: 24px; padding-right: 24px; }
     .ch-banner-title { font-size: 2rem; }
     .ch-intro-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
     .ch-intro-stats { border-left: none; border-top: 1px solid var(--border); padding-top: 16px; width: 100%; justify-content: space-around; }
     .ch-intro-stat { border-right: none; padding: 0 16px; }
-    .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
-
-    /* ── Show carousel controls on tablet ── */
-    .ch-carousel-controls {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 14px 0 4px;
-    }
-
-    .ch-carousel-arrow {
-      width: 34px;
-      height: 34px;
-      font-size: 1.1rem;
-    }
-
-    .ch-carousel-dot {
-      width: 7px;
-      height: 7px;
-    }
-
-    .ch-carousel-dot.active {
-      width: 20px;
-    }
-
-    /* Hide native scrollbar since we have controls */
-    .ch-products-row {
-      scrollbar-width: none;
-    }
+    .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+    .ch-carousel-controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 0 4px; }
+    .ch-carousel-arrow { width: 34px; height: 34px; font-size: 1.1rem; }
+    .ch-carousel-dot { width: 7px; height: 7px; }
+    .ch-carousel-dot.active { width: 20px; }
+    .ch-products-row { scrollbar-width: none; }
     .ch-products-row::-webkit-scrollbar { display: none; }
   }
 
-  /* ─── MOBILE (≤768px) ─── */
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
@@ -1074,38 +1047,13 @@ const sharedStyles = `
     .ch-qv-actions { flex-direction: column; }
     .ch-qv-name { font-size: 1.3rem; }
     .ch-select-body { padding: 20px; }
-    .ch-banner-title { font-size: 1.7rem; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
     .ch-section-count { width: 25%; }
-
-    /* ── Show carousel controls on mobile ── */
-    .ch-carousel-controls {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 10px 0 2px;
-    }
-
-    .ch-carousel-arrow {
-      width: 28px;
-      height: 28px;
-      font-size: 0.85rem;
-    }
-
-    .ch-carousel-dot {
-      width: 6px;
-      height: 6px;
-    }
-
-    .ch-carousel-dot.active {
-      width: 16px;
-    }
-
-    /* Hide native scrollbar on mobile */
-    .ch-products-row {
-      scrollbar-width: none;
-    }
+    .ch-carousel-controls { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 0 2px; }
+    .ch-carousel-arrow { width: 28px; height: 28px; font-size: 0.85rem; }
+    .ch-carousel-dot { width: 6px; height: 6px; }
+    .ch-carousel-dot.active { width: 16px; }
+    .ch-products-row { scrollbar-width: none; }
     .ch-products-row::-webkit-scrollbar { display: none; }
   }
 
@@ -1113,22 +1061,6 @@ const sharedStyles = `
     .ch-product-card { flex: 0 0 175px; }
     .ch-image-grid { grid-template-columns: repeat(2, 1fr); }
   }
-
-  @media (max-width: 1024px) and (min-width: 769px) {
-  .ch-page { margin-left: 160px; }
-  .ch-header-inner, .ch-page-banner, .ch-products-body { padding-left: 24px; padding-right: 24px; }
-  .ch-banner-title { font-size: 2rem; }
-  .ch-intro-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .ch-intro-stats { border-left: none; border-top: 1px solid var(--border); padding-top: 16px; width: 100%; justify-content: space-around; }
-  .ch-intro-stat { border-right: none; padding: 0 16px; }
-  .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
-  .ch-carousel-controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 0 4px; }
-  .ch-carousel-arrow { width: 34px; height: 34px; font-size: 1.1rem; }
-  .ch-carousel-dot { width: 7px; height: 7px; }
-  .ch-carousel-dot.active { width: 20px; }
-  .ch-products-row { scrollbar-width: none; }
-  .ch-products-row::-webkit-scrollbar { display: none; }
-}
 `;
 
 /* ─── CategoryCarousel ─── */
@@ -1188,7 +1120,6 @@ const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onA
         ))}
       </div>
 
-      {/* Controls — CSS shows these on tablet + mobile, hides on desktop */}
       <div className="ch-carousel-controls" aria-hidden="true">
         <button
           className="ch-carousel-arrow"
@@ -1198,7 +1129,6 @@ const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onA
         >
           ‹
         </button>
-
         <div className="ch-carousel-dots">
           {products.map((_, idx) => (
             <span
@@ -1207,7 +1137,6 @@ const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onA
             />
           ))}
         </div>
-
         <button
           className="ch-carousel-arrow"
           onClick={goNext}
@@ -1223,6 +1152,7 @@ const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onA
 
 const Products = () => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -1286,6 +1216,18 @@ const Products = () => {
       addToCart({ ...productToShow, selectedImage: productToShow.images[selectedImageIndex] });
     }
     closeImageModal();
+  };
+
+  // ── Buy Now: add item to cart then navigate directly to checkout via router state ──
+  const handleBuyNow = (product, imageIndex) => {
+    const item = {
+      ...product,
+      selectedImage: product.images[imageIndex],
+      quantity: 1,
+    };
+    addToCart(item);
+    setShowQuickViewModal(false);
+    navigate('/user/checkout', { state: { buyNowItem: item } });
   };
 
   const Header = () => (
@@ -1412,7 +1354,11 @@ const Products = () => {
                 <div className="ch-select-label">Choose a Variant</div>
                 <div className="ch-image-grid">
                   {productToShow.images?.map((img, idx) => (
-                    <div key={idx} className={`ch-image-option ${selectedImageIndex === idx ? 'selected' : ''}`} onClick={() => setSelectedImageIndex(idx)}>
+                    <div
+                      key={idx}
+                      className={`ch-image-option ${selectedImageIndex === idx ? 'selected' : ''}`}
+                      onClick={() => setSelectedImageIndex(idx)}
+                    >
                       <img src={img} alt={`Variant ${idx + 1}`} />
                       <span className="ch-image-option-lbl">Var {idx + 1}</span>
                       {selectedImageIndex === idx && <div className="ch-selected-check">✓</div>}
@@ -1432,7 +1378,11 @@ const Products = () => {
                 )}
 
                 <span className="ch-select-price">₱{Number(productToShow.price).toFixed(2)}</span>
-                <button className="ch-submit-btn" onClick={handleSubmitAddToCart} disabled={selectedImageIndex === null}>
+                <button
+                  className="ch-submit-btn"
+                  onClick={handleSubmitAddToCart}
+                  disabled={selectedImageIndex === null}
+                >
                   <span>Add to Cart</span>
                 </button>
               </div>
@@ -1449,13 +1399,23 @@ const Products = () => {
                 <img src={productToShow.images[currentImageIndex]} alt={productToShow.name} />
                 {productToShow.images.length > 1 && (
                   <>
-                    <button className="ch-qv-nav ch-qv-nav-prev" onClick={() => setCurrentImageIndex((currentImageIndex - 1 + productToShow.images.length) % productToShow.images.length)}>❮</button>
-                    <button className="ch-qv-nav ch-qv-nav-next" onClick={() => setCurrentImageIndex((currentImageIndex + 1) % productToShow.images.length)}>❯</button>
+                    <button
+                      className="ch-qv-nav ch-qv-nav-prev"
+                      onClick={() => setCurrentImageIndex((currentImageIndex - 1 + productToShow.images.length) % productToShow.images.length)}
+                    >❮</button>
+                    <button
+                      className="ch-qv-nav ch-qv-nav-next"
+                      onClick={() => setCurrentImageIndex((currentImageIndex + 1) % productToShow.images.length)}
+                    >❯</button>
                   </>
                 )}
                 <div className="ch-qv-dots">
                   {productToShow.images.map((_, idx) => (
-                    <button key={idx} className={`ch-dot ${idx === currentImageIndex ? 'active' : ''}`} onClick={() => setCurrentImageIndex(idx)} />
+                    <button
+                      key={idx}
+                      className={`ch-dot ${idx === currentImageIndex ? 'active' : ''}`}
+                      onClick={() => setCurrentImageIndex(idx)}
+                    />
                   ))}
                 </div>
               </div>
@@ -1465,10 +1425,22 @@ const Products = () => {
                 <p className="ch-qv-desc">{productToShow.description}</p>
                 <span className="ch-qv-price">₱{Number(productToShow.price).toFixed(2)}</span>
                 <div className="ch-qv-actions">
-                  <button className="ch-btn-add-main" onClick={() => { addToCart({ ...productToShow, selectedImage: productToShow.images[currentImageIndex] }); setShowQuickViewModal(false); }}>
+                  {/* ── Buy Now: skip cart page, go directly to checkout ── */}
+                  <button
+                    className="ch-btn-close"
+                    onClick={() => handleBuyNow(productToShow, currentImageIndex)}
+                  >
+                    Buy Now
+                  </button>
+                  <button
+                    className="ch-btn-add-main"
+                    onClick={() => {
+                      addToCart({ ...productToShow, selectedImage: productToShow.images[currentImageIndex] });
+                      setShowQuickViewModal(false);
+                    }}
+                  >
                     <span>Add to Cart</span>
                   </button>
-                  <button className="ch-btn-close" onClick={() => setShowQuickViewModal(false)}>Close</button>
                 </div>
               </div>
             </div>

@@ -766,9 +766,16 @@ const UserSettings = () => {
   const [twoFAPhone, setTwoFAPhone] = useState('');
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
-  const [twoFAStep, setTwoFAStep] = useState(1); 
+  const [twoFAStep, setTwoFAStep] = useState(1);
   const [twoFAError, setTwoFAError] = useState('');
   const [sending, setSending] = useState(false);
+
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const navRef = useRef(null);
 
@@ -863,6 +870,53 @@ const UserSettings = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  // Password change handlers
+  const handlePasswordChange = (field, value) => {
+    setPasswords(p => ({ ...p, [field]: value }));
+    setPasswordError('');
+    setPasswordSuccess('');
+  };
+
+  const handleChangePassword = async () => {
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    if (passwords.newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/change-password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordSuccess(data.message);
+        setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setTimeout(() => { setShowPasswordForm(false); setPasswordSuccess(''); }, 2000);
+      } else {
+        setPasswordError(data.message);
+      }
+    } catch {
+      setPasswordError('Failed. Please try again.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const resetPasswordForm = () => {
+    setShowPasswordForm(false);
+    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordError('');
+    setPasswordSuccess('');
   };
 
   const navItems = [
@@ -1110,6 +1164,72 @@ const UserSettings = () => {
                           </div>
                         </>
                       )}
+                    </div>
+                  )}
+
+                  {/* Password Change Section */}
+                  {!showPasswordForm && (
+                    <div className="ch-setting-item">
+                      <div className="ch-setting-info">
+                        <h4>Change Password</h4>
+                        <p>Update your account password to keep your account secure</p>
+                      </div>
+                      <button className="ch-twofa-btn primary" onClick={() => setShowPasswordForm(true)} style={{ padding: '10px 20px' }}>
+                        <span>🔑 Change Password</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {showPasswordForm && (
+                    <div className="ch-twofa-panel">
+                      <h4>🔑 Change Your Password</h4>
+                      <p>Enter your current password and choose a new one.</p>
+
+                      <div style={{ marginBottom: 14 }}>
+                        <label style={{ display: 'block', fontSize: '0.67rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 6 }}>Current Password</label>
+                        <input
+                          type="password"
+                          className="ch-twofa-input"
+                          style={{ maxWidth: '100%' }}
+                          value={passwords.currentPassword}
+                          onChange={e => handlePasswordChange('currentPassword', e.target.value)}
+                          placeholder="••••••••"
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: 14 }}>
+                        <label style={{ display: 'block', fontSize: '0.67rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 6 }}>New Password</label>
+                        <input
+                          type="password"
+                          className="ch-twofa-input"
+                          style={{ maxWidth: '100%' }}
+                          value={passwords.newPassword}
+                          onChange={e => handlePasswordChange('newPassword', e.target.value)}
+                          placeholder="••••••••"
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: 14 }}>
+                        <label style={{ display: 'block', fontSize: '0.67rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 6 }}>Confirm New Password</label>
+                        <input
+                          type="password"
+                          className="ch-twofa-input"
+                          style={{ maxWidth: '100%' }}
+                          value={passwords.confirmPassword}
+                          onChange={e => handlePasswordChange('confirmPassword', e.target.value)}
+                          placeholder="••••••••"
+                        />
+                      </div>
+
+                      {passwordError && <div className="ch-twofa-error">⚠ {passwordError}</div>}
+                      {passwordSuccess && <div style={{ fontSize: '0.78rem', color: '#065f46', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>✓ {passwordSuccess}</div>}
+
+                      <div className="ch-twofa-actions">
+                        <button className="ch-twofa-btn secondary" onClick={resetPasswordForm}>Cancel</button>
+                        <button className="ch-twofa-btn primary" onClick={handleChangePassword} disabled={savingPassword}>
+                          <span>{savingPassword ? 'Saving…' : '💾 Save Password'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 

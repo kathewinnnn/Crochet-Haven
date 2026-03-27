@@ -58,7 +58,7 @@
       "id": "1774578231396",
       "username": "mingyu",
       "email": "mingyu@gmail.com",
-      "password": "$2b$10$3q7VQ9xhzU6u4XqlUGU4beEx6YhdCTNWkdt/2DXoxgNQj3ZpbV6RS",
+      "password": "$2b$10$j4z5LHxevZgxjnkshzb1MexCvzbEYoGVOTCKRC4DytyvAMywKInLy",
       "role": "user",
       "createdAt": "2026-03-27T02:23:51.396Z",
       "fullName": "Mingyu Kim",
@@ -345,7 +345,7 @@
       ],
       "total": 200,
       "createdAt": "2026-03-27T03:43:42.707Z",
-      "status": "Processing"
+      "status": "Shipped"
     }
   ]
 }

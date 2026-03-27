@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../apiConfig';
 
 const checkoutStyles = `
@@ -649,7 +649,6 @@ const checkoutStyles = `
      ── SAVED ADDRESSES ──
   ═══════════════════════════════════════════════ */
 
-  /* Address strip above shipping card */
   .ch-sa-strip {
     margin-bottom: 16px;
   }
@@ -664,14 +663,12 @@ const checkoutStyles = `
     display: block;
   }
 
-  /* Horizontal scroll row of address cards */
   .ch-sa-row {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
   }
 
-  /* Each saved address pill/card */
   .ch-sa-card {
     position: relative;
     display: flex;
@@ -760,7 +757,6 @@ const checkoutStyles = `
     color: var(--sage);
   }
 
-  /* Delete button on card */
   .ch-sa-del {
     position: absolute;
     top: -6px;
@@ -782,10 +778,8 @@ const checkoutStyles = `
   }
 
   .ch-sa-del:hover { background: var(--error); }
-
   .ch-sa-card:hover .ch-sa-del { display: flex; }
 
-  /* Add new address button */
   .ch-sa-add-btn {
     display: flex;
     align-items: center;
@@ -812,7 +806,6 @@ const checkoutStyles = `
     background: rgba(232,114,138,0.04);
   }
 
-  /* ── Save address checkbox row ── */
   .ch-sa-save-row {
     display: flex;
     align-items: flex-start;
@@ -847,7 +840,6 @@ const checkoutStyles = `
     font-weight: 700;
   }
 
-  /* ── Save address extra fields ── */
   .ch-sa-extra {
     margin-top: 14px;
     display: flex;
@@ -862,7 +854,6 @@ const checkoutStyles = `
     gap: 10px;
   }
 
-  /* ── Modal / Drawer ── */
   .ch-sa-overlay {
     position: fixed;
     inset: 0;
@@ -935,7 +926,6 @@ const checkoutStyles = `
     border-color: var(--rose);
   }
 
-  /* Friend toggle */
   .ch-sa-type-toggle {
     display: flex;
     gap: 8px;
@@ -974,7 +964,6 @@ const checkoutStyles = `
     color: var(--sage);
   }
 
-  /* Modal action row */
   .ch-sa-modal-actions {
     display: flex;
     gap: 10px;
@@ -1032,7 +1021,6 @@ const checkoutStyles = `
     color: var(--charcoal);
   }
 
-  /* Selected address info bar */
   .ch-sa-selected-bar {
     display: flex;
     align-items: center;
@@ -1078,9 +1066,6 @@ const checkoutStyles = `
 
   .ch-sa-change-btn:hover { background: rgba(232,114,138,0.08); }
 
-  /* ── Responsive ── */
-
-  /* -- Modal field errors -- */
   .ch-sa-field-error {
     display: flex;
     align-items: center;
@@ -1114,7 +1099,8 @@ const checkoutStyles = `
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-co-page { margin-left: 220px; padding-top: 56px; }
+    .ch-co-page { margin-left: 160px; padding-top: 0; }
+    .ch-co-header-title { margin-left: 23%; }
     .ch-co-header-inner { padding: 28px 30px; }
     .ch-co-main { padding: 40px 30px 60px; }
     .ch-co-grid { grid-template-columns: 1fr; }
@@ -1134,15 +1120,6 @@ const checkoutStyles = `
     .ch-co-card-body { padding: 18px; }
     .ch-co-card-head { padding: 16px 18px; }
     .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
-  }
-
-  @media (max-width: 1024px) and (min-width: 769px) {
-    .ch-co-page { margin-left: 160px; padding-top: 0; }
-    .ch-co-header-title { margin-left: 23%; }
-    .ch-co-header-inner { padding: 28px 30px; }
-    .ch-co-main { padding: 40px 30px 60px; }
-    .ch-co-grid { grid-template-columns: 1fr; }
-    .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 30px; }
   }
 `;
 
@@ -1212,7 +1189,6 @@ const resolveCurrentUserId = () => {
   return null;
 };
 
-// LocalStorage key for saved addresses (per user)
 const getAddressKey = () => {
   const uid = resolveCurrentUserId();
   return uid ? `ch_saved_addresses_${uid}` : 'ch_saved_addresses_guest';
@@ -1237,7 +1213,6 @@ const getInitials = (name) => {
     : name.slice(0, 2).toUpperCase();
 };
 
-// ── Empty address form ────────────────────────────────────────────────────────
 const emptyShipping = {
   fullName: '', email: '', phone: '', address: '', city: '', zipCode: ''
 };
@@ -1255,7 +1230,6 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    // Clear error on change
     setFieldErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
@@ -1294,23 +1268,15 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
           <button className="ch-sa-modal-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Mine / Friend toggle */}
         <div className="ch-sa-type-toggle">
-          <button
-            className={`ch-sa-type-btn ${type === 'mine' ? 'active-mine' : ''}`}
-            onClick={() => setType('mine')}
-          >
+          <button className={`ch-sa-type-btn ${type === 'mine' ? 'active-mine' : ''}`} onClick={() => setType('mine')}>
             🙋 Mine
           </button>
-          <button
-            className={`ch-sa-type-btn ${type === 'friend' ? 'active-friend' : ''}`}
-            onClick={() => setType('friend')}
-          >
+          <button className={`ch-sa-type-btn ${type === 'friend' ? 'active-friend' : ''}`} onClick={() => setType('friend')}>
             🎁 For a Friend
           </button>
         </div>
 
-        {/* Nickname — optional */}
         <div className="ch-co-form-group" style={{ marginBottom: 16 }}>
           <label className="ch-co-label" htmlFor="sa-nickname">
             Label / Nickname
@@ -1328,7 +1294,6 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
           />
         </div>
 
-        {/* Full Name */}
         <div className="ch-co-form-group">
           <label className="ch-co-label" htmlFor="sa-fullName">
             {type === 'friend' ? "Recipient's Full Name" : 'Full Name'}
@@ -1339,12 +1304,9 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
             style={{ width: '95%' }} id="sa-fullName" name="fullName"
             placeholder="Full name" value={form.fullName} onChange={handleChange}
           />
-          {fieldErrors.fullName && (
-            <span className="ch-sa-field-error">{fieldErrors.fullName}</span>
-          )}
+          {fieldErrors.fullName && <span className="ch-sa-field-error">{fieldErrors.fullName}</span>}
         </div>
 
-        {/* Email + Phone row */}
         <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
             <label className="ch-co-label" htmlFor="sa-email">
@@ -1355,9 +1317,7 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
               id="sa-email" name="email"
               placeholder="you@email.com" type="email" value={form.email} onChange={handleChange}
             />
-            {fieldErrors.email && (
-              <span className="ch-sa-field-error">{fieldErrors.email}</span>
-            )}
+            {fieldErrors.email && <span className="ch-sa-field-error">{fieldErrors.email}</span>}
           </div>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
             <label className="ch-co-label" htmlFor="sa-phone">
@@ -1368,13 +1328,10 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
               style={{ width: '90%' }} id="sa-phone" name="phone"
               placeholder="09XXXXXXXXX" type="tel" value={form.phone} onChange={handleChange}
             />
-            {fieldErrors.phone && (
-              <span className="ch-sa-field-error">{fieldErrors.phone}</span>
-            )}
+            {fieldErrors.phone && <span className="ch-sa-field-error">{fieldErrors.phone}</span>}
           </div>
         </div>
 
-        {/* Address */}
         <div className="ch-co-form-group" style={{ marginTop: 10 }}>
           <label className="ch-co-label" htmlFor="sa-address">
             Address<span style={{ color: 'var(--error)', marginLeft: 3 }}>*</span>
@@ -1384,12 +1341,9 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
             style={{ width: '95%' }} id="sa-address" name="address"
             placeholder="Street address" value={form.address} onChange={handleChange}
           />
-          {fieldErrors.address && (
-            <span className="ch-sa-field-error">{fieldErrors.address}</span>
-          )}
+          {fieldErrors.address && <span className="ch-sa-field-error">{fieldErrors.address}</span>}
         </div>
 
-        {/* City + ZIP row */}
         <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
             <label className="ch-co-label" htmlFor="sa-city">
@@ -1400,9 +1354,7 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
               id="sa-city" name="city"
               placeholder="City" value={form.city} onChange={handleChange}
             />
-            {fieldErrors.city && (
-              <span className="ch-sa-field-error">{fieldErrors.city}</span>
-            )}
+            {fieldErrors.city && <span className="ch-sa-field-error">{fieldErrors.city}</span>}
           </div>
           <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
             <label className="ch-co-label" htmlFor="sa-zip">
@@ -1413,9 +1365,7 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
               style={{ width: '88%' }} id="sa-zip" name="zipCode"
               placeholder="0000" value={form.zipCode} onChange={handleChange}
             />
-            {fieldErrors.zipCode && (
-              <span className="ch-sa-field-error">{fieldErrors.zipCode}</span>
-            )}
+            {fieldErrors.zipCode && <span className="ch-sa-field-error">{fieldErrors.zipCode}</span>}
           </div>
         </div>
 
@@ -1434,6 +1384,9 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
 const Checkout = () => {
   const { cart, clearCart, selectedItems, getSelectedItems } = useCart();
   const navigate = useNavigate();
+  // ── Read Buy Now item passed via router state from Products.js ──
+  const location = useLocation();
+  const buyNowItem = location.state?.buyNowItem ?? null;
 
   const [formData, setFormData] = useState({
     fullName: '', email: '', phone: '', address: '', city: '', zipCode: '',
@@ -1442,13 +1395,11 @@ const Checkout = () => {
     cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '', orderNote: ''
   });
 
-  // ── Saved addresses state ──
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
 
-  // Save-this-address checkbox (shown when fields are manually filled)
   const [wantToSave, setWantToSave] = useState(false);
   const [saveNickname, setSaveNickname] = useState('');
   const [saveType, setSaveType] = useState('mine');
@@ -1458,18 +1409,27 @@ const Checkout = () => {
   const [mobileErrors, setMobileErrors] = useState({ gcashNumber: '', paymayaNumber: '' });
   const [shippingErrors, setShippingErrors] = useState({});
 
-  // ── Auth guard ──
   useEffect(() => {
     const uid = resolveCurrentUserId();
     if (!uid) { navigate('/login', { state: { from: '/user/checkout' } }); }
   }, [navigate]);
 
-  // ── Load saved addresses on mount ──
   useEffect(() => {
     setSavedAddresses(loadSavedAddresses());
   }, []);
 
-  const safeCart = selectedItems.length > 0 ? getSelectedItems() : (Array.isArray(cart) ? cart : []);
+  // ── Determine cart to display:
+  //    1. If arrived via Buy Now → use that single item
+  //    2. Else if there are selected items → use those
+  //    3. Else fall back to entire cart
+  const safeCart = buyNowItem
+    ? [{ ...buyNowItem, quantity: buyNowItem.quantity ?? 1 }]
+    : selectedItems.length > 0
+    ? getSelectedItems()
+    : Array.isArray(cart)
+    ? cart
+    : [];
+
   const total = safeCart.reduce((sum, item) => {
     const price = item?.price ? parseFloat(item.price) : 0;
     const qty = item?.quantity ?? 1;
@@ -1481,7 +1441,6 @@ const Checkout = () => {
     return isNaN(n) ? '0.00' : n.toFixed(2);
   };
 
-  // ── Select a saved address → auto-fill form ──
   const handleSelectAddress = (addr) => {
     setSelectedAddressId(addr.id);
     setFormData(prev => ({
@@ -1494,16 +1453,14 @@ const Checkout = () => {
       zipCode: addr.zipCode || '',
     }));
     setWantToSave(false);
-    setShippingErrors({});  // clear any stale errors when address is selected
+    setShippingErrors({});
   };
 
-  // ── Deselect (fill manually) ──
   const handleClearSelected = () => {
     setSelectedAddressId(null);
     setFormData(prev => ({ ...prev, ...emptyShipping }));
   };
 
-  // ── Save new / updated address from modal ──
   const handleSaveAddress = (addr) => {
     setSavedAddresses(prev => {
       const exists = prev.find(a => a.id === addr.id);
@@ -1513,12 +1470,9 @@ const Checkout = () => {
     });
     setShowModal(false);
     setEditingAddress(null);
-
-    // Auto-select the newly added address
     handleSelectAddress(addr);
   };
 
-  // ── Delete a saved address ──
   const handleDeleteAddress = (id, e) => {
     e.stopPropagation();
     setSavedAddresses(prev => {
@@ -1532,7 +1486,6 @@ const Checkout = () => {
     }
   };
 
-  // ── Open modal for editing ──
   const handleEditAddress = (addr, e) => {
     e.stopPropagation();
     setEditingAddress(addr);
@@ -1566,10 +1519,8 @@ const Checkout = () => {
     if (name === 'paymentMethod') {
       setMobileErrors({ gcashNumber: '', paymayaNumber: '' });
     }
-    // If user manually changes a shipping field, deselect saved address + live-validate
     if (['fullName', 'email', 'phone', 'address', 'city', 'zipCode'].includes(name)) {
       setSelectedAddressId(null);
-      // Only show error if field was already touched (had an error before)
       setShippingErrors(prev => {
         if (name in prev) {
           return { ...prev, [name]: validateShippingField(name, value) };
@@ -1605,7 +1556,6 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate shipping fields first
     if (!validateAllShipping()) return;
 
     if (activeMobileField) {
@@ -1638,7 +1588,6 @@ const Checkout = () => {
       }
     }
 
-    // ── Save address before submitting if requested ──
     if (wantToSave && !selectedAddressId && formData.fullName.trim()) {
       const newAddr = {
         id: Date.now().toString(),
@@ -1693,7 +1642,10 @@ const Checkout = () => {
 
       if (response.ok) {
         setIsSubmitted(true);
-        clearCart();
+        // Only clear the full cart if this wasn't a Buy Now order
+        if (!buyNowItem) {
+          clearCart();
+        }
         try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
         window.dispatchEvent(new CustomEvent('ordersUpdated'));
       } else {
@@ -1712,8 +1664,6 @@ const Checkout = () => {
   };
 
   const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
-
-  // Detect if shipping fields are manually filled (for "save address" prompt)
   const shippingFilled = !selectedAddressId && formData.fullName.trim().length > 0;
 
   /* ── Success screen ── */
@@ -1789,49 +1739,46 @@ const Checkout = () => {
                 <form onSubmit={handleSubmit}>
 
                   {/* ── Saved Addresses Strip ── */}
-                  {(savedAddresses.length > 0 || true) && (
-                    <div className="ch-sa-strip">
-                      <span className="ch-sa-strip-label">
-                        {savedAddresses.length > 0 ? '📍 Saved Addresses — tap to fill' : '📍 Shipping Addresses'}
-                      </span>
-                      <div className="ch-sa-row">
-                        {savedAddresses.map(addr => (
-                          <div
-                            key={addr.id}
-                            className={`ch-sa-card ${selectedAddressId === addr.id ? 'active' : ''}`}
-                            onClick={() => handleSelectAddress(addr)}
-                            title={`${addr.fullName} · ${addr.address}, ${addr.city}`}
-                          >
-                            <button
-                              className="ch-sa-del"
-                              type="button"
-                              title="Remove"
-                              onClick={(e) => handleDeleteAddress(addr.id, e)}
-                            >✕</button>
-                            <div className={`ch-sa-card-avatar ${addr.type === 'friend' ? 'friend' : ''}`}>
-                              {getInitials(addr.fullName)}
-                            </div>
-                            <div className="ch-sa-card-info">
-                              <div className="ch-sa-card-name">{addr.nickname || addr.fullName.split(' ')[0]}</div>
-                              <div className="ch-sa-card-meta">{addr.city || addr.address}</div>
-                            </div>
-                            <div className={`ch-sa-card-badge ${addr.type === 'friend' ? 'friend' : 'mine'}`}>
-                              {addr.type === 'friend' ? 'Friend' : 'Mine'}
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* ── Add new address ── */}
-                        <button
-                          type="button"
-                          className="ch-sa-add-btn"
-                          onClick={() => { setEditingAddress(null); setShowModal(true); }}
+                  <div className="ch-sa-strip">
+                    <span className="ch-sa-strip-label">
+                      {savedAddresses.length > 0 ? '📍 Saved Addresses — tap to fill' : '📍 Shipping Addresses'}
+                    </span>
+                    <div className="ch-sa-row">
+                      {savedAddresses.map(addr => (
+                        <div
+                          key={addr.id}
+                          className={`ch-sa-card ${selectedAddressId === addr.id ? 'active' : ''}`}
+                          onClick={() => handleSelectAddress(addr)}
+                          title={`${addr.fullName} · ${addr.address}, ${addr.city}`}
                         >
-                          + Add Address
-                        </button>
-                      </div>
+                          <button
+                            className="ch-sa-del"
+                            type="button"
+                            title="Remove"
+                            onClick={(e) => handleDeleteAddress(addr.id, e)}
+                          >✕</button>
+                          <div className={`ch-sa-card-avatar ${addr.type === 'friend' ? 'friend' : ''}`}>
+                            {getInitials(addr.fullName)}
+                          </div>
+                          <div className="ch-sa-card-info">
+                            <div className="ch-sa-card-name">{addr.nickname || addr.fullName.split(' ')[0]}</div>
+                            <div className="ch-sa-card-meta">{addr.city || addr.address}</div>
+                          </div>
+                          <div className={`ch-sa-card-badge ${addr.type === 'friend' ? 'friend' : 'mine'}`}>
+                            {addr.type === 'friend' ? 'Friend' : 'Mine'}
+                          </div>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className="ch-sa-add-btn"
+                        onClick={() => { setEditingAddress(null); setShowModal(true); }}
+                      >
+                        + Add Address
+                      </button>
                     </div>
-                  )}
+                  </div>
 
                   {/* ── Shipping Card ── */}
                   <div className="ch-co-card" style={{ marginBottom: 24 }}>
@@ -1851,7 +1798,6 @@ const Checkout = () => {
                     </div>
                     <div className="ch-co-card-body">
 
-                      {/* Selected address info bar */}
                       {selectedAddr && (
                         <div className="ch-sa-selected-bar">
                           <span className="ch-sa-selected-bar-icon">
@@ -1968,7 +1914,6 @@ const Checkout = () => {
                         </div>
                       </div>
 
-                      {/* Save this address prompt — only shown when manually filled */}
                       {shippingFilled && (
                         <div className="ch-sa-save-row">
                           <input
@@ -1984,7 +1929,6 @@ const Checkout = () => {
                         </div>
                       )}
 
-                      {/* Extra fields when saving */}
                       {wantToSave && shippingFilled && (
                         <div className="ch-sa-extra">
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -2170,7 +2114,14 @@ const Checkout = () => {
                 <div className="ch-co-card">
                   <div className="ch-co-card-head">
                     <div className="ch-co-card-icon rose">🧶</div>
-                    <span className="ch-co-card-title">Order Summary</span>
+                    <span className="ch-co-card-title">
+                      Order Summary
+                      {buyNowItem && (
+                        <span style={{ fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--rose)', marginLeft: 10, fontFamily: 'Lato, sans-serif', fontWeight: 700 }}>
+                          · Buy Now
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="ch-co-card-body">
                     <div className="ch-co-items">
@@ -2210,7 +2161,12 @@ const Checkout = () => {
                         placeholder="Color preference, gift wrapping, special instructions…" rows="3" />
                     </div>
 
-                    <Link to="/user/cart" className="ch-co-back">← Back to Cart</Link>
+                    {/* Back link: goes to cart for normal checkout, products for Buy Now */}
+                    {buyNowItem ? (
+                      <Link to="/user/products" className="ch-co-back">← Back to Products</Link>
+                    ) : (
+                      <Link to="/user/cart" className="ch-co-back">← Back to Cart</Link>
+                    )}
                   </div>
                 </div>
               </div>
