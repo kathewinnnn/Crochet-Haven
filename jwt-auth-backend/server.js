@@ -162,6 +162,70 @@ app.delete("/orders/:id", (req, res) => {
   }
 });
 
+// Delete account endpoint
+app.deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if (!token) {
+      return res.status(403).json({ message: "No token provided" });
+    }
+    
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+    
+    // Decode the token to get user info
+    const jwt = require("jsonwebtoken");
+    const SECRET_KEY = process.env.JWT_SECRET || "mySecretKey";
+    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, SECRET_KEY);
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    
+    const db = readDb();
+    const userIndex = db.users.findIndex((u) => u.id === decoded.id);
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const user = db.users[userIndex];
+    
+    // Verify password
+    const bcrypt = require("bcryptjs");
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
+    
+    // Remove user from users array
+    db.users.splice(userIndex, 1);
+    
+    // Also remove user's orders
+    if (db.orders) {
+      db.orders = db.orders.filter(order => order.userId !== decoded.id);
+    }
+    
+    writeDb(db);
+    
+    console.log(`✅ Account deleted: ${user.username} (${user.email})`);
+    return res.json({ message: "Account deleted successfully" });
+
+  } catch (err) {
+    console.error("❌ Delete account error:", err);
+    return res.status(500).json({ message: "Server error during account deletion" });
+  }
+};
+
+// Account deletion route
+app.post("/api/auth/delete-account", (req, res) => app.deleteAccount(req, res));
+
 // Get latest order (for polling)
 app.get("/orders/latest", (req, res) => {
   try {

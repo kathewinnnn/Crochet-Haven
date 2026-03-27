@@ -347,18 +347,32 @@ exports.handler = async (event, context) => {
     // Expects { username, password } — verifies password against the stored
     // bcrypt hash, then removes the user + all their orders from db.json.
     else if (p === '/api/auth/delete-account' && method === 'POST') {
-      const { username, password } = body;
-      if (!username || !password) {
-        statusCode = 400; responseData = { message: "Username and password are required" };
+      const { username, password, email } = body;
+      if (!password) {
+        statusCode = 400; responseData = { message: "Password is required" };
       } else {
         const db  = readDb();
-        const idx = db.users.findIndex(
-          u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
-        );
+        // Find user by username OR email
+        let idx = -1;
+        let user = null;
+        
+        if (username) {
+          idx = db.users.findIndex(
+            u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
+          );
+        }
+        
+        // If not found by username, try email
+        if (idx === -1 && email) {
+          idx = db.users.findIndex(
+            u => u.email && u.email.trim().toLowerCase() === email.trim().toLowerCase()
+          );
+        }
+        
         if (idx === -1) {
           statusCode = 404; responseData = { message: "Account not found" };
         } else {
-          const user    = db.users[idx];
+          user    = db.users[idx];
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
             statusCode = 401; responseData = { message: "Incorrect password. Please try again." };

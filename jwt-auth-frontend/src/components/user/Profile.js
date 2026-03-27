@@ -365,10 +365,12 @@ const AvatarCropper = ({ imageSrc, onDone, onCancel }) => {
 };
 
 // ── Delete Modal ───────────────────────────────────────────────────────────────
-// Sends POST /api/auth/delete-account with { username, password }.
+// Sends POST /api/auth/delete-account with { username, email, password }.
 // The backend verifies the password with bcrypt, removes the user + their
 // orders from db.json, then returns 200. On success, local storage is wiped.
-const DeleteAccountModal = ({ username, onClose, onDeleted }) => {
+const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
+  const username = user?.username || "";
+  const email = user?.email || "";
   const [step,       setStep]       = useState(1);
   const [password,   setPassword]   = useState("");
   const [showPwd,    setShowPwd]    = useState(false);
@@ -394,10 +396,14 @@ const DeleteAccountModal = ({ username, onClose, onDeleted }) => {
     setStep(3);
 
     try {
+      const token = localStorage.getItem("ch_token");
       const res = await fetch("/api/auth/delete-account", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -868,10 +874,10 @@ const Profile = () => {
           {toasts.map(t => <ChToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />)}
         </div>
 
-        {/* Delete modal — pass username so the backend can look up the user */}
+        {/* Delete modal — pass full user object so the backend can look up by email or username */}
         {showDeleteModal && (
           <DeleteAccountModal
-            username={user?.username}
+            user={user}
             onClose={() => setShowDeleteModal(false)}
             onDeleted={handleAccountDeleted}
           />

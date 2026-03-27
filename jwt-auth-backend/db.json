@@ -61,14 +61,6 @@
       "password": "$2b$10$Xd7vzI0WwttJh8Ex6zbZfO.wxYs849RSw0RZy0hVmJYDnUj8m1lfm",
       "role": "user",
       "createdAt": "2026-03-26T06:29:30.487Z"
-    },
-    {
-      "id": "1774531465042",
-      "username": "kimmingyu",
-      "email": "kimmingyu@gmail.com",
-      "password": "$2b$10$5/xNti8461JjOlJnAwZbiOGY1JXJO0yvNWrhh59qhZ2.KVstoPd9y",
-      "role": "user",
-      "createdAt": "2026-03-26T13:24:25.043Z"
     }
   ],
   "products": [

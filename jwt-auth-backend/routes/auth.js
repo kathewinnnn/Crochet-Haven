@@ -195,4 +195,48 @@ router.put("/profile", verifyToken, async (req, res) => {
   }
 });
 
+// ── POST /api/auth/delete-account ─────────────────────────────────────
+router.post("/delete-account", verifyToken, async (req, res) => {
+  try {
+    const { password, email } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+    const db = readDb();
+    // Use the user ID from the token (verified by verifyToken middleware)
+    const userIndex = db.users.findIndex((u) => u.id === req.user.id);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = db.users[userIndex];
+
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
+
+    // Remove user from users array
+    db.users.splice(userIndex, 1);
+
+    // Also remove user's orders
+    if (db.orders) {
+      db.orders = db.orders.filter(order => order.userId !== req.user.id);
+    }
+
+    writeDb(db);
+
+    console.log(`✅ Account deleted: ${user.username} (${user.email})`);
+    return res.json({ message: "Account deleted successfully" });
+
+  } catch (err) {
+    console.error("❌ Delete account error:", err);
+    return res.status(500).json({ message: "Server error during account deletion" });
+  }
+});
+
 module.exports = router;
