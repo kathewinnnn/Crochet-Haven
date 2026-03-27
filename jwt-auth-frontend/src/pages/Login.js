@@ -149,6 +149,29 @@ const loginStyles = `
   .login__button:disabled { cursor: not-allowed; opacity: 0.7; }
   .login__register-link { text-align: center; margin-top: 25px; color: #666; font-size: 14px; }
   .login__register-link a { color: #ec4899; text-decoration: none; font-weight: 600; }
+  .login__demo-box {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+    border: 1px dashed #f9a8d4; border-radius: 12px;
+    padding: 16px 20px; margin-top: 20px; text-align: center;
+  }
+  .login__demo-title {
+    color: #be185d; font-size: 13px; font-weight: 700; margin: 0 0 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .login__demo-credentials {
+    display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+  }
+  .login__demo-item {
+    background: #fff; border-radius: 8px; padding: 8px 14px;
+    box-shadow: 0 2px 8px rgba(249,168,212,0.25);
+  }
+  .login__demo-label {
+    color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+    display: block; margin-bottom: 2px;
+  }
+  .login__demo-value {
+    color: #ec4899; font-size: 14px; font-weight: 600;
+  }
 `;
 
 const LoginSuccessOverlay = ({ username }) => (
@@ -300,6 +323,20 @@ const Login = () => {
               {isLoading ? 'Signing in...' : 'Log In'}
             </button>
           </form>
+
+          <div className="login__demo-box">
+            <p className="login__demo-title">Demo Credentials</p>
+            <div className="login__demo-credentials">
+              <div className="login__demo-item">
+                <span className="login__demo-label">Username</span>
+                <span className="login__demo-value">admin</span>
+              </div>
+              <div className="login__demo-item">
+                <span className="login__demo-label">Password</span>
+                <span className="login__demo-value">admin123</span>
+              </div>
+            </div>
+          </div>
 
           <div className="login__register-link">
             Don't have an account? <Link to="/register">Sign up</Link>
