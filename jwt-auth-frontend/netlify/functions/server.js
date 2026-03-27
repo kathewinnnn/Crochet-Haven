@@ -326,11 +326,16 @@ exports.handler = async (event, context) => {
   }
   if (!body) body = {};
 
+  console.log('Full event:', JSON.stringify(event, null, 2));
+
   const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
   const decoded    = decodeToken(authHeader);
 
   const p      = event.path;
   const method = event.httpMethod;
+
+  console.log('Event path:', p);
+  console.log('Event method:', method);
 
   let responseData = null;
   let statusCode   = 200;
@@ -381,7 +386,9 @@ exports.handler = async (event, context) => {
     }
 
     else if (p === '/api/auth/login' && method === 'POST') {
+      console.log('Login handler triggered');
       const { username, password } = body;
+      console.log('Login attempt - username:', username, 'body:', JSON.stringify(body));
       if (!username || !password) {
         statusCode = 400; responseData = { message: "Username and password are required" };
       } else {

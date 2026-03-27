@@ -278,7 +278,8 @@ const Login = () => {
     setError('');
     setIsLoading(true);
     try {
-      const loginUrl = `${window.location.origin}/.netlify/functions/server/api/auth/login`;
+      // Use /api/ path which redirects to Netlify function
+      const loginUrl = `${window.location.origin}/api/auth/login`;
       console.log('Login URL:', loginUrl);
       const res     = await axios.post(loginUrl, { username, password });
       const token   = res.data.token;
