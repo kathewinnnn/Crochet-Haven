@@ -326,16 +326,17 @@ exports.handler = async (event, context) => {
   }
   if (!body) body = {};
 
-  console.log('Full event:', JSON.stringify(event, null, 2));
-
   const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
   const decoded    = decodeToken(authHeader);
 
   const p      = event.path;
   const method = event.httpMethod;
 
-  console.log('Event path:', p);
-  console.log('Event method:', method);
+  console.log('=== DEBUG ===');
+  console.log('Full event:', JSON.stringify(event, null, 2));
+  console.log('Path p:', p);
+  console.log('Method:', method);
+  console.log('Body:', JSON.stringify(body));
 
   let responseData = null;
   let statusCode   = 200;
@@ -386,15 +387,17 @@ exports.handler = async (event, context) => {
     }
 
     else if (p === '/api/auth/login' && method === 'POST') {
-      console.log('Login handler triggered');
+      console.log('Login handler TRIGGERED');
       const { username, password } = body;
-      console.log('Login attempt - username:', username, 'body:', JSON.stringify(body));
+      console.log('Login attempt - username:', username, 'password provided:', !!password);
       if (!username || !password) {
         statusCode = 400; responseData = { message: "Username and password are required" };
       } else {
         const db   = readDb();
         const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+        console.log('DB users:', db.users.map(u => u.username));
         if (!user) {
+          console.log('User NOT found in DB');
           statusCode = 401; responseData = { message: "Invalid username or password" };
         } else {
           const isMatch = await bcrypt.compare(password, user.password);

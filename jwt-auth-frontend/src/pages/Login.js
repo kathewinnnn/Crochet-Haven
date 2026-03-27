@@ -278,10 +278,7 @@ const Login = () => {
     setError('');
     setIsLoading(true);
     try {
-      // Use /api/ path which redirects to Netlify function
-      const loginUrl = `${window.location.origin}/api/auth/login`;
-      console.log('Login URL:', loginUrl);
-      const res     = await axios.post(loginUrl, { username, password });
+      const res     = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
       const token   = res.data.token;
       const decoded = jwtDecode(token);
 
