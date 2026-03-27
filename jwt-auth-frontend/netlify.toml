@@ -13,3 +13,6 @@
   from = "/api/*"
   to = "/.netlify/functions/server/:splat"
   status = 200
+
+[functions]
+  directory = "netlify/functions"

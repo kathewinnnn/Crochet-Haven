@@ -3,14 +3,20 @@
 
 const getApiUrl = () => {
   // For development, use relative paths - proxy will forward to backend
-  // For production, use environment variable or empty (relative)
+  // For production (Netlify), use relative path - API is served from same domain via netlify function
   const envUrl = process.env.REACT_APP_API_URL;
   if (envUrl) {
     return envUrl;
   }
   
+  // Check if we're in production (Netlify)
+  // Use relative path in production so it goes to the same domain
+  if (process.env.NODE_ENV === 'production') {
+    return '';
+  }
+  
   // Default to relative path for development (proxy handles forwarding)
-  return "";
+  return '';
 };
 
 // Build dynamic endpoints based on current base URL
