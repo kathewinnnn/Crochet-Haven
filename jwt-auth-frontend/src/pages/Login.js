@@ -38,7 +38,27 @@ const loginStyles = `
     from { width: 0%; }
     to   { width: 100%; }
   }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.9; }
+    25%      { transform: translateY(-18px) rotate(8deg); opacity: 1; }
+    50%      { transform: translateY(-30px) rotate(-5deg); opacity: 0.85; }
+    75%      { transform: translateY(-14px) rotate(10deg); opacity: 1; }
+  }
+  @keyframes floatB {
+    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.85; }
+    30%      { transform: translateY(-24px) rotate(-10deg); opacity: 1; }
+    60%      { transform: translateY(-10px) rotate(6deg); opacity: 0.9; }
+  }
+  @keyframes floatC {
+    0%, 100% { transform: translateY(0px) rotate(5deg); opacity: 0.9; }
+    40%      { transform: translateY(-20px) rotate(-8deg); opacity: 1; }
+    70%      { transform: translateY(-35px) rotate(12deg); opacity: 0.85; }
+  }
 
+  /* ── Hide scrollbar ────────────────────────────────────────────────── */
+  html, body { overflow: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  .login-page { overflow: hidden; }
   .login-page * { scrollbar-width: none; -ms-overflow-style: none; }
   .login-page *::-webkit-scrollbar { display: none; }
   .login-page input::placeholder { color: #aaa; }
@@ -48,6 +68,112 @@ const loginStyles = `
     -webkit-box-shadow: 0 0 0px 1000px #fdf2f8 inset !important;
   }
 
+  /* ── Layer 0: pink gradient background ─────────────────────────────── */
+  .login__bg {
+    position: fixed; inset: 0; z-index: 0;
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
+  }
+
+  /* ── Layer 1: floating emojis ──────────────────────────────────────── */
+  .login__floats {
+    position: fixed; inset: 0; z-index: 1;
+    pointer-events: none; overflow: hidden;
+  }
+  .login__float {
+    position: absolute; user-select: none; line-height: 1; will-change: transform;
+    filter: drop-shadow(0 2px 8px rgba(236,72,153,0.25));
+  }
+  .login__float:nth-child(1)  { left: 4%;  top: 6%;  font-size: 40px; animation: float  6.2s 0s    ease-in-out infinite; }
+  .login__float:nth-child(2)  { left: 16%; top: 70%; font-size: 32px; animation: floatB 7.5s 0.8s  ease-in-out infinite; }
+  .login__float:nth-child(3)  { left: 28%; top: 16%; font-size: 46px; animation: floatC 5.8s 1.4s  ease-in-out infinite; }
+  .login__float:nth-child(4)  { left: 52%; top: 82%; font-size: 36px; animation: float  8.1s 0.3s  ease-in-out infinite; }
+  .login__float:nth-child(5)  { left: 65%; top: 8%;  font-size: 30px; animation: floatB 6.7s 2.1s  ease-in-out infinite; }
+  .login__float:nth-child(6)  { left: 80%; top: 56%; font-size: 42px; animation: floatC 7.0s 0.6s  ease-in-out infinite; }
+  .login__float:nth-child(7)  { left: 91%; top: 26%; font-size: 34px; animation: float  5.5s 1.9s  ease-in-out infinite; }
+  .login__float:nth-child(8)  { left: 7%;  top: 87%; font-size: 38px; animation: floatB 9.0s 0.2s  ease-in-out infinite; }
+  .login__float:nth-child(9)  { left: 88%; top: 80%; font-size: 28px; animation: floatC 6.4s 3.0s  ease-in-out infinite; }
+  .login__float:nth-child(10) { left: 38%; top: 3%;  font-size: 36px; animation: float  7.8s 1.1s  ease-in-out infinite; }
+  .login__float:nth-child(11) { left: 2%;  top: 42%; font-size: 32px; animation: floatB 6.0s 2.5s  ease-in-out infinite; }
+  .login__float:nth-child(12) { left: 93%; top: 50%; font-size: 40px; animation: floatC 8.3s 0.9s  ease-in-out infinite; }
+
+  /* ── Layer 2: centred login container (transparent — no own bg) ────── */
+  .login__container {
+    position: fixed; inset: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    pointer-events: none; /* pass clicks through to emojis layer */
+  }
+
+  /* ── Layer 3: the white card ────────────────────────────────────────── */
+  .login__card {
+    background: #fff; border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(249,168,212,0.4);
+    padding: 50px 40px; width: 100%; max-width: 420px;
+    animation: fadeIn 0.5s ease-out;
+    position: relative; z-index: 3;
+    pointer-events: all;
+  }
+  .login__logo { text-align: center; margin-bottom: 10px; }
+  .login__logo-icon { font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 8px rgba(249,168,212,0.4)); }
+  .login__title { text-align: center; color: #333; font-size: 28px; font-weight: 700; margin: 0 0 8px; }
+  .login__subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 35px; }
+  .login__form-group { margin-bottom: 24px; }
+  .login__label { display: block; color: #555; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .login__input-wrapper { position: relative; }
+  .login__input {
+    width: 100%; padding: 14px 16px; font-size: 15px;
+    border: 2px solid #fbcfe8; border-radius: 12px; outline: none;
+    transition: all 0.3s ease; box-sizing: border-box;
+    background-color: #fdf2f8; font-family: 'Segoe UI', sans-serif;
+  }
+  .login__input:focus, .login__input--focused {
+    border-color: #f9a8d4; background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(249,168,212,0.2);
+  }
+  .login__password-toggle {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: #888; font-size: 18px; padding: 5px;
+  }
+  .login__error-box {
+    background-color: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .login__error-icon { color: #ec4899; font-size: 18px; }
+  .login__error-text { color: #be185d; font-size: 14px; margin: 0; }
+  .login__button {
+    width: 100%; padding: 16px; font-size: 16px; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg, #f9a8d4, #ec4899);
+    border: none; border-radius: 12px; cursor: pointer;
+    transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(249,168,212,0.5);
+    font-family: 'Segoe UI', sans-serif; margin-top: 10px;
+  }
+  .login__button:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(249,168,212,0.6); transform: translateY(-2px); }
+  .login__button:disabled { cursor: not-allowed; opacity: 0.7; }
+  .login__register-link { text-align: center; margin-top: 25px; color: #666; font-size: 14px; }
+  .login__register-link a { color: #ec4899; text-decoration: none; font-weight: 600; }
+  .login__demo-box {
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+    border: 1px dashed #f9a8d4; border-radius: 12px;
+    padding: 16px 20px; margin-top: 20px; text-align: center;
+  }
+  .login__demo-title {
+    color: #be185d; font-size: 13px; font-weight: 700; margin: 0 0 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .login__demo-credentials { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+  .login__demo-item {
+    background: #fff; border-radius: 8px; padding: 8px 14px;
+    box-shadow: 0 2px 8px rgba(249,168,212,0.25);
+  }
+  .login__demo-label {
+    color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+    display: block; margin-bottom: 2px;
+  }
+  .login__demo-value { color: #ec4899; font-size: 14px; font-weight: 600; }
+
+  /* ── Success overlay ────────────────────────────────────────────────── */
   .overlay__backdrop {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
@@ -98,81 +224,17 @@ const loginStyles = `
   .overlay__dot:nth-child(1) { animation: dotPulse 1.2s 0s   infinite ease-in-out; }
   .overlay__dot:nth-child(2) { animation: dotPulse 1.2s 0.2s infinite ease-in-out; }
   .overlay__dot:nth-child(3) { animation: dotPulse 1.2s 0.4s infinite ease-in-out; }
-
-  .login__container {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
-    padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  .login__card {
-    background: #fff; border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(249,168,212,0.4);
-    padding: 50px 40px; width: 100%; max-width: 420px;
-    animation: fadeIn 0.5s ease-out;
-  }
-  .login__logo { text-align: center; margin-bottom: 10px; }
-  .login__logo-icon { font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 8px rgba(249,168,212,0.4)); }
-  .login__title { text-align: center; color: #333; font-size: 28px; font-weight: 700; margin: 0 0 8px; }
-  .login__subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 35px; }
-  .login__form-group { margin-bottom: 24px; }
-  .login__label { display: block; color: #555; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
-  .login__input-wrapper { position: relative; }
-  .login__input {
-    width: 100%; padding: 14px 16px; font-size: 15px;
-    border: 2px solid #fbcfe8; border-radius: 12px; outline: none;
-    transition: all 0.3s ease; box-sizing: border-box;
-    background-color: #fdf2f8; font-family: 'Segoe UI', sans-serif;
-  }
-  .login__input:focus, .login__input--focused {
-    border-color: #f9a8d4; background-color: #fff;
-    box-shadow: 0 0 0 4px rgba(249,168,212,0.2);
-  }
-  .login__password-toggle {
-    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; color: #888; font-size: 18px; padding: 5px;
-  }
-  .login__error-box {
-    background-color: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 10px;
-    padding: 14px 16px; margin-bottom: 24px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .login__error-icon { color: #ec4899; font-size: 18px; }
-  .login__error-text { color: #be185d; font-size: 14px; margin: 0; }
-  .login__button {
-    width: 100%; padding: 16px; font-size: 16px; font-weight: 600; color: #fff;
-    background: linear-gradient(135deg, #f9a8d4, #ec4899);
-    border: none; border-radius: 12px; cursor: pointer;
-    transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(249,168,212,0.5);
-    font-family: 'Segoe UI', sans-serif; margin-top: 10px;
-  }
-  .login__button:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(249,168,212,0.6); transform: translateY(-2px); }
-  .login__button:disabled { cursor: not-allowed; opacity: 0.7; }
-  .login__register-link { text-align: center; margin-top: 25px; color: #666; font-size: 14px; }
-  .login__register-link a { color: #ec4899; text-decoration: none; font-weight: 600; }
-  .login__demo-box {
-    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-    border: 1px dashed #f9a8d4; border-radius: 12px;
-    padding: 16px 20px; margin-top: 20px; text-align: center;
-  }
-  .login__demo-title {
-    color: #be185d; font-size: 13px; font-weight: 700; margin: 0 0 10px;
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .login__demo-credentials {
-    display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
-  }
-  .login__demo-item {
-    background: #fff; border-radius: 8px; padding: 8px 14px;
-    box-shadow: 0 2px 8px rgba(249,168,212,0.25);
-  }
-  .login__demo-label {
-    color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
-    display: block; margin-bottom: 2px;
-  }
-  .login__demo-value {
-    color: #ec4899; font-size: 14px; font-weight: 600;
-  }
 `;
+
+const FLOAT_EMOJIS = ['🧣','🌸','🧶','🌸','🧣','🧶','🌸','🧣','🌸','🧶','🧣','🌸'];
+
+const FloatingEmojis = () => (
+  <div className="login__floats" aria-hidden="true">
+    {FLOAT_EMOJIS.map((emoji, i) => (
+      <span key={i} className="login__float">{emoji}</span>
+    ))}
+  </div>
+);
 
 const LoginSuccessOverlay = ({ username }) => (
   <div className="overlay__backdrop">
@@ -215,48 +277,27 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
       const res     = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
       const token   = res.data.token;
       const decoded = jwtDecode(token);
 
-      // ── Save tokens ────────────────────────────────────────────────────────
       localStorage.setItem('token',    token);
       localStorage.setItem('ch_token', token);
-
-      // ── Build user object and save under both key names ────────────────────
       const userObj = { ...decoded };
       localStorage.setItem('user',    JSON.stringify(userObj));
       localStorage.setItem('ch_user', JSON.stringify(userObj));
-
-      // ── KEY FIX: Always persist userId as its own key so Orders.js,
-      //    Checkout.js, and Profile.js all resolve the same ID without
-      //    having to decode the JWT every time.
       const resolvedId = decoded.id || decoded.userId || decoded.sub;
-      if (resolvedId) {
-        localStorage.setItem('userId', String(resolvedId));
-      }
+      if (resolvedId) localStorage.setItem('userId', String(resolvedId));
+      if (decoded.username) localStorage.setItem('username', decoded.username);
 
-      // Also persist username for Checkout
-      if (decoded.username) {
-        localStorage.setItem('username', decoded.username);
-      }
-
-      // ── Notify CartContext to reload for this user ─────────────────────────
       window.dispatchEvent(new Event('userAuthChanged'));
-
       setLoggedInUser(decoded.username || username);
       setLoginSuccess(true);
 
       setTimeout(() => {
-        if (decoded.role === 'admin') {
-          navigate('/seller');
-        } else {
-          navigate('/user');
-        }
+        navigate(decoded.role === 'admin' ? '/seller' : '/user');
       }, 2000);
-
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid username or password');
       setIsLoading(false);
@@ -268,6 +309,13 @@ const Login = () => {
       <style>{loginStyles}</style>
       {loginSuccess && <LoginSuccessOverlay username={loggedInUser} />}
 
+      {/* z-index 0 – pink gradient bg */}
+      <div className="login__bg" />
+
+      {/* z-index 1 – floating emojis */}
+      <FloatingEmojis />
+
+      {/* z-index 2+3 – transparent centering wrapper + white card */}
       <div className="login__container">
         <div className="login__card">
           <div className="login__logo">
@@ -288,9 +336,7 @@ const Login = () => {
               <label className="login__label">👤 Username</label>
               <div className="login__input-wrapper">
                 <input
-                  type="text"
-                  value={username}
-                  required
+                  type="text" value={username} required
                   onChange={e => setUsername(e.target.value)}
                   placeholder="Enter your username"
                   className={`login__input${isUsernameFocused ? ' login__input--focused' : ''}`}
@@ -304,9 +350,7 @@ const Login = () => {
               <label className="login__label">🔒 Password</label>
               <div className="login__input-wrapper">
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  required
+                  type={showPassword ? 'text' : 'password'} value={password} required
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   className={`login__input${isPasswordFocused ? ' login__input--focused' : ''}`}

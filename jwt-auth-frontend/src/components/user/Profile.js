@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
+import API_BASE_URL from '../../apiConfig';
 import {
   loadToken,
   loadAvatar,
@@ -141,6 +142,133 @@ const styles = `
   .ch-toggle input:checked + .ch-toggle-track { background: var(--rose); }
   .ch-toggle input:checked + .ch-toggle-track::before { transform: translateX(22px); }
 
+  /* ─── Password change inline form ─── */
+  .ch-pwd-panel {
+    padding: 24px;
+    background: var(--cream);
+    border-top: 1px solid var(--border);
+    animation: ch-fade-in 0.25s ease;
+  }
+
+  @keyframes ch-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .ch-pwd-panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--charcoal);
+    margin-bottom: 6px;
+  }
+
+  .ch-pwd-panel-sub {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 300;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .ch-pwd-field {
+    margin-bottom: 14px;
+  }
+
+  .ch-pwd-field label {
+    display: block;
+    font-size: 0.67rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .ch-pwd-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.95rem;
+    color: var(--charcoal);
+    background: var(--warm-white);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+  }
+
+  .ch-pwd-input:focus {
+    outline: none;
+    border-color: var(--rose);
+    box-shadow: 0 0 0 3px rgba(232,114,138,0.1);
+  }
+
+  .ch-pwd-error {
+    font-size: 0.78rem;
+    color: #dc2626;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .ch-pwd-success {
+    font-size: 0.78rem;
+    color: #065f46;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .ch-pwd-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .ch-pwd-btn {
+    padding: 11px 22px;
+    border-radius: 2px;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .ch-pwd-btn.primary {
+    background: var(--charcoal);
+    color: var(--cream);
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ch-pwd-btn.primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--rose);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 0;
+  }
+
+  .ch-pwd-btn.primary:hover::after { transform: translateX(0); }
+  .ch-pwd-btn.primary span { position: relative; z-index: 1; }
+  .ch-pwd-btn.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .ch-pwd-btn.primary:disabled::after { display: none; }
+
+  .ch-pwd-btn.secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+  }
+
+  .ch-pwd-btn.secondary:hover { border-color: var(--muted); color: var(--charcoal); }
+
   .ch-danger { margin: 24px; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
   .ch-danger h4 { font-size: 0.9rem; color: #991b1b; margin-bottom: 4px; }
   .ch-danger p { font-size: 0.78rem; color: #7f1d1d; font-weight: 300; }
@@ -267,6 +395,8 @@ const styles = `
     .ch-profile-aside { position: static; }
   }
 `;
+
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
 const ChToast = ({ toast, onClose }) => {
@@ -408,7 +538,6 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
         return;
       }
 
-      // Wipe ALL local storage for this user
       clearUserData();
       const userId = resolveUserId();
       const toRemove = [];
@@ -512,7 +641,13 @@ const Profile = () => {
   const [showAvatarCrop,  setShowAvatarCrop]  = useState(false);
   const [rawAvatarSrc,    setRawAvatarSrc]    = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [passwordForm,    setPasswordForm]    = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+
+  // ── Password change state (real API, from Settings.js) ──
+  const [showPasswordForm,  setShowPasswordForm]  = useState(false);
+  const [passwords,         setPasswords]         = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError,     setPasswordError]     = useState('');
+  const [passwordSuccess,   setPasswordSuccess]   = useState('');
+  const [savingPassword,    setSavingPassword]    = useState(false);
 
   const getNotifKey   = () => `ch_notifications_${resolveUserId() || 'guest'}`;
   const getPrivacyKey = () => `ch_privacy_${resolveUserId() || 'guest'}`;
@@ -541,24 +676,20 @@ const Profile = () => {
   useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem(getPrivacyKey(), JSON.stringify(privacy)); }, [privacy]);
 
-  // ── loadUser: reads ch_user (written by Register.js) as primary source ──────
   const loadUser = () => {
     try {
       const token = loadToken();
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
 
-      // Primary source: ch_user has ALL fields saved at registration time
       let storedUser = {};
       try {
         const raw = localStorage.getItem('ch_user');
         if (raw) storedUser = JSON.parse(raw);
       } catch { /* ignore */ }
 
-      // Secondary source: userStorage helpers (saveUserProfile writes here too)
       const merged = loadFullUser(decoded);
 
-      // Combine all sources — storedUser wins for profile fields
       const combined = {
         ...(merged || {}),
         ...storedUser,
@@ -594,7 +725,6 @@ const Profile = () => {
       const updated    = saveUserProfile({ ...editForm, username: user.username });
       const withAvatar = { ...user, ...updated, avatar: loadAvatar() || user?.avatar || null };
 
-      // Also update ch_user so the data persists correctly
       const currentStored = JSON.parse(localStorage.getItem('ch_user') || '{}');
       localStorage.setItem('ch_user', JSON.stringify({
         ...currentStored,
@@ -610,17 +740,52 @@ const Profile = () => {
     finally  { setLoading(false); }
   };
 
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) { addToast("error", "Passwords do not match!"); return; }
-    if (passwordForm.newPassword.length < 6) { addToast("error", "Password must be at least 6 characters!"); return; }
-    setLoading(true);
+  // ── Real API password change (migrated from Settings.js) ──
+  const handlePasswordFieldChange = (field, value) => {
+    setPasswords(p => ({ ...p, [field]: value }));
+    setPasswordError('');
+    setPasswordSuccess('');
+  };
+
+  const handleChangePassword = async () => {
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    if (passwords.newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordError('');
     try {
-      await new Promise(r => setTimeout(r, 800));
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      addToast("success", "Password changed successfully!");
-    } catch { addToast("error", "Failed to change password."); }
-    finally  { setLoading(false); }
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/change-password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordSuccess(data.message);
+        setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        addToast("success", "Password changed successfully!");
+        setTimeout(() => { setShowPasswordForm(false); setPasswordSuccess(''); }, 2000);
+      } else {
+        setPasswordError(data.message);
+      }
+    } catch {
+      setPasswordError('Failed. Please try again.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const resetPasswordForm = () => {
+    setShowPasswordForm(false);
+    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordError('');
+    setPasswordSuccess('');
   };
 
   const handleAvatarFilePick = (e) => {
@@ -799,27 +964,72 @@ const Profile = () => {
                       <div className="ch-section-sub">Manage your password and account security</div>
                     </div>
                   </div>
+
                   <div className="ch-info-card">
-                    <div className="ch-card-title">Change Password</div>
-                    <form onSubmit={handlePasswordChange} className="ch-edit-form">
-                      <div className="ch-form-group">
-                        <label>Current Password</label>
-                        <input type="password" value={passwordForm.currentPassword} onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} placeholder="Enter current password" required />
+                    {/* Change Password row */}
+                    {!showPasswordForm ? (
+                      <div className="ch-setting-item">
+                        <div className="ch-setting-info">
+                          <h4>Change Password</h4>
+                          <p>Update your account password to keep your account secure</p>
+                        </div>
+                        <button
+                          className="ch-btn-primary"
+                          onClick={() => setShowPasswordForm(true)}
+                          style={{ padding: '10px 20px' }}
+                        >
+                          <span>🔑 Change Password</span>
+                        </button>
                       </div>
-                      <div className="ch-form-row">
-                        <div className="ch-form-group">
+                    ) : (
+                      <div className="ch-pwd-panel">
+                        <div className="ch-pwd-panel-title">🔑 Change Your Password</div>
+                        <div className="ch-pwd-panel-sub">Enter your current password and choose a new one.</div>
+
+                        <div className="ch-pwd-field">
+                          <label>Current Password</label>
+                          <input
+                            type="password"
+                            className="ch-pwd-input"
+                            value={passwords.currentPassword}
+                            onChange={e => handlePasswordFieldChange('currentPassword', e.target.value)}
+                            placeholder="••••••••"
+                          />
+                        </div>
+
+                        <div className="ch-pwd-field">
                           <label>New Password</label>
-                          <input type="password" value={passwordForm.newPassword} onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} placeholder="New password" required />
+                          <input
+                            type="password"
+                            className="ch-pwd-input"
+                            value={passwords.newPassword}
+                            onChange={e => handlePasswordFieldChange('newPassword', e.target.value)}
+                            placeholder="••••••••"
+                          />
                         </div>
-                        <div className="ch-form-group">
+
+                        <div className="ch-pwd-field">
                           <label>Confirm New Password</label>
-                          <input type="password" value={passwordForm.confirmPassword} onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} placeholder="Confirm password" required />
+                          <input
+                            type="password"
+                            className="ch-pwd-input"
+                            value={passwords.confirmPassword}
+                            onChange={e => handlePasswordFieldChange('confirmPassword', e.target.value)}
+                            placeholder="••••••••"
+                          />
+                        </div>
+
+                        {passwordError   && <div className="ch-pwd-error">⚠ {passwordError}</div>}
+                        {passwordSuccess && <div className="ch-pwd-success">✓ {passwordSuccess}</div>}
+
+                        <div className="ch-pwd-actions">
+                          <button className="ch-pwd-btn secondary" onClick={resetPasswordForm}>Cancel</button>
+                          <button className="ch-pwd-btn primary" onClick={handleChangePassword} disabled={savingPassword}>
+                            <span>{savingPassword ? 'Saving…' : '💾 Save Password'}</span>
+                          </button>
                         </div>
                       </div>
-                      <button type="submit" className="ch-btn-primary" disabled={loading} style={{ alignSelf: "flex-start" }}>
-                        <span>{loading ? "Updating…" : "Update Password"}</span>
-                      </button>
-                    </form>
+                    )}
                   </div>
                 </>
               )}

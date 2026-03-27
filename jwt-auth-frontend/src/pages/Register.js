@@ -20,6 +20,62 @@ const U = {
 };
 
 /* ═══════════════════════════════════════════════════
+   FLOATING EMOJIS (matches Login page)
+═══════════════════════════════════════════════════ */
+const FLOAT_EMOJIS = ['🧣','🌸','🧶','🌸','🧣','🧶','🌸','🧣','🌸','🧶','🧣','🌸'];
+
+const floatStyles = `
+  @keyframes regFloat {
+    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.9; }
+    25%      { transform: translateY(-18px) rotate(8deg); opacity: 1; }
+    50%      { transform: translateY(-30px) rotate(-5deg); opacity: 0.85; }
+    75%      { transform: translateY(-14px) rotate(10deg); opacity: 1; }
+  }
+  @keyframes regFloatB {
+    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.85; }
+    30%      { transform: translateY(-24px) rotate(-10deg); opacity: 1; }
+    60%      { transform: translateY(-10px) rotate(6deg); opacity: 0.9; }
+  }
+  @keyframes regFloatC {
+    0%, 100% { transform: translateY(0px) rotate(5deg); opacity: 0.9; }
+    40%      { transform: translateY(-20px) rotate(-8deg); opacity: 1; }
+    70%      { transform: translateY(-35px) rotate(12deg); opacity: 0.85; }
+  }
+  .reg-float-wrap {
+    position: fixed; inset: 0; z-index: 1;
+    pointer-events: none; overflow: hidden;
+  }
+  .reg-float {
+    position: absolute; user-select: none; line-height: 1;
+    will-change: transform;
+    filter: drop-shadow(0 2px 8px rgba(236,72,153,0.25));
+  }
+  .reg-float:nth-child(1)  { left: 4%;  top: 6%;  font-size: 40px; animation: regFloat  6.2s 0s    ease-in-out infinite; }
+  .reg-float:nth-child(2)  { left: 16%; top: 70%; font-size: 32px; animation: regFloatB 7.5s 0.8s  ease-in-out infinite; }
+  .reg-float:nth-child(3)  { left: 28%; top: 16%; font-size: 46px; animation: regFloatC 5.8s 1.4s  ease-in-out infinite; }
+  .reg-float:nth-child(4)  { left: 52%; top: 82%; font-size: 36px; animation: regFloat  8.1s 0.3s  ease-in-out infinite; }
+  .reg-float:nth-child(5)  { left: 65%; top: 8%;  font-size: 30px; animation: regFloatB 6.7s 2.1s  ease-in-out infinite; }
+  .reg-float:nth-child(6)  { left: 80%; top: 56%; font-size: 42px; animation: regFloatC 7.0s 0.6s  ease-in-out infinite; }
+  .reg-float:nth-child(7)  { left: 91%; top: 26%; font-size: 34px; animation: regFloat  5.5s 1.9s  ease-in-out infinite; }
+  .reg-float:nth-child(8)  { left: 7%;  top: 87%; font-size: 38px; animation: regFloatB 9.0s 0.2s  ease-in-out infinite; }
+  .reg-float:nth-child(9)  { left: 88%; top: 80%; font-size: 28px; animation: regFloatC 6.4s 3.0s  ease-in-out infinite; }
+  .reg-float:nth-child(10) { left: 38%; top: 3%;  font-size: 36px; animation: regFloat  7.8s 1.1s  ease-in-out infinite; }
+  .reg-float:nth-child(11) { left: 2%;  top: 42%; font-size: 32px; animation: regFloatB 6.0s 2.5s  ease-in-out infinite; }
+  .reg-float:nth-child(12) { left: 93%; top: 50%; font-size: 40px; animation: regFloatC 8.3s 0.9s  ease-in-out infinite; }
+`;
+
+const FloatingEmojis = () => (
+  <>
+    <style>{floatStyles}</style>
+    <div className="reg-float-wrap" aria-hidden="true">
+      {FLOAT_EMOJIS.map((emoji, i) => (
+        <span key={i} className="reg-float">{emoji}</span>
+      ))}
+    </div>
+  </>
+);
+
+/* ═══════════════════════════════════════════════════
    CIRCLE CROPPER
 ═══════════════════════════════════════════════════ */
 const CircleCropper = ({ imageSrc, onDone, onCancel }) => {
@@ -404,7 +460,7 @@ const Register = () => {
     if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
   };
 
-  /* ─── SUBMIT — saves all fields to localStorage so Profile can read them ─── */
+  /* ─── SUBMIT ─── */
   const handleSubmit = async () => {
     setIsLoading(true);
     setGlobalError('');
@@ -422,7 +478,6 @@ const Register = () => {
       const token = res.data?.token || res.data?.accessToken || null;
       if (token) saveToken(token);
 
-      // Build userData from server response (which now returns all fields)
       const userData = {
         id:        res.data?.id        || Date.now().toString(),
         username:  res.data?.username  || form.username,
@@ -434,11 +489,9 @@ const Register = () => {
         createdAt: res.data?.createdAt || new Date().toISOString(),
       };
 
-      // Save to ch_user — Profile.js reads this directly
       localStorage.setItem('ch_user', JSON.stringify(userData));
       localStorage.setItem('userId', userData.id);
 
-      // Also save via userStorage helpers for compatibility
       saveUserProfile({
         username:  userData.username,
         email:     userData.email,
@@ -537,6 +590,13 @@ const Register = () => {
         />
       )}
 
+      {/* z-index 0 – pink gradient background */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, background: 'linear-gradient(135deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)' }} />
+
+      {/* z-index 1 – floating emojis */}
+      <FloatingEmojis />
+
+      {/* z-index 2 – page content */}
       <div style={st.page}>
         <style>{`
           @keyframes fadeIn { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
@@ -823,8 +883,9 @@ const Register = () => {
 };
 
 const st = {
-  page:      { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#fdf2f8 0%,#fce7f3 50%,#fbcfe8 100%)', padding: '24px', fontFamily: "'Segoe UI',Tahoma,Geneva,Verdana,sans-serif" },
-  card:      { background: '#fff', borderRadius: '20px', boxShadow: '0 20px 60px rgba(249,168,212,.4)', padding: '40px 36px', width: '100%', maxWidth: '440px', animation: 'fadeIn .5s ease-out' },
+  /* background removed from page — handled by the fixed .login__bg div above */
+  page:      { position: 'relative', zIndex: 2, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "'Segoe UI',Tahoma,Geneva,Verdana,sans-serif", pointerEvents: 'none' },
+  card:      { background: '#fff', borderRadius: '20px', boxShadow: '0 20px 60px rgba(249,168,212,.4)', padding: '40px 36px', width: '100%', maxWidth: '440px', animation: 'fadeIn .5s ease-out', pointerEvents: 'all' },
   fg:        { marginBottom: '16px' },
   label:     { display: 'block', fontSize: '13px', fontWeight: 600, color: '#4b5563', marginBottom: '7px' },
   eye:       { position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '16px', padding: '4px' },
