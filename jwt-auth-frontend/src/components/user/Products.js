@@ -1218,14 +1218,13 @@ const Products = () => {
     closeImageModal();
   };
 
-  // ── Buy Now: add item to cart then navigate directly to checkout via router state ──
+  // ── Buy Now: navigate directly to checkout via router state (do NOT add to cart) ──
   const handleBuyNow = (product, imageIndex) => {
     const item = {
       ...product,
       selectedImage: product.images[imageIndex],
       quantity: 1,
     };
-    addToCart(item);
     setShowQuickViewModal(false);
     navigate('/user/checkout', { state: { buyNowItem: item } });
   };
