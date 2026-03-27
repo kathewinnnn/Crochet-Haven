@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../apiConfig';
@@ -256,12 +256,14 @@ const checkoutStyles = `
 
   .ch-co-card-icon.rose  { background: linear-gradient(135deg, var(--rose), var(--blush)); }
   .ch-co-card-icon.amber { background: linear-gradient(135deg, var(--amber), #f5d4a0); }
+  .ch-co-card-icon.sage  { background: linear-gradient(135deg, var(--sage), #b8d4bb); }
 
   .ch-co-card-title {
     font-family: 'Playfair Display', serif;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--charcoal);
+    flex: 1;
   }
 
   .ch-co-card-body { padding: 28px; }
@@ -308,7 +310,6 @@ const checkoutStyles = `
     box-shadow: 0 0 0 3px rgba(232, 114, 138, 0.1);
   }
 
-  /* ── Input error state ── */
   .ch-co-input.has-error {
     border-color: var(--error-border) !important;
     background: var(--error-bg);
@@ -320,7 +321,6 @@ const checkoutStyles = `
     box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
   }
 
-  /* ── Error message ── */
   .ch-co-field-error {
     display: flex;
     align-items: center;
@@ -344,7 +344,6 @@ const checkoutStyles = `
     flex-shrink: 0;
   }
 
-  /* Success message */
   .ch-co-field-success {
     display: flex;
     align-items: center;
@@ -362,7 +361,6 @@ const checkoutStyles = `
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Input success state */
   .ch-co-input.has-success {
     border-color: var(--sage) !important;
     background: rgba(138, 171, 142, 0.05);
@@ -393,7 +391,6 @@ const checkoutStyles = `
     gap: 14px;
   }
 
-  /* Payment method badge */
   .ch-co-pay-badge {
     display: inline-flex;
     align-items: center;
@@ -455,7 +452,7 @@ const checkoutStyles = `
 
   .ch-co-submit:disabled::after { display: none; }
 
-  /* ── CTA button (shared) ── */
+  /* ── CTA button ── */
   .ch-co-cta {
     display: inline-flex;
     align-items: center;
@@ -648,6 +645,439 @@ const checkoutStyles = `
 
   @keyframes coSpin { to { transform: rotate(360deg); } }
 
+  /* ═══════════════════════════════════════════════
+     ── SAVED ADDRESSES ──
+  ═══════════════════════════════════════════════ */
+
+  /* Address strip above shipping card */
+  .ch-sa-strip {
+    margin-bottom: 16px;
+  }
+
+  .ch-sa-strip-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  /* Horizontal scroll row of address cards */
+  .ch-sa-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* Each saved address pill/card */
+  .ch-sa-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    min-width: 0;
+    max-width: 220px;
+    flex-shrink: 0;
+  }
+
+  .ch-sa-card:hover {
+    border-color: var(--rose);
+    box-shadow: 0 2px 12px rgba(232,114,138,0.1);
+  }
+
+  .ch-sa-card.active {
+    border-color: var(--rose);
+    background: rgba(232,114,138,0.05);
+    box-shadow: 0 2px 12px rgba(232,114,138,0.12);
+  }
+
+  .ch-sa-card-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blush), var(--terracotta));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .ch-sa-card-avatar.friend {
+    background: linear-gradient(135deg, var(--sage), #5a8a5e);
+  }
+
+  .ch-sa-card-info { min-width: 0; flex: 1; }
+
+  .ch-sa-card-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--charcoal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
+  .ch-sa-card-meta {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-weight: 300;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ch-sa-card-badge {
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .ch-sa-card-badge.mine {
+    background: rgba(232,114,138,0.1);
+    color: var(--rose);
+  }
+
+  .ch-sa-card-badge.friend {
+    background: rgba(138,171,142,0.12);
+    color: var(--sage);
+  }
+
+  /* Delete button on card */
+  .ch-sa-del {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    color: var(--cream);
+    border: none;
+    cursor: pointer;
+    font-size: 0.62rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    z-index: 2;
+    transition: background 0.15s;
+  }
+
+  .ch-sa-del:hover { background: var(--error); }
+
+  .ch-sa-card:hover .ch-sa-del { display: flex; }
+
+  /* Add new address button */
+  .ch-sa-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: transparent;
+    border: 1.5px dashed rgba(212,115,94,0.3);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: border-color 0.18s, color 0.18s, background 0.18s;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .ch-sa-add-btn:hover {
+    border-color: var(--rose);
+    color: var(--rose);
+    background: rgba(232,114,138,0.04);
+  }
+
+  /* ── Save address checkbox row ── */
+  .ch-sa-save-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(138,171,142,0.06);
+    border: 1px solid rgba(138,171,142,0.2);
+    border-radius: 3px;
+    animation: coErrorSlide 0.2s ease forwards;
+  }
+
+  .ch-sa-save-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    accent-color: var(--sage);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .ch-sa-save-label {
+    font-size: 0.78rem;
+    color: var(--charcoal);
+    font-weight: 400;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  .ch-sa-save-label strong {
+    color: var(--sage);
+    font-weight: 700;
+  }
+
+  /* ── Save address extra fields ── */
+  .ch-sa-extra {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: coErrorSlide 0.18s ease forwards;
+  }
+
+  .ch-sa-extra-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── Modal / Drawer ── */
+  .ch-sa-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(44,36,32,0.45);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: coFadeIn 0.2s ease forwards;
+  }
+
+  @keyframes coFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .ch-sa-modal {
+    background: var(--warm-white);
+    border-radius: 6px 6px 0 0;
+    width: 100%;
+    max-width: 560px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 32px 32px 40px;
+    box-shadow: 0 -8px 40px rgba(44,36,32,0.15);
+    animation: coSlideUp 0.28s cubic-bezier(0.34,1.1,0.64,1) forwards;
+  }
+
+  @keyframes coSlideUp {
+    from { transform: translateY(60px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .ch-sa-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .ch-sa-modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--charcoal);
+    letter-spacing: -0.02em;
+  }
+
+  .ch-sa-modal-title em { font-style: italic; color: var(--rose); }
+
+  .ch-sa-modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .ch-sa-modal-close:hover {
+    background: var(--rose);
+    color: #fff;
+    border-color: var(--rose);
+  }
+
+  /* Friend toggle */
+  .ch-sa-type-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .ch-sa-type-btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 3px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .ch-sa-type-btn.active-mine {
+    background: rgba(232,114,138,0.08);
+    border-color: var(--rose);
+    color: var(--rose);
+  }
+
+  .ch-sa-type-btn.active-friend {
+    background: rgba(138,171,142,0.1);
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+
+  /* Modal action row */
+  .ch-sa-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .ch-sa-btn-primary {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 3px;
+    background: var(--charcoal);
+    color: var(--cream);
+    font-family: 'Lato', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ch-sa-btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--rose);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 0;
+  }
+
+  .ch-sa-btn-primary:hover::after { transform: translateX(0); }
+  .ch-sa-btn-primary span { position: relative; z-index: 1; }
+
+  .ch-sa-btn-cancel {
+    padding: 12px 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .ch-sa-btn-cancel:hover {
+    border-color: var(--charcoal);
+    color: var(--charcoal);
+  }
+
+  /* Selected address info bar */
+  .ch-sa-selected-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(232,114,138,0.05);
+    border: 1px solid rgba(232,114,138,0.2);
+    border-radius: 3px;
+    margin-bottom: 20px;
+    animation: coErrorSlide 0.2s ease forwards;
+  }
+
+  .ch-sa-selected-bar-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  .ch-sa-selected-bar-text {
+    flex: 1;
+    font-size: 0.78rem;
+    color: var(--charcoal);
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .ch-sa-selected-bar-text strong {
+    font-weight: 700;
+    color: var(--deep-rose);
+  }
+
+  .ch-sa-change-btn {
+    background: none;
+    border: none;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rose);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 2px;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .ch-sa-change-btn:hover { background: rgba(232,114,138,0.08); }
+
   /* ── Responsive ── */
   @media (max-width: 900px) {
     .ch-co-page { margin-left: 0; }
@@ -660,6 +1090,8 @@ const checkoutStyles = `
   @media (max-width: 580px) {
     .ch-co-form-row { grid-template-columns: 1fr; }
     .ch-co-header-eyebrow { display: none; }
+    .ch-sa-extra-row { grid-template-columns: 1fr; }
+    .ch-sa-modal { padding: 24px 20px 32px; }
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
@@ -669,10 +1101,10 @@ const checkoutStyles = `
     .ch-co-grid { grid-template-columns: 1fr; }
     .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 30px; }
   }
- 
+
   @media (max-width: 768px) {
     .ch-co-page { margin-left: 0; padding-top: 56px; }
-    .ch-co-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px;}
+    .ch-co-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-co-logo-yarn { font-size: 1.8rem; }
     .ch-co-logo-text { font-size: 1.3rem; }
     .ch-co-tagline { display: none; }
@@ -686,16 +1118,16 @@ const checkoutStyles = `
   }
 
   @media (max-width: 1024px) and (min-width: 769px) {
-  .ch-co-page { margin-left: 160px; padding-top: 0 }
-  .ch-co-header-title {margin-left: 23%;}
-  .ch-co-header-inner { padding: 28px 30px; }
-  .ch-co-main { padding: 40px 30px 60px; }
-  .ch-co-grid { grid-template-columns: 1fr; }
-  .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 30px; }
-}
+    .ch-co-page { margin-left: 160px; padding-top: 0; }
+    .ch-co-header-title { margin-left: 23%; }
+    .ch-co-header-inner { padding: 28px 30px; }
+    .ch-co-main { padding: 40px 30px 60px; }
+    .ch-co-grid { grid-template-columns: 1fr; }
+    .ch-co-footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px 30px; }
+  }
 `;
 
-// ── Helper: decode userId from JWT ───────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 const getUserIdFromToken = (token) => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -705,12 +1137,10 @@ const getUserIdFromToken = (token) => {
   }
 };
 
-// ── Mobile number validation helper ──────────────────────────────────────────
 const validateMobileNumber = (value) => {
   if (!value) return '';
   const trimmed = value.trim();
   const stripped = trimmed.replace(/\s+/g, '');
-
   if (stripped.startsWith('+63')) {
     const digits = stripped.slice(3);
     if (!/^\d+$/.test(digits)) return 'Only digits are allowed after +63.';
@@ -719,7 +1149,6 @@ const validateMobileNumber = (value) => {
     if (!digits.startsWith('9')) return 'Number after +63 must start with 9 (e.g. +639XXXXXXXXX).';
     return '';
   }
-
   if (stripped.startsWith('0')) {
     if (!/^\d+$/.test(stripped)) return 'Mobile number must contain digits only.';
     if (stripped.length < 11) return `Incomplete number — must be 11 digits (currently ${stripped.length}).`;
@@ -727,57 +1156,32 @@ const validateMobileNumber = (value) => {
     if (!stripped.startsWith('09')) return 'Number must start with 09 (e.g. 09XXXXXXXXX).';
     return '';
   }
-
   return 'Enter a valid PH number starting with 09 or +63.';
 };
 
-// Check if mobile number is valid (for success indicator)
 const isMobileNumberValid = (value) => {
   if (!value) return false;
-  const trimmed = value.trim();
-  const stripped = trimmed.replace(/\s+/g, '');
-  
-  // Check +63 format
+  const stripped = value.trim().replace(/\s+/g, '');
   if (stripped.startsWith('+63')) {
     const digits = stripped.slice(3);
     return /^\d{10}$/.test(digits) && digits.startsWith('9');
   }
-  
-  // Check 0 format
-  if (stripped.startsWith('0')) {
-    return /^09\d{9}$/.test(stripped);
-  }
-  
-  // Check if it's just digits starting with 9
-  if (/^\d+$/.test(stripped)) {
-    return stripped.length === 10 && stripped.startsWith('9');
-  }
-  
+  if (stripped.startsWith('0')) return /^09\d{9}$/.test(stripped);
+  if (/^\d+$/.test(stripped)) return stripped.length === 10 && stripped.startsWith('9');
   return false;
 };
 
 const resolveCurrentUserId = () => {
   const direct = localStorage.getItem('userId');
   if (direct) return String(direct);
-
   try {
     const raw = localStorage.getItem('user');
-    if (raw) {
-      const p = JSON.parse(raw);
-      const id = p?.id || p?.userId;
-      if (id) return String(id);
-    }
+    if (raw) { const p = JSON.parse(raw); const id = p?.id || p?.userId; if (id) return String(id); }
   } catch {}
-
   try {
     const raw = localStorage.getItem('ch_user');
-    if (raw) {
-      const p = JSON.parse(raw);
-      const id = p?.id || p?.userId;
-      if (id) return String(id);
-    }
+    if (raw) { const p = JSON.parse(raw); const id = p?.id || p?.userId; if (id) return String(id); }
   } catch {}
-
   try {
     const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
     if (token) {
@@ -786,13 +1190,159 @@ const resolveCurrentUserId = () => {
       if (id) return String(id);
     }
   } catch {}
-
   return null;
 };
 
+// LocalStorage key for saved addresses (per user)
+const getAddressKey = () => {
+  const uid = resolveCurrentUserId();
+  return uid ? `ch_saved_addresses_${uid}` : 'ch_saved_addresses_guest';
+};
+
+const loadSavedAddresses = () => {
+  try {
+    const raw = localStorage.getItem(getAddressKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
+const persistAddresses = (list) => {
+  try { localStorage.setItem(getAddressKey(), JSON.stringify(list)); } catch {}
+};
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+};
+
+// ── Empty address form ────────────────────────────────────────────────────────
+const emptyShipping = {
+  fullName: '', email: '', phone: '', address: '', city: '', zipCode: ''
+};
+
+// ── AddressModal ──────────────────────────────────────────────────────────────
+const AddressModal = ({ onClose, onSave, initial = null }) => {
+  const [type, setType] = useState(initial?.type || 'mine');
+  const [nickname, setNickname] = useState(initial?.nickname || '');
+  const [form, setForm] = useState(
+    initial
+      ? { fullName: initial.fullName, email: initial.email, phone: initial.phone, address: initial.address, city: initial.city, zipCode: initial.zipCode }
+      : { ...emptyShipping }
+  );
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSave = () => {
+    if (!form.fullName.trim()) { alert('Full name is required.'); return; }
+    onSave({
+      id: initial?.id || Date.now().toString(),
+      type,
+      nickname: nickname.trim() || form.fullName.split(' ')[0],
+      ...form,
+    });
+  };
+
+  return (
+    <div className="ch-sa-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ch-sa-modal">
+        <div className="ch-sa-modal-head">
+          <div className="ch-sa-modal-title">
+            {initial ? 'Edit' : 'New'} <em>Address</em>
+          </div>
+          <button className="ch-sa-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Mine / Friend toggle */}
+        <div className="ch-sa-type-toggle">
+          <button
+            className={`ch-sa-type-btn ${type === 'mine' ? 'active-mine' : ''}`}
+            onClick={() => setType('mine')}
+          >
+            🙋 Mine
+          </button>
+          <button
+            className={`ch-sa-type-btn ${type === 'friend' ? 'active-friend' : ''}`}
+            onClick={() => setType('friend')}
+          >
+            🎁 For a Friend
+          </button>
+        </div>
+
+        {/* Nickname */}
+        <div className="ch-co-form-group" style={{ marginBottom: 16 }}>
+          <label className="ch-co-label" htmlFor="sa-nickname">
+            Label
+          </label>
+          <input
+            className="ch-co-input"
+            style={{ width: '95%' }}
+            id="sa-nickname"
+            placeholder={type === 'friend' ? "Home, Work, Dorm, etc." : "Home, Work, Dorm, etc."}
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+          />
+        </div>
+
+        {/* Shipping fields */}
+        <div className="ch-co-form-group">
+          <label className="ch-co-label" htmlFor="sa-fullName">
+            {type === 'friend' ? "Recipient's Full Name" : 'Full Name'}
+          </label>
+          <input className="ch-co-input" style={{ width: '95%' }} id="sa-fullName" name="fullName"
+            placeholder="Full name" value={form.fullName} onChange={handleChange} />
+        </div>
+
+        <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
+            <label className="ch-co-label" htmlFor="sa-email">Email</label>
+            <input className="ch-co-input" id="sa-email" name="email"
+              placeholder="you@email.com" type="email" value={form.email} onChange={handleChange} />
+          </div>
+          <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
+            <label className="ch-co-label" htmlFor="sa-phone">Phone</label>
+            <input className="ch-co-input" style={{ width: '90%' }} id="sa-phone" name="phone"
+              placeholder="09XXXXXXXXX" type="tel" value={form.phone} onChange={handleChange} />
+          </div>
+        </div>
+
+        <div className="ch-co-form-group">
+          <label className="ch-co-label" htmlFor="sa-address">Address</label>
+          <input className="ch-co-input" style={{ width: '95%' }} id="sa-address" name="address"
+            placeholder="Street address" value={form.address} onChange={handleChange} />
+        </div>
+
+        <div className="ch-sa-extra-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
+            <label className="ch-co-label" htmlFor="sa-city">City / Province</label>
+            <input className="ch-co-input" id="sa-city" name="city"
+              placeholder="City" value={form.city} onChange={handleChange} />
+          </div>
+          <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
+            <label className="ch-co-label" htmlFor="sa-zip">ZIP Code</label>
+            <input className="ch-co-input" style={{ width: '88%' }} id="sa-zip" name="zipCode"
+              placeholder="0000" value={form.zipCode} onChange={handleChange} />
+          </div>
+        </div>
+
+        <div className="ch-sa-modal-actions">
+          <button className="ch-sa-btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="ch-sa-btn-primary" onClick={handleSave}>
+            <span>Save Address</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main Checkout component ───────────────────────────────────────────────────
 const Checkout = () => {
   const { cart, clearCart, selectedItems, getSelectedItems } = useCart();
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     fullName: '', email: '', phone: '', address: '', city: '', zipCode: '',
     paymentMethod: '', gcashNumber: '', gcashAccountName: '', gcashPassword: '',
@@ -800,25 +1350,36 @@ const Checkout = () => {
     cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '', orderNote: ''
   });
 
-  // LOGIN GUARD: Redirect if not authenticated
-  useEffect(() => {
-    const currentUserId = resolveCurrentUserId();
-    if (!currentUserId) {
-      navigate('/login', { state: { from: '/user/checkout' } });
-      return;
-    }
-  }, [navigate]);
+  // ── Saved addresses state ──
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
 
+  // Save-this-address checkbox (shown when fields are manually filled)
+  const [wantToSave, setWantToSave] = useState(false);
+  const [saveNickname, setSaveNickname] = useState('');
+  const [saveType, setSaveType] = useState('mine');
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [mobileErrors, setMobileErrors] = useState({ gcashNumber: '', paymayaNumber: '' });
 
-  const safeCart = selectedItems.length > 0 ? getSelectedItems() : (Array.isArray(cart) ? cart : []);
+  // ── Auth guard ──
+  useEffect(() => {
+    const uid = resolveCurrentUserId();
+    if (!uid) { navigate('/login', { state: { from: '/user/checkout' } }); }
+  }, [navigate]);
 
+  // ── Load saved addresses on mount ──
+  useEffect(() => {
+    setSavedAddresses(loadSavedAddresses());
+  }, []);
+
+  const safeCart = selectedItems.length > 0 ? getSelectedItems() : (Array.isArray(cart) ? cart : []);
   const total = safeCart.reduce((sum, item) => {
     const price = item?.price ? parseFloat(item.price) : 0;
-    const qty   = item?.quantity ?? 1;
+    const qty = item?.quantity ?? 1;
     return sum + (isNaN(price) ? 0 : price * qty);
   }, 0);
 
@@ -827,15 +1388,75 @@ const Checkout = () => {
     return isNaN(n) ? '0.00' : n.toFixed(2);
   };
 
+  // ── Select a saved address → auto-fill form ──
+  const handleSelectAddress = (addr) => {
+    setSelectedAddressId(addr.id);
+    setFormData(prev => ({
+      ...prev,
+      fullName: addr.fullName || '',
+      email: addr.email || '',
+      phone: addr.phone || '',
+      address: addr.address || '',
+      city: addr.city || '',
+      zipCode: addr.zipCode || '',
+    }));
+    setWantToSave(false);
+  };
+
+  // ── Deselect (fill manually) ──
+  const handleClearSelected = () => {
+    setSelectedAddressId(null);
+    setFormData(prev => ({ ...prev, ...emptyShipping }));
+  };
+
+  // ── Save new / updated address from modal ──
+  const handleSaveAddress = (addr) => {
+    setSavedAddresses(prev => {
+      const exists = prev.find(a => a.id === addr.id);
+      const updated = exists ? prev.map(a => a.id === addr.id ? addr : a) : [...prev, addr];
+      persistAddresses(updated);
+      return updated;
+    });
+    setShowModal(false);
+    setEditingAddress(null);
+
+    // Auto-select the newly added address
+    handleSelectAddress(addr);
+  };
+
+  // ── Delete a saved address ──
+  const handleDeleteAddress = (id, e) => {
+    e.stopPropagation();
+    setSavedAddresses(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      persistAddresses(updated);
+      return updated;
+    });
+    if (selectedAddressId === id) {
+      setSelectedAddressId(null);
+      setFormData(prev => ({ ...prev, ...emptyShipping }));
+    }
+  };
+
+  // ── Open modal for editing ──
+  const handleEditAddress = (addr, e) => {
+    e.stopPropagation();
+    setEditingAddress(addr);
+    setShowModal(true);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
     if (name === 'gcashNumber' || name === 'paymayaNumber') {
       setMobileErrors(prev => ({ ...prev, [name]: value ? validateMobileNumber(value) : '' }));
     }
     if (name === 'paymentMethod') {
       setMobileErrors({ gcashNumber: '', paymayaNumber: '' });
+    }
+    // If user manually changes a shipping field, deselect the saved address
+    if (['fullName', 'email', 'phone', 'address', 'city', 'zipCode'].includes(name)) {
+      setSelectedAddressId(null);
     }
   };
 
@@ -845,11 +1466,7 @@ const Checkout = () => {
     ? 'paymayaNumber'
     : null;
 
-  // Check if current mobile field has valid number (for success state)
-  const hasValidMobileNumber = activeMobileField 
-    ? isMobileNumberValid(formData[activeMobileField]) 
-    : false;
-
+  const hasValidMobileNumber = activeMobileField ? isMobileNumberValid(formData[activeMobileField]) : false;
   const hasMobileError = activeMobileField
     ? (mobileErrors[activeMobileField] !== '' ||
        (formData[activeMobileField] && validateMobileNumber(formData[activeMobileField]) !== ''))
@@ -858,79 +1475,72 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // For GCash and PayMaya, validate that mobile number is provided and valid
     if (activeMobileField) {
       const currentValue = formData[activeMobileField];
-      
-      // Check if field is empty
       if (!currentValue || currentValue.trim() === '') {
         const fieldLabel = activeMobileField === 'gcashNumber' ? 'GCash' : 'PayMaya';
         setMobileErrors(prev => ({ ...prev, [activeMobileField]: `${fieldLabel} number is required.` }));
         return;
       }
-      
-      // Check if the number is valid format
       const err = validateMobileNumber(currentValue);
-      if (err) {
-        setMobileErrors(prev => ({ ...prev, [activeMobileField]: err }));
-        return;
-      }
-      
-      // Check if it passes our validity check
+      if (err) { setMobileErrors(prev => ({ ...prev, [activeMobileField]: err })); return; }
       if (!isMobileNumberValid(currentValue)) {
         setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'Please enter a valid 11-digit mobile number (e.g., 09XXXXXXXXX).' }));
         return;
       }
-
-      // Validate account name for GCash/PayMaya
       const accountNameField = activeMobileField === 'gcashNumber' ? 'gcashAccountName' : 'paymayaAccountName';
-      const accountNameValue = formData[accountNameField];
-      if (!accountNameValue || accountNameValue.trim() === '') {
+      if (!formData[accountNameField]?.trim()) {
         setMobileErrors(prev => ({ ...prev, [activeMobileField]: `${activeMobileField === 'gcashNumber' ? 'GCash' : 'PayMaya'} account name is required.` }));
         return;
       }
-
-      // Validate password/PIN for GCash/PayMaya
       const passwordField = activeMobileField === 'gcashNumber' ? 'gcashPassword' : 'paymayaPassword';
-      const passwordValue = formData[passwordField];
-      if (!passwordValue || passwordValue.trim() === '') {
+      const pin = formData[passwordField];
+      if (!pin?.trim()) {
         setMobileErrors(prev => ({ ...prev, [activeMobileField]: `${activeMobileField === 'gcashNumber' ? 'GCash' : 'PayMaya'} PIN is required.` }));
         return;
       }
-      if (passwordValue.length < 4 || passwordValue.length > 6) {
-        setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'PIN must be 4-6 digits.' }));
-        return;
-      }
-      if (!/^\d+$/.test(passwordValue)) {
-        setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'PIN must contain only digits.' }));
+      if (pin.length < 4 || pin.length > 6 || !/^\d+$/.test(pin)) {
+        setMobileErrors(prev => ({ ...prev, [activeMobileField]: 'PIN must be 4–6 digits.' }));
         return;
       }
     }
 
+    // ── Save address before submitting if requested ──
+    if (wantToSave && !selectedAddressId && formData.fullName.trim()) {
+      const newAddr = {
+        id: Date.now().toString(),
+        type: saveType,
+        nickname: saveNickname.trim() || formData.fullName.split(' ')[0],
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        zipCode: formData.zipCode,
+      };
+      setSavedAddresses(prev => {
+        const updated = [...prev, newAddr];
+        persistAddresses(updated);
+        return updated;
+      });
+    }
+
     setIsLoading(true);
     try {
-      // ── Resolve the logged-in user's ID ────────────────────────────────────
       const token = localStorage.getItem('token');
       let userId = localStorage.getItem('userId');
-
-      // Fall back to JWT decoding if localStorage doesn't have it
       if (!userId && token) {
         userId = getUserIdFromToken(token);
         if (userId) localStorage.setItem('userId', userId);
       }
-
-      // Also grab username if stored
       const username = localStorage.getItem('username') || '';
 
       const orderData = {
-        // ── KEY FIX: attach userId and username so Orders page can filter ──
-        userId,
-        username,
+        userId, username,
         customer: formData,
         paymentMethod: formData.paymentMethod,
         items: safeCart.map(item => ({
-          id: item.id,
-          name: item.name,
+          id: item.id, name: item.name,
           price: parseFloat(item.price),
           quantity: item.quantity || 1,
           selectedImage: item.selectedImage
@@ -951,7 +1561,6 @@ const Checkout = () => {
       if (response.ok) {
         setIsSubmitted(true);
         clearCart();
-        // Notify the Orders page that a new order was placed
         try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
         window.dispatchEvent(new CustomEvent('ordersUpdated'));
       } else {
@@ -968,6 +1577,11 @@ const Checkout = () => {
   const paymentLabel = {
     gcash: 'GCash', paymaya: 'PayMaya', cod: 'Cash on Delivery', card: 'Credit / Debit Card'
   };
+
+  const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+
+  // Detect if shipping fields are manually filled (for "save address" prompt)
+  const shippingFilled = !selectedAddressId && formData.fullName.trim().length > 0;
 
   /* ── Success screen ── */
   if (isSubmitted) {
@@ -986,7 +1600,6 @@ const Checkout = () => {
               </div>
             </div>
           </header>
-
           <main className="ch-co-main">
             <div className="ch-co-success">
               <span className="ch-co-success-icon">🎉</span>
@@ -994,12 +1607,9 @@ const Checkout = () => {
               <p className="ch-co-success-sub">
                 Thank you for your purchase. We'll process your order and ship it to you soon — crafted with care, just for you.
               </p>
-              <Link to="/user/products" className="ch-co-cta">
-                <span>Continue Shopping →</span>
-              </Link>
+              <Link to="/user/products" className="ch-co-cta"><span>Continue Shopping →</span></Link>
             </div>
           </main>
-
           <footer className="ch-co-footer">
             <div className="ch-co-footer-logo">🧶 Crochet Haven</div>
             <p className="ch-co-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
@@ -1036,28 +1646,104 @@ const Checkout = () => {
               <span className="ch-co-empty-emoji">🛒</span>
               <h2 className="ch-co-empty-title">Your cart is empty</h2>
               <p className="ch-co-empty-sub">Looks like you haven't added any items yet.</p>
-              <Link to="/user/products" className="ch-co-cta">
-                <span>Browse Products →</span>
-              </Link>
+              <Link to="/user/products" className="ch-co-cta"><span>Browse Products →</span></Link>
             </div>
           ) : (
             <div className="ch-co-grid">
 
-              {/* ── LEFT: Shipping + Payment form ── */}
+              {/* ── LEFT ── */}
               <div>
                 <form onSubmit={handleSubmit}>
-                  {/* Shipping */}
+
+                  {/* ── Saved Addresses Strip ── */}
+                  {(savedAddresses.length > 0 || true) && (
+                    <div className="ch-sa-strip">
+                      <span className="ch-sa-strip-label">
+                        {savedAddresses.length > 0 ? '📍 Saved Addresses — tap to fill' : '📍 Shipping Addresses'}
+                      </span>
+                      <div className="ch-sa-row">
+                        {savedAddresses.map(addr => (
+                          <div
+                            key={addr.id}
+                            className={`ch-sa-card ${selectedAddressId === addr.id ? 'active' : ''}`}
+                            onClick={() => handleSelectAddress(addr)}
+                            title={`${addr.fullName} · ${addr.address}, ${addr.city}`}
+                          >
+                            <button
+                              className="ch-sa-del"
+                              type="button"
+                              title="Remove"
+                              onClick={(e) => handleDeleteAddress(addr.id, e)}
+                            >✕</button>
+                            <div className={`ch-sa-card-avatar ${addr.type === 'friend' ? 'friend' : ''}`}>
+                              {getInitials(addr.fullName)}
+                            </div>
+                            <div className="ch-sa-card-info">
+                              <div className="ch-sa-card-name">{addr.nickname || addr.fullName.split(' ')[0]}</div>
+                              <div className="ch-sa-card-meta">{addr.city || addr.address}</div>
+                            </div>
+                            <div className={`ch-sa-card-badge ${addr.type === 'friend' ? 'friend' : 'mine'}`}>
+                              {addr.type === 'friend' ? 'Friend' : 'Mine'}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* ── Add new address ── */}
+                        <button
+                          type="button"
+                          className="ch-sa-add-btn"
+                          onClick={() => { setEditingAddress(null); setShowModal(true); }}
+                        >
+                          + Add Address
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Shipping Card ── */}
                   <div className="ch-co-card" style={{ marginBottom: 24 }}>
                     <div className="ch-co-card-head">
                       <div className="ch-co-card-icon rose">📦</div>
                       <span className="ch-co-card-title">Shipping Information</span>
+                      {selectedAddr && (
+                        <button
+                          type="button"
+                          className="ch-sa-change-btn"
+                          onClick={handleClearSelected}
+                          title="Fill manually instead"
+                        >
+                          ✏️ Edit manually
+                        </button>
+                      )}
                     </div>
                     <div className="ch-co-card-body">
 
+                      {/* Selected address info bar */}
+                      {selectedAddr && (
+                        <div className="ch-sa-selected-bar">
+                          <span className="ch-sa-selected-bar-icon">
+                            {selectedAddr.type === 'friend' ? '🎁' : '✅'}
+                          </span>
+                          <div className="ch-sa-selected-bar-text">
+                            Shipping to <strong>{selectedAddr.nickname || selectedAddr.fullName}</strong>
+                            {selectedAddr.type === 'friend' && ' (for a friend)'}
+                            {' · '}{selectedAddr.address && `${selectedAddr.address}, `}{selectedAddr.city}
+                          </div>
+                          <button
+                            type="button"
+                            className="ch-sa-change-btn"
+                            onClick={() => { setEditingAddress(selectedAddr); setShowModal(true); }}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+
                       <div className="ch-co-form-group">
                         <label className="ch-co-label" htmlFor="fullName">Full Name</label>
-                        <input style={{width: '95%'}} className="ch-co-input" type="text" id="fullName" name="fullName"
-                          value={formData.fullName} onChange={handleChange} required placeholder="Your full name" />
+                        <input style={{ width: '95%' }} className="ch-co-input" type="text"
+                          id="fullName" name="fullName" value={formData.fullName}
+                          onChange={handleChange} required placeholder="Your full name" />
                       </div>
 
                       <div className="ch-co-form-row">
@@ -1068,15 +1754,17 @@ const Checkout = () => {
                         </div>
                         <div className="ch-co-form-group">
                           <label className="ch-co-label" htmlFor="phone">Phone</label>
-                          <input style={{width: '90%'}} className="ch-co-input" type="tel" id="phone" name="phone"
-                            value={formData.phone} onChange={handleChange} required placeholder="+63 912 345 6789" />
+                          <input style={{ width: '90%' }} className="ch-co-input" type="tel"
+                            id="phone" name="phone" value={formData.phone}
+                            onChange={handleChange} required placeholder="+63 912 345 6789" />
                         </div>
                       </div>
 
                       <div className="ch-co-form-group">
                         <label className="ch-co-label" htmlFor="address">Address</label>
-                        <input style={{width: '95%'}} className="ch-co-input" type="text" id="address" name="address"
-                          value={formData.address} onChange={handleChange} required placeholder="Street address" />
+                        <input style={{ width: '95%' }} className="ch-co-input" type="text"
+                          id="address" name="address" value={formData.address}
+                          onChange={handleChange} required placeholder="Street address" />
                       </div>
 
                       <div className="ch-co-form-row">
@@ -1087,15 +1775,61 @@ const Checkout = () => {
                         </div>
                         <div className="ch-co-form-group">
                           <label className="ch-co-label" htmlFor="zipCode">ZIP Code</label>
-                          <input style={{width: '90%'}} className="ch-co-input" type="text" id="zipCode" name="zipCode"
-                            value={formData.zipCode} onChange={handleChange} required placeholder="0000" />
+                          <input style={{ width: '90%' }} className="ch-co-input" type="text"
+                            id="zipCode" name="zipCode" value={formData.zipCode}
+                            onChange={handleChange} required placeholder="0000" />
                         </div>
                       </div>
+
+                      {/* Save this address prompt — only shown when manually filled */}
+                      {shippingFilled && (
+                        <div className="ch-sa-save-row">
+                          <input
+                            type="checkbox"
+                            id="wantToSave"
+                            className="ch-sa-save-checkbox"
+                            checked={wantToSave}
+                            onChange={(e) => setWantToSave(e.target.checked)}
+                          />
+                          <label htmlFor="wantToSave" className="ch-sa-save-label">
+                            <strong>Save this address</strong> for faster checkout next time
+                          </label>
+                        </div>
+                      )}
+
+                      {/* Extra fields when saving */}
+                      {wantToSave && shippingFilled && (
+                        <div className="ch-sa-extra">
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
+                              <label className="ch-co-label">Label</label>
+                              <input
+                                className="ch-co-input"
+                                placeholder='e.g. "Home", "Mom"'
+                                value={saveNickname}
+                                onChange={(e) => setSaveNickname(e.target.value)}
+                              />
+                            </div>
+                            <div className="ch-co-form-group" style={{ marginBottom: 0 }}>
+                              <label className="ch-co-label">Type</label>
+                              <select
+                                className="ch-co-select"
+                                style={{ width: '100%' }}
+                                value={saveType}
+                                onChange={(e) => setSaveType(e.target.value)}
+                              >
+                                <option value="mine">Mine</option>
+                                <option value="friend">For a Friend</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                     </div>
                   </div>
 
-                  {/* Payment */}
+                  {/* ── Payment Card ── */}
                   <div className="ch-co-card">
                     <div className="ch-co-card-head">
                       <div className="ch-co-card-icon amber">💳</div>
@@ -1105,8 +1839,9 @@ const Checkout = () => {
 
                       <div className="ch-co-form-group">
                         <label className="ch-co-label" htmlFor="paymentMethod">Select Method</label>
-                        <select style={{width: '100%'}} className="ch-co-select" id="paymentMethod" name="paymentMethod"
-                          value={formData.paymentMethod} onChange={handleChange} required>
+                        <select style={{ width: '100%' }} className="ch-co-select" id="paymentMethod"
+                          name="paymentMethod" value={formData.paymentMethod}
+                          onChange={handleChange} required>
                           <option value="">Choose payment method…</option>
                           <option value="gcash">GCash</option>
                           <option value="paymaya">PayMaya</option>
@@ -1136,31 +1871,22 @@ const Checkout = () => {
                               value={formData.gcashNumber} onChange={handleChange}
                               required placeholder="09XXXXXXXXX"
                             />
-                            {mobileErrors.gcashNumber && (
-                              <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>
-                            )}
+                            {mobileErrors.gcashNumber && <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>}
                             {formData.gcashNumber && isMobileNumberValid(formData.gcashNumber) && !mobileErrors.gcashNumber && (
                               <span className="ch-co-field-success">✓ Valid mobile number</span>
                             )}
                           </div>
                           <div className="ch-co-form-group">
                             <label className="ch-co-label" htmlFor="gcashAccountName">Account Name</label>
-                            <input
-                              className="ch-co-input"
-                              type="text" id="gcashAccountName" name="gcashAccountName"
+                            <input className="ch-co-input" type="text" id="gcashAccountName" name="gcashAccountName"
                               value={formData.gcashAccountName} onChange={handleChange}
-                              required placeholder="Your registered GCash name"
-                            />
+                              required placeholder="Your registered GCash name" />
                           </div>
                           <div className="ch-co-form-group">
                             <label className="ch-co-label" htmlFor="gcashPassword">Password / PIN</label>
-                            <input
-                              className="ch-co-input"
-                              type="password" id="gcashPassword" name="gcashPassword"
+                            <input className="ch-co-input" type="password" id="gcashPassword" name="gcashPassword"
                               value={formData.gcashPassword} onChange={handleChange}
-                              required placeholder="Enter your GCash PIN"
-                              maxLength="6"
-                            />
+                              required placeholder="Enter your GCash PIN" maxLength="6" />
                           </div>
                         </>
                       )}
@@ -1176,31 +1902,22 @@ const Checkout = () => {
                               value={formData.paymayaNumber} onChange={handleChange}
                               required placeholder="09XXXXXXXXX"
                             />
-                            {mobileErrors.paymayaNumber && (
-                              <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>
-                            )}
+                            {mobileErrors.paymayaNumber && <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>}
                             {formData.paymayaNumber && isMobileNumberValid(formData.paymayaNumber) && !mobileErrors.paymayaNumber && (
                               <span className="ch-co-field-success">✓ Valid mobile number</span>
                             )}
                           </div>
                           <div className="ch-co-form-group">
                             <label className="ch-co-label" htmlFor="paymayaAccountName">Account Name</label>
-                            <input
-                              className="ch-co-input"
-                              type="text" id="paymayaAccountName" name="paymayaAccountName"
+                            <input className="ch-co-input" type="text" id="paymayaAccountName" name="paymayaAccountName"
                               value={formData.paymayaAccountName} onChange={handleChange}
-                              required placeholder="Your registered PayMaya name"
-                            />
+                              required placeholder="Your registered PayMaya name" />
                           </div>
                           <div className="ch-co-form-group">
                             <label className="ch-co-label" htmlFor="paymayaPassword">Password / PIN</label>
-                            <input
-                              className="ch-co-input"
-                              type="password" id="paymayaPassword" name="paymayaPassword"
+                            <input className="ch-co-input" type="password" id="paymayaPassword" name="paymayaPassword"
                               value={formData.paymayaPassword} onChange={handleChange}
-                              required placeholder="Enter your PayMaya PIN"
-                              maxLength="6"
-                            />
+                              required placeholder="Enter your PayMaya PIN" maxLength="6" />
                           </div>
                         </>
                       )}
@@ -1237,13 +1954,19 @@ const Checkout = () => {
                       <button
                         type="submit"
                         className="ch-co-submit"
-                        disabled={isLoading || !formData.paymentMethod || hasMobileError || (activeMobileField && (!hasValidMobileNumber || !formData[activeMobileField === 'gcashNumber' ? 'gcashAccountName' : 'paymayaAccountName'] || !formData[activeMobileField === 'gcashNumber' ? 'gcashPassword' : 'paymayaPassword']))}
+                        disabled={
+                          isLoading ||
+                          !formData.paymentMethod ||
+                          hasMobileError ||
+                          (activeMobileField && (
+                            !hasValidMobileNumber ||
+                            !formData[activeMobileField === 'gcashNumber' ? 'gcashAccountName' : 'paymayaAccountName'] ||
+                            !formData[activeMobileField === 'gcashNumber' ? 'gcashPassword' : 'paymayaPassword']
+                          ))
+                        }
                       >
                         {isLoading ? (
-                          <>
-                            <div className="ch-co-spinner" />
-                            <span>Processing…</span>
-                          </>
+                          <><div className="ch-co-spinner" /><span>Processing…</span></>
                         ) : (
                           <span>Place Order · ₱{formatPrice(total)}</span>
                         )}
@@ -1251,10 +1974,11 @@ const Checkout = () => {
 
                     </div>
                   </div>
+
                 </form>
               </div>
 
-              {/* ── RIGHT: Order summary ── */}
+              {/* ── RIGHT: Order Summary ── */}
               <div>
                 <div className="ch-co-card">
                   <div className="ch-co-card-head">
@@ -1262,7 +1986,6 @@ const Checkout = () => {
                     <span className="ch-co-card-title">Order Summary</span>
                   </div>
                   <div className="ch-co-card-body">
-
                     <div className="ch-co-items">
                       {safeCart.map((item) => (
                         <div key={item.id} className="ch-co-item">
@@ -1276,9 +1999,7 @@ const Checkout = () => {
                             <div className="ch-co-item-name">{item.name}</div>
                             <div className="ch-co-item-qty">Qty: {item.quantity || 1}</div>
                           </div>
-                          <div className="ch-co-item-price">
-                            ₱{formatPrice(item.price * (item.quantity || 1))}
-                          </div>
+                          <div className="ch-co-item-price">₱{formatPrice(item.price * (item.quantity || 1))}</div>
                         </div>
                       ))}
                     </div>
@@ -1290,7 +2011,6 @@ const Checkout = () => {
 
                     <div className="ch-co-card-divider" />
 
-                    {/* Order note */}
                     <div className="ch-co-form-group">
                       <label className="ch-co-label" htmlFor="orderNote">
                         Order Note{' '}
@@ -1298,17 +2018,12 @@ const Checkout = () => {
                           (optional)
                         </span>
                       </label>
-                      <textarea
-                        className="ch-co-textarea"
-                        id="orderNote" name="orderNote"
+                      <textarea className="ch-co-textarea" id="orderNote" name="orderNote"
                         value={formData.orderNote} onChange={handleChange}
-                        placeholder="Color preference, gift wrapping, special instructions…"
-                        rows="3"
-                      />
+                        placeholder="Color preference, gift wrapping, special instructions…" rows="3" />
                     </div>
 
                     <Link to="/user/cart" className="ch-co-back">← Back to Cart</Link>
-
                   </div>
                 </div>
               </div>
@@ -1323,6 +2038,15 @@ const Checkout = () => {
         </footer>
 
       </div>
+
+      {/* ── Address Modal ── */}
+      {showModal && (
+        <AddressModal
+          onClose={() => { setShowModal(false); setEditingAddress(null); }}
+          onSave={handleSaveAddress}
+          initial={editingAddress}
+        />
+      )}
     </>
   );
 };
