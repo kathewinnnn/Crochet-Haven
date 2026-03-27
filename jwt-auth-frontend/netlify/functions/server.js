@@ -115,7 +115,77 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { username, email, password, fullName, phone, address, avatar } = req.body;
+    if (!username || !email || !password)
+      return res.status(400).json({ message: "All fields are required" });
+
+    const db = readDb();
+    const normUser  = username.trim().toLowerCase();
+    const normEmail = email.trim().toLowerCase();
+
+    if (db.users.some(u => u.username.trim().toLowerCase() === normUser))
+      return res.status(400).json({ message: "Username is already taken" });
+    if (db.users.some(u => u.email.trim().toLowerCase() === normEmail))
+      return res.status(400).json({ message: "Email is already registered" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = {
+      id:        Date.now().toString(),
+      username:  username.trim(),
+      email:     email.trim(),
+      password:  hashedPassword,
+      role:      "user",
+      createdAt: new Date().toISOString(),
+      fullName:  (fullName  || "").trim(),
+      phone:     (phone     || "").trim(),
+      address:   (address   || "").trim(),
+      avatar:    avatar     || "",
+    };
+    db.users.push(newUser);
+    writeDb(db);
+    return res.status(201).json({
+      message:   "Registration successful",
+      id:        newUser.id,
+      username:  newUser.username,
+      email:     newUser.email,
+      fullName:  newUser.fullName,
+      phone:     newUser.phone,
+      address:   newUser.address,
+      role:      newUser.role,
+      createdAt: newUser.createdAt,
+    });
+  } catch {
+    return res.status(500).json({ message: "Server error during registration" });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ message: "Username and password are required" });
+
+    const db   = readDb();
+    const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+    if (!user) return res.status(401).json({ message: "Invalid username or password" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid username or password" });
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    return res.json({ token });
+  } catch {
+    return res.status(500).json({ message: "Server error during login" });
+  }
+});
+
+app.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password)
@@ -386,7 +456,8 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (p === '/api/auth/login' && method === 'POST') {
+    // Login - support both /api/auth/login and /auth/login paths
+    else if ((p === '/api/auth/login' || p === '/auth/login') && method === 'POST') {
       console.log('Login handler TRIGGERED');
       const { username, password } = body;
       console.log('Login attempt - username:', username, 'password provided:', !!password);
