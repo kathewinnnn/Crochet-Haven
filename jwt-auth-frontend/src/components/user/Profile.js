@@ -365,12 +365,8 @@ const AvatarCropper = ({ imageSrc, onDone, onCancel }) => {
 };
 
 // ── Delete Modal ───────────────────────────────────────────────────────────────
-// Sends POST /api/auth/delete-account with { username, email, password }.
-// The backend verifies the password with bcrypt, removes the user + their
-// orders from db.json, then returns 200. On success, local storage is wiped.
 const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
   const username = user?.username || "";
-  const email = user?.email || "";
   const [step,       setStep]       = useState(1);
   const [password,   setPassword]   = useState("");
   const [showPwd,    setShowPwd]    = useState(false);
@@ -389,25 +385,20 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
     e.preventDefault();
     setPwdError("");
 
-    if (!password.trim())    { setPwdError("Password is required.");                    return; }
-    if (password.length < 6) { setPwdError("Password must be at least 6 characters.");  return; }
+    if (!password.trim())    { setPwdError("Password is required.");                   return; }
+    if (password.length < 6) { setPwdError("Password must be at least 6 characters."); return; }
 
     setIsDeleting(true);
     setStep(3);
 
     try {
-      const token = localStorage.getItem("ch_token");
       const res = await fetch("/api/auth/delete-account", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ username, password }), // Backend only needs password (uses req.user.id from token)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log("Delete response:", { status: res.status, data }); // Debug log
 
       if (!res.ok) {
         const msg = data.message || `Server error ${res.status}`;
@@ -417,7 +408,7 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
         return;
       }
 
-      // ── Wipe ALL local storage for this user ──────────────────────────────
+      // Wipe ALL local storage for this user
       clearUserData();
       const userId = resolveUserId();
       const toRemove = [];
@@ -426,7 +417,7 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
         if (key && userId && key.includes(userId)) toRemove.push(key);
       }
       toRemove.forEach(k => localStorage.removeItem(k));
-      ["ch_token", "ch_user", "ch_notifications", "ch_privacy", "profileActiveSection"]
+      ["ch_token", "ch_user", "userId", "ch_notifications", "ch_privacy", "profileActiveSection"]
         .forEach(k => localStorage.removeItem(k));
 
       onDeleted();
@@ -521,7 +512,7 @@ const Profile = () => {
   const [showAvatarCrop,  setShowAvatarCrop]  = useState(false);
   const [rawAvatarSrc,    setRawAvatarSrc]    = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [passwordForm, setPasswordForm]       = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [passwordForm,    setPasswordForm]    = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
   const getNotifKey   = () => `ch_notifications_${resolveUserId() || 'guest'}`;
   const getPrivacyKey = () => `ch_privacy_${resolveUserId() || 'guest'}`;
@@ -550,21 +541,46 @@ const Profile = () => {
   useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem(getPrivacyKey(), JSON.stringify(privacy)); }, [privacy]);
 
+  // ── loadUser: reads ch_user (written by Register.js) as primary source ──────
   const loadUser = () => {
     try {
       const token = loadToken();
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
+
+      // Primary source: ch_user has ALL fields saved at registration time
+      let storedUser = {};
+      try {
+        const raw = localStorage.getItem('ch_user');
+        if (raw) storedUser = JSON.parse(raw);
+      } catch { /* ignore */ }
+
+      // Secondary source: userStorage helpers (saveUserProfile writes here too)
       const merged = loadFullUser(decoded);
-      if (merged && (merged.username || merged.email)) {
+
+      // Combine all sources — storedUser wins for profile fields
+      const combined = {
+        ...(merged || {}),
+        ...storedUser,
+        id:        storedUser.id        || decoded.id        || merged?.id        || "",
+        username:  storedUser.username  || decoded.username  || merged?.username  || "",
+        email:     storedUser.email     || decoded.email     || merged?.email     || "",
+        role:      storedUser.role      || decoded.role      || merged?.role      || "user",
+        fullName:  storedUser.fullName  || merged?.fullName  || "",
+        phone:     storedUser.phone     || merged?.phone     || "",
+        address:   storedUser.address   || merged?.address   || "",
+        createdAt: storedUser.createdAt || merged?.createdAt || "",
+      };
+
+      if (combined && (combined.username || combined.email)) {
         const avatar = loadAvatar();
-        merged.avatar = avatar || merged.avatar || null;
-        setUser(merged);
+        combined.avatar = avatar || combined.avatar || null;
+        setUser(combined);
         setEditForm({
-          fullName: merged.fullName || merged.username || "",
-          email:    merged.email    || "",
-          phone:    merged.phone    || "",
-          address:  merged.address  || "",
+          fullName: combined.fullName || combined.username || "",
+          email:    combined.email    || "",
+          phone:    combined.phone    || "",
+          address:  combined.address  || "",
         });
       }
     } catch { addToast("error", "Failed to load user data."); }
@@ -577,6 +593,17 @@ const Profile = () => {
       await new Promise(r => setTimeout(r, 800));
       const updated    = saveUserProfile({ ...editForm, username: user.username });
       const withAvatar = { ...user, ...updated, avatar: loadAvatar() || user?.avatar || null };
+
+      // Also update ch_user so the data persists correctly
+      const currentStored = JSON.parse(localStorage.getItem('ch_user') || '{}');
+      localStorage.setItem('ch_user', JSON.stringify({
+        ...currentStored,
+        fullName: editForm.fullName,
+        email:    editForm.email,
+        phone:    editForm.phone,
+        address:  editForm.address,
+      }));
+
       setUser(withAvatar); setIsEditing(false);
       addToast("success", "Profile updated successfully!");
     } catch { addToast("error", "Failed to update profile."); }
@@ -718,17 +745,20 @@ const Profile = () => {
                     {!isEditing ? (
                       <div className="ch-info-grid">
                         {[
-                          { label: "Username",       value: user?.username },
-                          { label: "Full Name",      value: user?.fullName  || "—" },
-                          { label: "Email Address",  value: user?.email     || "—" },
-                          { label: "Phone Number",   value: user?.phone     || "—" },
-                          { label: "Address",        value: user?.address   || "—", full: true },
-                          { label: "Member Since",   value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—" },
-                          { label: "Account Status", badge: true },
+                          { label: "Username",      value: user?.username                                                                                                              },
+                          { label: "Full Name",     value: user?.fullName  || "—"                                                                                                     },
+                          { label: "Email Address", value: user?.email     || "—"                                                                                                     },
+                          { label: "Phone Number",  value: user?.phone     || "—"                                                                                                     },
+                          { label: "Address",       value: user?.address   || "—", full: true                                                                                         },
+                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
+                          { label: "Account Status", badge: true                                                                                                                      },
                         ].map((item, i) => (
                           <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>
                             <span className="ch-info-label">{item.label}</span>
-                            {item.badge ? <span className="ch-status-badge">Active</span> : <span className="ch-info-value">{item.value}</span>}
+                            {item.badge
+                              ? <span className="ch-status-badge">Active</span>
+                              : <span className="ch-info-value">{item.value}</span>
+                            }
                           </div>
                         ))}
                       </div>
@@ -875,7 +905,6 @@ const Profile = () => {
           {toasts.map(t => <ChToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />)}
         </div>
 
-        {/* Delete modal — pass full user object so the backend can look up by email or username */}
         {showDeleteModal && (
           <DeleteAccountModal
             user={user}

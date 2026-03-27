@@ -45,7 +45,7 @@ const decodeToken = (authHeader) => {
 // ─── Auth routes ──────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullName, phone, address, avatar } = req.body;
     if (!username || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
 
@@ -60,16 +60,30 @@ app.post('/api/auth/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = {
-      id: Date.now().toString(),
-      username: username.trim(),
-      email: email.trim(),
-      password: hashedPassword,
-      role: "user",
+      id:        Date.now().toString(),
+      username:  username.trim(),
+      email:     email.trim(),
+      password:  hashedPassword,
+      role:      "user",
       createdAt: new Date().toISOString(),
+      fullName:  (fullName  || "").trim(),
+      phone:     (phone     || "").trim(),
+      address:   (address   || "").trim(),
+      avatar:    avatar     || "",
     };
     db.users.push(newUser);
     writeDb(db);
-    return res.status(201).json({ message: "Registration successful" });
+    return res.status(201).json({
+      message:   "Registration successful",
+      id:        newUser.id,
+      username:  newUser.username,
+      email:     newUser.email,
+      fullName:  newUser.fullName,
+      phone:     newUser.phone,
+      address:   newUser.address,
+      role:      newUser.role,
+      createdAt: newUser.createdAt,
+    });
   } catch {
     return res.status(500).json({ message: "Server error during registration" });
   }
@@ -112,9 +126,6 @@ app.get('/api/auth/check-username', (req, res) => {
 });
 
 // ─── DELETE account ───────────────────────────────────────────────────────────
-// POST (not DELETE) so Netlify Functions can read the body reliably.
-// Frontend sends { username, password } — no JWT required so even an
-// expired token doesn't block the user from deleting their account.
 app.post('/api/auth/delete-account', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -133,7 +144,6 @@ app.post('/api/auth/delete-account', async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Incorrect password. Please try again." });
 
-    // Remove the user and all their orders from the DB
     db.users  = db.users.filter((_, i) => i !== idx);
     db.orders = db.orders.filter(o => o.userId !== user.id);
     writeDb(db);
@@ -290,7 +300,7 @@ exports.handler = async (event, context) => {
   try {
     // ── Auth ──────────────────────────────────────────────────────────────────
     if (p === '/api/auth/register' && method === 'POST') {
-      const { username, email, password } = body;
+      const { username, email, password, fullName, phone, address, avatar } = body;
       if (!username || !email || !password) {
         statusCode = 400; responseData = { message: "All fields are required" };
       } else {
@@ -303,9 +313,31 @@ exports.handler = async (event, context) => {
           statusCode = 400; responseData = { message: "Email is already registered" };
         } else {
           const hashed  = await bcrypt.hash(password, 10);
-          const newUser = { id: Date.now().toString(), username: username.trim(), email: email.trim(), password: hashed, role: "user", createdAt: new Date().toISOString() };
+          const newUser = {
+            id:        Date.now().toString(),
+            username:  username.trim(),
+            email:     email.trim(),
+            password:  hashed,
+            role:      "user",
+            createdAt: new Date().toISOString(),
+            fullName:  (fullName  || "").trim(),
+            phone:     (phone     || "").trim(),
+            address:   (address   || "").trim(),
+            avatar:    avatar     || "",
+          };
           db.users.push(newUser); writeDb(db);
-          statusCode = 201; responseData = { message: "Registration successful" };
+          statusCode = 201;
+          responseData = {
+            message:   "Registration successful",
+            id:        newUser.id,
+            username:  newUser.username,
+            email:     newUser.email,
+            fullName:  newUser.fullName,
+            phone:     newUser.phone,
+            address:   newUser.address,
+            role:      newUser.role,
+            createdAt: newUser.createdAt,
+          };
         }
       }
     }
@@ -345,36 +377,29 @@ exports.handler = async (event, context) => {
     }
 
     // ── DELETE ACCOUNT ────────────────────────────────────────────────────────
-    // Uses POST so Netlify can reliably read the request body.
-    // Expects { username, password } — verifies password against the stored
-    // bcrypt hash, then removes the user + all their orders from db.json.
     else if (p === '/api/auth/delete-account' && method === 'POST') {
       const { username, password, email } = body;
       if (!password) {
         statusCode = 400; responseData = { message: "Password is required" };
       } else {
         const db  = readDb();
-        // Find user by username OR email
         let idx = -1;
-        let user = null;
-        
+
         if (username) {
           idx = db.users.findIndex(
             u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
           );
         }
-        
-        // If not found by username, try email
         if (idx === -1 && email) {
           idx = db.users.findIndex(
             u => u.email && u.email.trim().toLowerCase() === email.trim().toLowerCase()
           );
         }
-        
+
         if (idx === -1) {
           statusCode = 404; responseData = { message: "Account not found" };
         } else {
-          user    = db.users[idx];
+          const user    = db.users[idx];
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
             statusCode = 401; responseData = { message: "Incorrect password. Please try again." };

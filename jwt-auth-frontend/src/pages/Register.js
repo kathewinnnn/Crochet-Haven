@@ -287,7 +287,7 @@ const Register = () => {
 
   const [uStatus,      setUStatus]      = useState(U.IDLE);
   const [fieldErrors,  setFieldErrors]  = useState({});
-  const [touched,      setTouched]      = useState({});   // ← NEW
+  const [touched,      setTouched]      = useState({});
 
   const [globalError,  setGlobalError]  = useState('');
   const [isLoading,    setIsLoading]    = useState(false);
@@ -376,7 +376,6 @@ const Register = () => {
   };
 
   const goToAvatar = async () => {
-    // Mark all fields as touched so required errors show
     setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
 
     const u = form.username.trim();
@@ -405,6 +404,7 @@ const Register = () => {
     if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
   };
 
+  /* ─── SUBMIT — saves all fields to localStorage so Profile can read them ─── */
   const handleSubmit = async () => {
     setIsLoading(true);
     setGlobalError('');
@@ -422,30 +422,34 @@ const Register = () => {
       const token = res.data?.token || res.data?.accessToken || null;
       if (token) saveToken(token);
 
+      // Build userData from server response (which now returns all fields)
       const userData = {
-        id:        res.data?.user?.id || res.data?.id || Date.now().toString(),
-        username:  form.username,
-        email:     form.email,
-        fullName:  form.fullName,
-        phone:     form.phone,
-        address:   form.address,
-        role:      res.data?.user?.role || res.data?.role || 'Customer',
-        createdAt: res.data?.user?.createdAt || res.data?.createdAt || new Date().toISOString(),
+        id:        res.data?.id        || Date.now().toString(),
+        username:  res.data?.username  || form.username,
+        email:     res.data?.email     || form.email,
+        fullName:  res.data?.fullName  || form.fullName,
+        phone:     res.data?.phone     || form.phone,
+        address:   res.data?.address   || form.address,
+        role:      res.data?.role      || 'user',
+        createdAt: res.data?.createdAt || new Date().toISOString(),
       };
 
+      // Save to ch_user — Profile.js reads this directly
       localStorage.setItem('ch_user', JSON.stringify(userData));
       localStorage.setItem('userId', userData.id);
 
+      // Also save via userStorage helpers for compatibility
       saveUserProfile({
-        username:  form.username,
-        email:     form.email,
-        fullName:  form.fullName,
-        phone:     form.phone,
-        address:   form.address,
+        username:  userData.username,
+        email:     userData.email,
+        fullName:  userData.fullName,
+        phone:     userData.phone,
+        address:   userData.address,
         role:      userData.role,
         createdAt: userData.createdAt,
       });
       saveAvatar(avatar || null);
+
       setShowSuccess(true);
       setTimeout(() => navigate('/'), 2300);
 
@@ -494,7 +498,6 @@ const Register = () => {
     fontFamily: "'Segoe UI',sans-serif", color: '#1f2937',
   });
 
-  // ← UPDATED: marks field as touched on blur + fires username check
   const fc = (name) => ({
     onFocus: () => setFocused(name),
     onBlur:  () => {
@@ -514,7 +517,6 @@ const Register = () => {
     }
   };
 
-  // Derived helpers for phone validation used in both border and message
   const phoneDigitCount = form.phone.replace(/\D/g, '').length;
   const phoneHasLetters = /[^\d]/.test(form.phone);
   const phoneIsOverflow = phoneDigitCount > 11;
@@ -566,17 +568,6 @@ const Register = () => {
           {/* ════ STEP 1 — Info ════ */}
           {step === STEP_INFO && (
             <div>
-
-              {/* ── Server-redirected username error banner ── */}
-              {uStatus === U.TAKEN && (
-                <div style={{ background: '#fff1f2', border: '1.5px solid #fca5a5', borderRadius: '10px', padding: '11px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '16px' }}>⚠️</span>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: 500 }}>
-                    This username is already taken — please choose a different one.
-                  </p>
-                </div>
-              )}
-
               {/* Username */}
               <div style={st.fg}>
                 <label style={st.label}>👤 Username</label>
