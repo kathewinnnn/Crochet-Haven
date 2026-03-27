@@ -70,7 +70,13 @@ export const Reports = () => {
 
   const fetchReports = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/orders`);
+      const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/orders`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
       const orders = await res.json();
       const done = orders.filter(o => o.status === "Delivered" || o.status === "Completed");
       const totalSales = done.reduce((s, o) => s + (o.total || 0), 0);
