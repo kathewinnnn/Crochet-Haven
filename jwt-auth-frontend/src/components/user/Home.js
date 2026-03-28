@@ -554,6 +554,8 @@ const styles = `
 
 @media (max-width: 750px) and (min-width: 414px) {
   .ch-nav-cta { width: 50%; padding: 12px; margin-left: 15.6px; }
+  .ch-logo-yarn { font-size: 1.3rem; }
+  .ch-logo-text { font-size: 1.2rem; }
 }
 `;
 

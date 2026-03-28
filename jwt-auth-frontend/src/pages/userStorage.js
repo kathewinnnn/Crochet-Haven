@@ -75,16 +75,39 @@ export const loadFullUser = (jwtDecoded = {}) => {
   // Merge with jwt payload (base wins over jwt)
   const merged = { ...jwtDecoded, ...base };
 
+  // Check for pending profile data that needs to be merged
+  const pendingProfile = localStorage.getItem('ch_pending_profile');
+  let pendingData = {};
+  if (pendingProfile) {
+    try {
+      pendingData = JSON.parse(pendingProfile);
+    } catch { /* ignore */ }
+  }
+
   // Resolve userId
   const userId =
     merged.id || merged.userId ||
     jwtDecoded?.id || jwtDecoded?.userId || jwtDecoded?.sub ||
     null;
 
-  if (!userId) return merged;
+  if (!userId) {
+    // If no userId yet, return merged with pending data
+    return { ...merged, ...pendingData };
+  }
 
   // Persist userId separately for fast access
   localStorage.setItem('userId', String(userId));
+
+  // If there was pending data, save it to the proper profile key and clear pending
+  if (Object.keys(pendingData).length > 0) {
+    try {
+      const existing = localStorage.getItem(profileKey(userId));
+      const existingData = existing ? JSON.parse(existing) : {};
+      localStorage.setItem(profileKey(userId), JSON.stringify({ ...existingData, ...pendingData }));
+      localStorage.removeItem('ch_pending_profile');
+      console.log('💾 Migrated pending profile data to user profile');
+    } catch { /* ignore */ }
+  }
 
   // Overlay with any saved profile edits (these win over everything)
   try {
@@ -104,8 +127,12 @@ export const loadFullUser = (jwtDecoded = {}) => {
 
 export const saveUserProfile = (fields) => {
   const userId = resolveUserId();
+  
+  // If no userId, save to a temporary key that can be merged later
   if (!userId) {
-    console.log('⚠️ saveUserProfile: No userId found');
+    console.log('⚠️ saveUserProfile: No userId found, saving to temporary key');
+    const tempData = JSON.parse(localStorage.getItem('ch_pending_profile') || '{}');
+    localStorage.setItem('ch_pending_profile', JSON.stringify({ ...tempData, ...fields }));
     return fields;
   }
 

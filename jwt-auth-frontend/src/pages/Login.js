@@ -281,24 +281,14 @@ const Login = () => {
     try {
       const res     = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
       const token   = res.data.token;
+      const userData = res.data.user; // Get user data directly from login response
       const decoded = jwtDecode(token);
 
       localStorage.setItem('token',    token);
       localStorage.setItem('ch_token', token);
 
-      // Fetch full user profile from the API to get avatar and other data
-      let fullUserData = { ...decoded };
-      try {
-        const profileRes = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (profileRes.data) {
-          fullUserData = { ...fullUserData, ...profileRes.data };
-        }
-      } catch (profileErr) {
-        // If profile fetch fails, continue with token data
-        console.log('Could not fetch profile, using token data');
-      }
+      // Use user data from backend response
+      const fullUserData = { ...decoded, ...userData };
 
       localStorage.setItem('user',    JSON.stringify(fullUserData));
       localStorage.setItem('ch_user', JSON.stringify(fullUserData));
@@ -315,6 +305,7 @@ const Login = () => {
         address:   fullUserData.address,
         role:      fullUserData.role,
         createdAt: fullUserData.createdAt,
+        avatar:    fullUserData.avatar,
       });
       if (fullUserData.avatar) {
         saveAvatar(fullUserData.avatar);

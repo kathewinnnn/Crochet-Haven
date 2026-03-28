@@ -141,7 +141,21 @@ router.post("/login", async (req, res) => {
     );
 
     console.log(`✅ User logged in: ${user.username} (role: ${user.role})`);
-    return res.json({ token });
+    // Return both token and user data for frontend to use
+    return res.json({ 
+      token,
+      user: {
+        id:        user.id,
+        username:  user.username,
+        email:     user.email,
+        fullName:  user.fullName || "",
+        phone:     user.phone || "",
+        address:   user.address || "",
+        role:      user.role,
+        avatar:    user.avatar || null,
+        createdAt: user.createdAt,
+      }
+    });
 
   } catch (err) {
     console.error("❌ Login error:", err);

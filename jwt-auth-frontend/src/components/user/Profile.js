@@ -703,7 +703,12 @@ const Profile = () => {
             const apiData = await profileRes.json();
             // Save API data to localStorage for future use
             if (apiData) {
-              localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: apiData.id || decoded.id }));
+              const userId = decoded.id || apiData.id;
+              localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: userId }));
+              // Also save to profile storage so it persists
+              if (userId) {
+                localStorage.setItem(`ch_profile_${userId}`, JSON.stringify(apiData));
+              }
               if (apiData.avatar) saveAvatar(apiData.avatar);
             }
           }
@@ -727,10 +732,10 @@ const Profile = () => {
         username:  storedUser.username  || decoded.username  || merged?.username  || "",
         email:     storedUser.email     || decoded.email     || merged?.email     || "",
         role:      storedUser.role      || decoded.role      || merged?.role      || "user",
-        fullName:  storedUser.fullName  || merged?.fullName  || "",
-        phone:     storedUser.phone     || merged?.phone     || "",
-        address:   storedUser.address   || merged?.address   || "",
-        createdAt: storedUser.createdAt || merged?.createdAt || "",
+        fullName:  storedUser.fullName  || decoded.fullName  || merged?.fullName  || "",
+        phone:     storedUser.phone     || decoded.phone     || merged?.phone     || "",
+        address:   storedUser.address   || decoded.address   || merged?.address   || "",
+        createdAt: storedUser.createdAt || decoded.createdAt || merged?.createdAt || "",
       };
 
       if (combined && (combined.username || combined.email)) {
@@ -945,7 +950,7 @@ const Profile = () => {
                           { label: "Email Address", value: user?.email     || "—"                                                                                                     },
                           { label: "Phone Number",  value: user?.phone     || "—"                                                                                                     },
                           { label: "Address",       value: user?.address   || "—", full: true                                                                                         },
-                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
+                          { label: "Member Since",  value: user?.createdAt && user.createdAt !== "" ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
                           { label: "Account Status", badge: true                                                                                                                      },
                         ].map((item, i) => (
                           <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>
