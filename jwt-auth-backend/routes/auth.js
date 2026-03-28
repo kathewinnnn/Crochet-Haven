@@ -1,4 +1,4 @@
-const express = require("express");
+econst express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -185,7 +185,7 @@ router.get("/profile", verifyToken, (req, res) => {
 // ── PUT /api/auth/profile ─────────────────────────────────────────
 router.put("/profile", verifyToken, async (req, res) => {
   try {
-    const { fullName, phone, address, avatar } = req.body;
+    const { fullName, phone, address, avatar, storeName, location, bio } = req.body;
     const db = readDb();
     
     const userIndex = db.users.findIndex((u) => u.id === req.user.id);
@@ -193,13 +193,16 @@ router.put("/profile", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Update user profile fields (including fullName, phone, address, avatar)
+    // Update user profile fields (including fullName, phone, address, avatar, storeName, location, bio)
     db.users[userIndex] = {
       ...db.users[userIndex],
       fullName: fullName || db.users[userIndex].fullName || "",
       phone: phone || db.users[userIndex].phone || "",
       address: address || db.users[userIndex].address || "",
       avatar: avatar || db.users[userIndex].avatar || "",
+      storeName: storeName || db.users[userIndex].storeName || "",
+      location: location || db.users[userIndex].location || "",
+      bio: bio || db.users[userIndex].bio || "",
     };
     
     writeDb(db);

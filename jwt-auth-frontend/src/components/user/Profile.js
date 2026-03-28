@@ -380,9 +380,6 @@ const styles = `
     .ch-danger { flex-direction: column; text-align: center; }
   }
   @media (max-width: 768px) {
-    .ch-header-inner { padding: 20px 16px 16px 68px; margin-left: -50px; }
-    .ch-logo-yarn { font-size: 2rem; }
-    .ch-logo-text { font-size: 1.4rem; }
     .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-page-banner { padding: 28px 16px; }
@@ -391,17 +388,12 @@ const styles = `
     .ch-profile-layout { grid-template-columns: 1fr; }
     .ch-form-row { grid-template-columns: 1fr; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
-    .ch-tagline { display: none; }
   }
   @media (max-width: 1024px) and (min-width: 769px) {
     .ch-page { margin-left: 160px; }
     .ch-profile-layout { grid-template-columns: 1fr; }
     .ch-profile-aside { position: static; }
   }
-
-  @media (max-width: 750px) and (min-width: 428px) {
-  .ch-nav-cta { width: 25%; padding: 12px; margin-left: 15.6px; }
-}
 `;
 
 const API_URL = `${API_BASE_URL}/api/auth`;
@@ -693,48 +685,45 @@ const Profile = () => {
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
 
-      // Fetch fresh user data from API - this is the most up-to-date source
-      let apiData = null;
+      // First, try to fetch the latest profile from the API
       if (token) {
         try {
           const profileRes = await fetch(`${API_URL}/profile`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (profileRes.ok) {
-            apiData = await profileRes.json();
-            console.log('📡 API profile data received:', apiData);
+            const apiData = await profileRes.json();
+            // Save API data to localStorage for future use
+            if (apiData) {
+              localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: apiData.id || decoded.id }));
+              if (apiData.avatar) saveAvatar(apiData.avatar);
+            }
           }
         } catch (apiErr) {
           console.log('Could not fetch profile from API, using stored data');
         }
       }
 
-      // Start with API data (most reliable), then merge with stored data as fallback
       let storedUser = {};
       try {
         const raw = localStorage.getItem('ch_user');
         if (raw) storedUser = JSON.parse(raw);
       } catch { /* ignore */ }
 
-      // Merge API data with stored data - API takes priority
       const merged = loadFullUser(decoded);
-      
+
       const combined = {
         ...(merged || {}),
         ...storedUser,
-        // Use API data if available, otherwise fall back to stored data
-        id:        apiData?.id        || storedUser.id        || decoded.id        || merged?.id        || "",
-        username:  apiData?.username  || storedUser.username  || decoded.username  || merged?.username  || "",
-        email:     apiData?.email     || storedUser.email     || decoded.email     || merged?.email     || "",
-        role:      apiData?.role      || storedUser.role      || decoded.role      || merged?.role      || "user",
-        fullName:  apiData?.fullName  || storedUser.fullName  || decoded.fullName  || merged?.fullName  || "",
-        phone:     apiData?.phone     || storedUser.phone     || decoded.phone     || merged?.phone     || "",
-        address:   apiData?.address   || storedUser.address   || decoded.address   || merged?.address   || "",
-        avatar:    apiData?.avatar    || storedUser.avatar    || decoded.avatar    || merged?.avatar    || null,
-        createdAt: apiData?.createdAt || storedUser.createdAt || decoded.createdAt || merged?.createdAt || "",
+        id:        storedUser.id        || decoded.id        || merged?.id        || "",
+        username:  storedUser.username  || decoded.username  || merged?.username  || "",
+        email:     storedUser.email     || decoded.email     || merged?.email     || "",
+        role:      storedUser.role      || decoded.role      || merged?.role      || "user",
+        fullName:  storedUser.fullName  || merged?.fullName  || "",
+        phone:     storedUser.phone     || merged?.phone     || "",
+        address:   storedUser.address   || merged?.address   || "",
+        createdAt: storedUser.createdAt || merged?.createdAt || "",
       };
-
-      console.log('👤 Combined user data:', combined);
 
       if (combined && (combined.username || combined.email)) {
         const avatar = loadAvatar();
@@ -792,7 +781,7 @@ const Profile = () => {
     setSavingPassword(true);
     setPasswordError('');
     try {
-      const token = loadToken();
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/change-password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -948,7 +937,7 @@ const Profile = () => {
                           { label: "Email Address", value: user?.email     || "—"                                                                                                     },
                           { label: "Phone Number",  value: user?.phone     || "—"                                                                                                     },
                           { label: "Address",       value: user?.address   || "—", full: true                                                                                         },
-                          { label: "Member Since",  value: user?.createdAt && user.createdAt !== "" ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
+                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
                           { label: "Account Status", badge: true                                                                                                                      },
                         ].map((item, i) => (
                           <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>
