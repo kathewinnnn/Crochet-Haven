@@ -10,7 +10,18 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
-const dbPath = path.join(__dirname, '../db.json');
+
+// For Render (production) vs local development
+const getDbPath = () => {
+  // Render environment - look in the app root
+  if (process.env.RENDER) {
+    return path.join(process.cwd(), 'db.json');
+  }
+  // Local development - look relative to the script
+  return path.join(__dirname, 'db.json');
+};
+
+const dbPath = getDbPath();
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 const readDb = () => {
@@ -467,3 +478,9 @@ exports.handler = async (event, context) => {
     body: JSON.stringify(responseData),
   };
 };
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

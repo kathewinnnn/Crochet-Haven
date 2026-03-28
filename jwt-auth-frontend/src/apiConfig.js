@@ -1,21 +1,19 @@
-// API configuration that works with the proxy
-// The proxy in package.json forwards requests to localhost:5000
+// API configuration for hybrid deployment (Netlify frontend + Render backend)
+// For production: set REACT_APP_API_URL in Netlify to your Render backend URL
 
 const getApiUrl = () => {
-  // For development, use relative paths - proxy will forward to backend
-  // For production (Netlify), use relative path - API is served from same domain via netlify function
+  // Use environment variable if set (for external backend like Render)
   const envUrl = process.env.REACT_APP_API_URL;
   if (envUrl) {
     return envUrl;
   }
   
-  // Check if we're in production (Netlify)
-  // Use relative path in production so it goes to the same domain
+  // In production without env var, use relative path (for Netlify functions)
   if (process.env.NODE_ENV === 'production') {
     return '';
   }
   
-  // Default to relative path for development (proxy handles forwarding)
+  // Development: use relative path (proxy handles forwarding)
   return '';
 };
 
