@@ -1,10 +1,4 @@
-// API configuration for connecting to backend
-// Update the RENDER_URL when you deploy to Render
-
 const getApiUrl = () => {
-  // For production (deployed on Render/Netlify), use your Render URL
-  // Replace with your actual Render backend URL after deployment
-  // Example: https://jwt-auth-backend.onrender.com
   const RENDER_URL = 'https://jwt-auth-backend-j294.onrender.com';
   
   // Check if we're in production
