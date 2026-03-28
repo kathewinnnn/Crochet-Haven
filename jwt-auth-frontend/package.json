@@ -35,6 +35,9 @@
     "concurrently": "^8.2.2",
     "netlify-cli": "^24.6.2"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "eslintConfig": {
     "extends": [
       "react-app",
