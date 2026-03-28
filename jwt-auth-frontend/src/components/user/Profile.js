@@ -715,6 +715,7 @@ const Profile = () => {
   const addToast    = useCallback((type, message) => { const id = Date.now(); setToasts(p => [...p, { id, type, message }]); }, []);
   const removeToast = useCallback((id) => setToasts(p => p.filter(t => t.id !== id)), []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadUser(); }, []);
   useEffect(() => { localStorage.setItem("profileActiveSection", activeSection); }, [activeSection]);
   useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DeleteConfirmModal from './DeleteConfirmModal';
 import API_BASE_URL from '../../apiConfig';
-import { loadToken } from "../../pages/userStorage";
 
 const orderStyles = `
   :root {
@@ -194,7 +193,7 @@ const Order = () => {
       window.removeEventListener("ordersUpdated", onUpdate);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [fetchOrders]);
 
   const fetchOrders = async () => {
     try {

@@ -1390,7 +1390,7 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
 
 // ── Main Checkout component ───────────────────────────────────────────────────
 const Checkout = () => {
-  const { cart, clearCart, removeSelectedItems, selectedItems, getSelectedItems } = useCart();
+  const { cart, removeSelectedItems, selectedItems, getSelectedItems } = useCart();
   const navigate = useNavigate();
   // ── Read Buy Now item passed via router state from Products.js ──
   const location = useLocation();
@@ -1492,12 +1492,6 @@ const Checkout = () => {
       setSelectedAddressId(null);
       setFormData(prev => ({ ...prev, ...emptyShipping }));
     }
-  };
-
-  const handleEditAddress = (addr, e) => {
-    e.stopPropagation();
-    setEditingAddress(addr);
-    setShowModal(true);
   };
 
   const validateShippingField = (name, value) => {

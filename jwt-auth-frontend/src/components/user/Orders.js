@@ -451,7 +451,7 @@ const Orders = () => {
     window.addEventListener('ordersUpdated', onUpdate);
     window.addEventListener('storage', onStorage);
     return () => { window.removeEventListener('ordersUpdated', onUpdate); window.removeEventListener('storage', onStorage); };
-  }, []);
+  }, [fetchOrders]);
 
   const fetchProductsMap = async () => {
     try {
