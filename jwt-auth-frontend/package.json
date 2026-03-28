@@ -32,7 +32,6 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "netlify-cli": "^24.6.2",
     "sass": "^1.83.0"
   },
   "eslintConfig": {
