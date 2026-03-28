@@ -5,7 +5,7 @@ const getApiUrl = () => {
   // For production (deployed on Render/Netlify), use your Render URL
   // Replace with your actual Render backend URL after deployment
   // Example: https://jwt-auth-backend.onrender.com
-  const RENDER_URL = 'https://jwt-auth-backend-jgb3.onrender.com';
+  const RENDER_URL = 'https://jwt-auth-backend-j294.onrender.com';
   
   // Check if we're in production
   if (process.env.NODE_ENV === 'production') {
