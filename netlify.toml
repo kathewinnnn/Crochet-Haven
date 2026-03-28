@@ -1,9 +1,9 @@
 [build]
   base = "jwt-auth-frontend"
-  command = "npm run build"
+  command = "npm ci && npm run build"
   publish = "build"
   functions = "netlify/functions"
-  environment = { NODE_VERSION = "20", CI = "false", REACT_APP_API_URL = "https://crochet-haven-ryvg.onrender.com" }
+  environment = { NODE_VERSION = "18" }
 
 [[redirects]]
   from = "/*"
