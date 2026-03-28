@@ -1229,8 +1229,14 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
   const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setFieldErrors(prev => ({ ...prev, [e.target.name]: '' }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone' && value) {
+      const error = validateMobileNumber(value);
+      setFieldErrors(prev => ({ ...prev, [name]: error || '' }));
+    } else {
+      setFieldErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleSave = () => {
@@ -1327,6 +1333,8 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
               className={`ch-co-input${fieldErrors.phone ? ' ch-sa-input-error' : ''}`}
               style={{ width: '90%' }} id="sa-phone" name="phone"
               placeholder="09XXXXXXXXX" type="tel" value={form.phone} onChange={handleChange}
+              onInput={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 11); e.target.value = val; }}
+              maxLength={11}
             />
             {fieldErrors.phone && <span className="ch-sa-field-error">{fieldErrors.phone}</span>}
           </div>
@@ -1382,7 +1390,7 @@ const AddressModal = ({ onClose, onSave, initial = null }) => {
 
 // ── Main Checkout component ───────────────────────────────────────────────────
 const Checkout = () => {
-  const { cart, clearCart, selectedItems, getSelectedItems } = useCart();
+  const { cart, clearCart, removeSelectedItems, selectedItems, getSelectedItems } = useCart();
   const navigate = useNavigate();
   // ── Read Buy Now item passed via router state from Products.js ──
   const location = useLocation();
@@ -1642,9 +1650,9 @@ const Checkout = () => {
 
       if (response.ok) {
         setIsSubmitted(true);
-        // Only clear the full cart if this wasn't a Buy Now order
+        // Only remove selected items from cart if this wasn't a Buy Now order
         if (!buyNowItem) {
-          clearCart();
+          removeSelectedItems();
         }
         try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
         window.dispatchEvent(new CustomEvent('ordersUpdated'));
@@ -1858,7 +1866,9 @@ const Checkout = () => {
                             className={`ch-co-input${shippingErrors.phone ? ' has-error' : ''}`}
                             type="tel" id="phone" name="phone"
                             value={formData.phone} onChange={handleChange}
-                            required placeholder="+63 912 345 6789"
+                            required placeholder="09XXXXXXXXX"
+                            onInput={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 11); e.target.value = val; }}
+                            maxLength={11}
                           />
                           {shippingErrors.phone && (
                             <span className="ch-co-field-error">{shippingErrors.phone}</span>
@@ -2001,6 +2011,8 @@ const Checkout = () => {
                               type="tel" id="gcashNumber" name="gcashNumber"
                               value={formData.gcashNumber} onChange={handleChange}
                               required placeholder="09XXXXXXXXX"
+                              onInput={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 11); e.target.value = val; }}
+                              maxLength={11}
                             />
                             {mobileErrors.gcashNumber && <span className="ch-co-field-error">{mobileErrors.gcashNumber}</span>}
                             {formData.gcashNumber && isMobileNumberValid(formData.gcashNumber) && !mobileErrors.gcashNumber && (
@@ -2032,6 +2044,8 @@ const Checkout = () => {
                               type="tel" id="paymayaNumber" name="paymayaNumber"
                               value={formData.paymayaNumber} onChange={handleChange}
                               required placeholder="09XXXXXXXXX"
+                              onInput={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 11); e.target.value = val; }}
+                              maxLength={11}
                             />
                             {mobileErrors.paymayaNumber && <span className="ch-co-field-error">{mobileErrors.paymayaNumber}</span>}
                             {formData.paymayaNumber && isMobileNumberValid(formData.paymayaNumber) && !mobileErrors.paymayaNumber && (

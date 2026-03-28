@@ -125,6 +125,11 @@ export const CartProvider = ({ children }) => {
     setSelectedItems([]);
   }, []);
 
+  const removeSelectedItems = useCallback(() => {
+    setCart(prev => prev.filter(i => !selectedItems.includes(`${i.id}-${i.selectedImage}`)));
+    setSelectedItems([]);
+  }, [selectedItems]);
+
   // ── Selection operations ─────────────────────────────────────────────────
 
   const toggleSelected = useCallback((productId, selectedImage) => {
@@ -157,7 +162,7 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider value={{
       cart, setCart, totalItems,
-      addToCart, removeFromCart, clearCart,
+      addToCart, removeFromCart, clearCart, removeSelectedItems,
       incrementQuantity, decrementQuantity,
       selectedItems, toggleSelected, selectAll, deselectAll, getSelectedItems,
     }}>

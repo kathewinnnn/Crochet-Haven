@@ -257,10 +257,48 @@
       ],
       "total": 200,
       "createdAt": "2026-03-27T02:52:07.803Z",
-      "status": "Processing"
+      "status": "Delivered"
     },
     {
-      "id": "1774583022707",
+      "id": "1774695388007",
+      "userId": "1774693960548",
+      "username": "katherine",
+      "customer": {
+        "fullName": "Katherine Mae V. Guzman",
+        "email": "itsmemae45@gmail.com",
+        "phone": "09629556678",
+        "address": "Nanangduan, Pilar, Abra",
+        "city": "Abra",
+        "zipCode": "2812",
+        "paymentMethod": "cod",
+        "gcashNumber": "",
+        "gcashAccountName": "",
+        "gcashPassword": "",
+        "paymayaNumber": "",
+        "paymayaAccountName": "",
+        "paymayaPassword": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "cod",
+      "items": [
+        {
+          "id": "5",
+          "name": "Crochet Headband & Bandana",
+          "price": 50,
+          "quantity": 1,
+          "selectedImage": "/img/headband/1.jpg"
+        }
+      ],
+      "total": 50,
+      "createdAt": "2026-03-28T10:56:28.007Z",
+      "status": "Shipped"
+    },
+    {
+      "id": "1774695452496",
       "userId": "1774578231396",
       "username": "mingyu",
       "customer": {
@@ -268,7 +306,45 @@
         "email": "mingyu@gmail.com",
         "phone": "09123456789",
         "address": "Urijib, South Korea",
-        "city": "Sout Korea",
+        "city": "South Korea",
+        "zipCode": "1234",
+        "paymentMethod": "gcash",
+        "gcashNumber": "09629556678",
+        "gcashAccountName": "Mingyu Kim",
+        "gcashPassword": "123456",
+        "paymayaNumber": "",
+        "paymayaAccountName": "",
+        "paymayaPassword": "",
+        "cardNumber": "",
+        "cardExpiry": "",
+        "cardCvv": "",
+        "cardName": "",
+        "orderNote": ""
+      },
+      "paymentMethod": "gcash",
+      "items": [
+        {
+          "id": "6",
+          "name": "Crochet Bouquet",
+          "price": 200,
+          "quantity": 1,
+          "selectedImage": "/img/flower/1.jpg"
+        }
+      ],
+      "total": 200,
+      "createdAt": "2026-03-28T10:57:32.496Z",
+      "status": "Processing"
+    },
+    {
+      "id": "1774696064631",
+      "userId": "1774693754621",
+      "username": "wonwoo",
+      "customer": {
+        "fullName": "Wonwoo Jeon",
+        "email": "wonwoo@gmail.com",
+        "phone": "09112233445",
+        "address": "Urijib, South Korea",
+        "city": "South Korea",
         "zipCode": "1234",
         "paymentMethod": "cod",
         "gcashNumber": "",
@@ -290,12 +366,12 @@
           "name": "Crochet Bouquet",
           "price": 200,
           "quantity": 1,
-          "selectedImage": "/img/flower/5.jpg"
+          "selectedImage": "/img/flower/4.jpg"
         }
       ],
       "total": 200,
-      "createdAt": "2026-03-27T03:43:42.707Z",
-      "status": "Shipped"
+      "createdAt": "2026-03-28T11:07:44.631Z",
+      "status": "Processing"
     }
   ]
 }
