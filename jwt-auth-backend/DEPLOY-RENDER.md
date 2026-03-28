@@ -192,6 +192,7 @@ You have several options for the frontend:
 ### Build Failures
 - Ensure Node version in render.yaml matches package.json engines
 - Check that all dependencies are in package.json
+- **Important**: The server.js now has proper port listening (uses `PORT` env var or defaults to 10000)
 
 ### 500 Errors
 - Check Render logs in the dashboard

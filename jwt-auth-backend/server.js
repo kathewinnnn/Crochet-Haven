@@ -258,6 +258,15 @@ app.post('/orders/:id/cancel', (req, res) => {
 
 module.exports = app;
 
+// ─── Start the server only when run directly (not imported) ───────────────────
+if (require.main === module) {
+  const PORT = process.env.PORT || 10000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
+
 // ─── Netlify Functions handler ────────────────────────────────────────────────
 exports.handler = async (event, context) => {
   const corsHeaders = {
