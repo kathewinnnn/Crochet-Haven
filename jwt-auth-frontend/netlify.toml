@@ -1,4 +1,5 @@
 [build]
+  base = "jwt-auth-frontend"
   command = "npm run build"
   publish = "build"
   functions = "netlify/functions"
