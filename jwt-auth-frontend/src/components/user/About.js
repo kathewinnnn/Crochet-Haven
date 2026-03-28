@@ -156,8 +156,8 @@ const styles = `
   @media (max-width: 768px) {
     .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 14px 16px; }
-    .ch-logo-yarn { font-size: 1.4rem; }
-    .ch-logo-text { font-size: 1.2rem; }
+    .ch-logo-yarn { font-size: 1.8rem; }
+    .ch-logo-text { font-size: 1.3rem; }
     .ch-tagline { display: none; }
     .ch-nav-cta { padding: 9px 14px; font-size: 0.72rem; width:55%}
     .ch-page-banner { padding: 36px 16px; }
@@ -170,7 +170,6 @@ const styles = `
     .ch-map-frame { height: 260px; }
     .ch-quote-strip { padding: 36px 16px; }
     .ch-quote-text { font-size: 1.1rem; }
-    .ch-nav-cta { width: 25%; padding: 12px; margin-left: 15.6px; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
   }
 
@@ -186,10 +185,6 @@ const styles = `
   .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
   .ch-quote-strip { padding: 56px 30px; }
   .ch-nav-cta { width: 38%; padding: 12px; }
-}
-
-@media (max-width: 750px) and (min-width: 414px) {
-  .ch-nav-cta { width: 45%; padding: 12px; margin-left: 15.6px; }
 }
 `;
 

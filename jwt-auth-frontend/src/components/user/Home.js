@@ -519,7 +519,7 @@ const styles = `
     .ch-logo-yarn { font-size: 2rem; }
     .ch-logo-text { font-size: 1.4rem; }
     .ch-tagline { display: none; }
-    .ch-nav-cta { padding: 10px 15px; font-size: 0.70rem; width:25%}
+    .ch-nav-cta { padding: 10px 15px; font-size: 0.70rem; width:55%}
 
     .ch-hero {
       grid-template-columns: 1fr;
@@ -550,12 +550,6 @@ const styles = `
   @media (max-width: 1024px) and (min-width: 769px) {
   .ch-page { margin-left: 160px; padding-top: 0 }
   .ch-nav-cta { width: 35%; padding: 12px; margin-left: 15.6px; }
-}
-
-@media (max-width: 750px) and (min-width: 414px) {
-  .ch-nav-cta { width: 50%; padding: 12px; margin-left: 15.6px; }
-  .ch-logo-yarn { font-size: 1.3rem; }
-  .ch-logo-text { font-size: 1.2rem; }
 }
 `;
 

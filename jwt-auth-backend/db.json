@@ -13,7 +13,8 @@
       "storeName": "crochet haven",
       "location": "Pilar, Abra",
       "avatar": "/img/admin-avatar.jpg",
-      "fullName": "admin"
+      "fullName": "admin",
+      "address": ""
     },
     {
       "id": "1774347276506",
@@ -21,7 +22,11 @@
       "email": "test@test.com",
       "password": "$2b$10$TcDE5YN9JOs3ELzMwXGHq.cMJPaeaebMzMTWu6t7NmmcLIw7FoLXq",
       "role": "user",
-      "createdAt": "2026-03-24T10:14:36.506Z"
+      "createdAt": "2026-03-24T10:14:36.506Z",
+      "fullName": "testuser",
+      "phone": "",
+      "address": "",
+      "avatar": ""
     },
     {
       "id": "1774347329707",
@@ -29,7 +34,11 @@
       "email": "seller@seller.com",
       "password": "$2b$10$JMJtGfqNK4df4fMEz9XEiORW0CTt7kpRPLxSi23JcDOER.9PKuGYO",
       "role": "user",
-      "createdAt": "2026-03-24T10:15:29.707Z"
+      "createdAt": "2026-03-24T10:15:29.707Z",
+      "fullName": "seller",
+      "phone": "",
+      "address": "",
+      "avatar": ""
     },
     {
       "id": "1774349269283",
@@ -37,7 +46,11 @@
       "email": "newuser@test.com",
       "password": "$2b$10$X6.xq7tyfr8sjfssWtmsGOUVds.qnfv31EKWnGa0QHuwGF3IienQO",
       "role": "user",
-      "createdAt": "2026-03-24T10:47:49.283Z"
+      "createdAt": "2026-03-24T10:47:49.283Z",
+      "fullName": "newuser",
+      "phone": "",
+      "address": "",
+      "avatar": ""
     },
     {
       "id": "1774487905169",
@@ -45,7 +58,11 @@
       "email": "testlogin@test.com",
       "password": "$2b$10$KyWlUTz56kzbVTeW8GKAMe2i61B5H9JHJ2Uu4DzwQtxVWrdM1Rrbq",
       "role": "user",
-      "createdAt": "2026-03-26T01:18:25.169Z"
+      "createdAt": "2026-03-26T01:18:25.169Z",
+      "fullName": "testlogin",
+      "phone": "",
+      "address": "",
+      "avatar": ""
     },
     {
       "id": "1774506570487",
@@ -53,7 +70,11 @@
       "email": "kathewinnnn@gmail.com",
       "password": "$2b$10$Xd7vzI0WwttJh8Ex6zbZfO.wxYs849RSw0RZy0hVmJYDnUj8m1lfm",
       "role": "user",
-      "createdAt": "2026-03-26T06:29:30.487Z"
+      "createdAt": "2026-03-26T06:29:30.487Z",
+      "fullName": "katherine",
+      "phone": "",
+      "address": "",
+      "avatar": ""
     },
     {
       "id": "1774578231396",

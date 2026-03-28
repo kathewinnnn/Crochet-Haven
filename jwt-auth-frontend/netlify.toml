@@ -1,9 +1,8 @@
 [build]
-  base = "jwt-auth-frontend"
   command = "npm run build"
   publish = "build"
   functions = "netlify/functions"
-  environment = { NODE_VERSION = "20", CI = "false" }
+  environment = { NODE_VERSION = "18" }
 
 [[redirects]]
   from = "/*"
@@ -14,7 +13,6 @@
   from = "/api/*"
   to = "/.netlify/functions/server/:splat"
   status = 200
-  force = true
 
 [functions]
   directory = "netlify/functions"

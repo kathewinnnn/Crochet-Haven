@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { jwtDecode } from "jwt-decode";
-import { saveUserProfile, saveAvatar } from './userStorage';
 import './Login.scss';
 
 const loginStyles = `
@@ -281,42 +280,23 @@ const Login = () => {
     try {
       const res     = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
       const token   = res.data.token;
-      const userData = res.data.user; // Get user data directly from login response
       const decoded = jwtDecode(token);
 
       localStorage.setItem('token',    token);
       localStorage.setItem('ch_token', token);
-
-      // Use user data from backend response
-      const fullUserData = { ...decoded, ...userData };
-
-      localStorage.setItem('user',    JSON.stringify(fullUserData));
-      localStorage.setItem('ch_user', JSON.stringify(fullUserData));
-      const resolvedId = fullUserData.id || fullUserData.userId || decoded.id || decoded.userId || decoded.sub;
+      const userObj = { ...decoded };
+      localStorage.setItem('user',    JSON.stringify(userObj));
+      localStorage.setItem('ch_user', JSON.stringify(userObj));
+      const resolvedId = decoded.id || decoded.userId || decoded.sub;
       if (resolvedId) localStorage.setItem('userId', String(resolvedId));
-      if (fullUserData.username) localStorage.setItem('username', fullUserData.username);
-
-      // Save profile data using userStorage functions
-      saveUserProfile({
-        username:  fullUserData.username,
-        email:     fullUserData.email,
-        fullName:  fullUserData.fullName,
-        phone:     fullUserData.phone,
-        address:   fullUserData.address,
-        role:      fullUserData.role,
-        createdAt: fullUserData.createdAt,
-        avatar:    fullUserData.avatar,
-      });
-      if (fullUserData.avatar) {
-        saveAvatar(fullUserData.avatar);
-      }
+      if (decoded.username) localStorage.setItem('username', decoded.username);
 
       window.dispatchEvent(new Event('userAuthChanged'));
-      setLoggedInUser(fullUserData.username || username);
+      setLoggedInUser(decoded.username || username);
       setLoginSuccess(true);
 
       setTimeout(() => {
-        navigate(fullUserData.role === 'admin' ? '/seller' : '/user');
+        navigate(decoded.role === 'admin' ? '/seller' : '/user');
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid username or password');

@@ -485,7 +485,6 @@ const Register = () => {
         fullName:  res.data?.fullName  || form.fullName,
         phone:     res.data?.phone     || form.phone,
         address:   res.data?.address   || form.address,
-        avatar:    res.data?.avatar    || avatar || null,
         role:      res.data?.role      || 'user',
         createdAt: res.data?.createdAt || new Date().toISOString(),
       };
@@ -499,11 +498,10 @@ const Register = () => {
         fullName:  userData.fullName,
         phone:     userData.phone,
         address:   userData.address,
-        avatar:    userData.avatar,
         role:      userData.role,
         createdAt: userData.createdAt,
       });
-      saveAvatar(userData.avatar);
+      saveAvatar(avatar || null);
 
       setShowSuccess(true);
       setTimeout(() => navigate('/'), 2300);

@@ -80,11 +80,11 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
       role: "user",
       createdAt: new Date().toISOString(),
-      fullName: fullName ? fullName.trim() : "",
-      phone: phone ? phone.trim() : "",
-      address: address ? address.trim() : "",
+      fullName: fullName || "",
+      phone: phone || "",
+      address: address || "",
       avatar: avatar || "",
-    };
+    }; 
 
     db.users.push(newUser);
     writeDb(db);
@@ -173,9 +173,14 @@ router.get("/profile", verifyToken, (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Return user profile data (excluding password)
+    // Return complete user profile data (including createdAt, fullName, phone, address, avatar)
     const { password, ...userProfile } = user;
-    return res.json(userProfile);
+    return res.json({
+      ...userProfile,
+      createdAt: user.createdAt || new Date(user.id).toISOString().split('T')[0],
+      fullName: user.fullName || user.username,
+      memberSince: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recent'
+    });
   } catch (err) {
     console.error("❌ Get profile error:", err);
     return res.status(500).json({ message: "Server error" });
