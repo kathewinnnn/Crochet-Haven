@@ -380,6 +380,9 @@ const styles = `
     .ch-danger { flex-direction: column; text-align: center; }
   }
   @media (max-width: 768px) {
+    .ch-header-inner { padding: 20px 16px 16px 68px; margin-left: -50px; }
+    .ch-logo-yarn { font-size: 2rem; }
+    .ch-logo-text { font-size: 1.4rem; }
     .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-page-banner { padding: 28px 16px; }
