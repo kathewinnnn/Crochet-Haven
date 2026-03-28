@@ -2,7 +2,6 @@ services:
   - type: web
     name: jwt-auth-backend
     env: node
-    rootDir: jwt-auth-backend
     plan: free
     buildCommand: npm install
     startCommand: node server.js
@@ -11,4 +10,4 @@ services:
         value: "20"
       - key: RENDER
         value: "true"
-    autoDeploy: false
+    autoDeploy: true
