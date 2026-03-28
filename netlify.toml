@@ -1,8 +1,8 @@
 [build]
   base = "jwt-auth-frontend"
-  command = "npm install && npm run build"
-  publish = "jwt-auth-frontend/build"
-  functions = "jwt-auth-frontend/netlify/functions"
+  publish = "build"
+  command = "npm run build"
+  functions = "netlify/functions"
   environment = { NODE_VERSION = "20" }
 
 [[redirects]]
@@ -17,4 +17,4 @@
   force = true
 
 [functions]
-  directory = "jwt-auth-frontend/netlify/functions"
+  directory = "netlify/functions"
