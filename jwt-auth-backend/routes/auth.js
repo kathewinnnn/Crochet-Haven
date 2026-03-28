@@ -90,7 +90,10 @@ router.post("/register", async (req, res) => {
     writeDb(db);
 
     console.log(`✅ New user created: ${newUser.username} (${newUser.email})`);
-    return res.status(201).json({ message: "Registration successful" });
+    
+    // Return user data (excluding password)
+    const { password, ...userResponse } = newUser;
+    return res.status(201).json(userResponse);
 
   } catch (err) {
     console.error("❌ Register error:", err);

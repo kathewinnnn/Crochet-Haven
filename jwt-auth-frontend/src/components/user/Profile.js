@@ -676,11 +676,30 @@ const Profile = () => {
   useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem(getPrivacyKey(), JSON.stringify(privacy)); }, [privacy]);
 
-  const loadUser = () => {
+  const loadUser = async () => {
     try {
       const token = loadToken();
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
+
+      // First, try to fetch the latest profile from the API
+      if (token) {
+        try {
+          const profileRes = await fetch(`${API_URL}/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (profileRes.ok) {
+            const apiData = await profileRes.json();
+            // Save API data to localStorage for future use
+            if (apiData) {
+              localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: apiData.id || decoded.id }));
+              if (apiData.avatar) saveAvatar(apiData.avatar);
+            }
+          }
+        } catch (apiErr) {
+          console.log('Could not fetch profile from API, using stored data');
+        }
+      }
 
       let storedUser = {};
       try {

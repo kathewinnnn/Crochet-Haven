@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { jwtDecode } from "jwt-decode";
+import { saveUserProfile, saveAvatar } from './userStorage';
 import './Login.scss';
 
 const loginStyles = `
@@ -284,19 +285,47 @@ const Login = () => {
 
       localStorage.setItem('token',    token);
       localStorage.setItem('ch_token', token);
-      const userObj = { ...decoded };
-      localStorage.setItem('user',    JSON.stringify(userObj));
-      localStorage.setItem('ch_user', JSON.stringify(userObj));
-      const resolvedId = decoded.id || decoded.userId || decoded.sub;
+
+      // Fetch full user profile from the API to get avatar and other data
+      let fullUserData = { ...decoded };
+      try {
+        const profileRes = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (profileRes.data) {
+          fullUserData = { ...fullUserData, ...profileRes.data };
+        }
+      } catch (profileErr) {
+        // If profile fetch fails, continue with token data
+        console.log('Could not fetch profile, using token data');
+      }
+
+      localStorage.setItem('user',    JSON.stringify(fullUserData));
+      localStorage.setItem('ch_user', JSON.stringify(fullUserData));
+      const resolvedId = fullUserData.id || fullUserData.userId || decoded.id || decoded.userId || decoded.sub;
       if (resolvedId) localStorage.setItem('userId', String(resolvedId));
-      if (decoded.username) localStorage.setItem('username', decoded.username);
+      if (fullUserData.username) localStorage.setItem('username', fullUserData.username);
+
+      // Save profile data using userStorage functions
+      saveUserProfile({
+        username:  fullUserData.username,
+        email:     fullUserData.email,
+        fullName:  fullUserData.fullName,
+        phone:     fullUserData.phone,
+        address:   fullUserData.address,
+        role:      fullUserData.role,
+        createdAt: fullUserData.createdAt,
+      });
+      if (fullUserData.avatar) {
+        saveAvatar(fullUserData.avatar);
+      }
 
       window.dispatchEvent(new Event('userAuthChanged'));
-      setLoggedInUser(decoded.username || username);
+      setLoggedInUser(fullUserData.username || username);
       setLoginSuccess(true);
 
       setTimeout(() => {
-        navigate(decoded.role === 'admin' ? '/seller' : '/user');
+        navigate(fullUserData.role === 'admin' ? '/seller' : '/user');
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid username or password');
