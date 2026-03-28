@@ -388,12 +388,17 @@ const styles = `
     .ch-profile-layout { grid-template-columns: 1fr; }
     .ch-form-row { grid-template-columns: 1fr; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+    .ch-tagline { display: none; }
   }
   @media (max-width: 1024px) and (min-width: 769px) {
     .ch-page { margin-left: 160px; }
     .ch-profile-layout { grid-template-columns: 1fr; }
     .ch-profile-aside { position: static; }
   }
+
+  @media (max-width: 750px) and (min-width: 428px) {
+  .ch-nav-cta { width: 25%; padding: 12px; margin-left: 15.6px; }
+}
 `;
 
 const API_URL = `${API_BASE_URL}/api/auth`;
@@ -522,9 +527,12 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
     setStep(3);
 
     try {
-      const res = await fetch("/api/auth/delete-account", {
+      const res = await fetch(`${API_URL}/delete-account`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('ch_token') || localStorage.getItem('token') || ""}`
+        },
         body: JSON.stringify({ username, password }),
       });
 
@@ -778,7 +786,7 @@ const Profile = () => {
     setSavingPassword(true);
     setPasswordError('');
     try {
-      const token = localStorage.getItem('token');
+      const token = loadToken();
       const res = await fetch(`${API_URL}/change-password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

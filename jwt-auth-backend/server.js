@@ -256,6 +256,17 @@ app.put('/orders/:id', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to update order" }); }
 });
 
+app.delete('/orders/:id', (req, res) => {
+  try {
+    const db    = readDb();
+    const index = db.orders.findIndex(o => o.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Order not found" });
+    db.orders = db.orders.filter(o => o.id !== req.params.id);
+    writeDb(db);
+    res.json({ message: "Order deleted successfully" });
+  } catch { res.status(500).json({ error: "Failed to delete order" }); }
+});
+
 app.post('/orders/:id/cancel', (req, res) => {
   try {
     const db    = readDb();
@@ -463,6 +474,18 @@ exports.handler = async (event, context) => {
       const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
       if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
       else { db.orders[i] = { ...db.orders[i], status: body.status }; writeDb(db); responseData = db.orders[i]; }
+    }
+
+    else if (p.startsWith('/orders/') && method === 'DELETE') {
+      const id = p.split('/orders/')[1];
+      const db = readDb();
+      const idx = db.orders.findIndex(o => o.id === id);
+      if (idx === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
+      else {
+        db.orders = db.orders.filter(o => o.id !== id);
+        writeDb(db);
+        responseData = { message: "Order deleted successfully" };
+      }
     }
 
     else { statusCode = 404; responseData = { error: "Not found" }; }

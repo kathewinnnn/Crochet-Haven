@@ -170,6 +170,7 @@ const styles = `
     .ch-map-frame { height: 260px; }
     .ch-quote-strip { padding: 36px 16px; }
     .ch-quote-text { font-size: 1.1rem; }
+    .ch-nav-cta { width: 25%; padding: 12px; margin-left: 15.6px; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
   }
 
@@ -185,6 +186,10 @@ const styles = `
   .ch-footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 30px; }
   .ch-quote-strip { padding: 56px 30px; }
   .ch-nav-cta { width: 38%; padding: 12px; }
+}
+
+@media (max-width: 750px) and (min-width: 428px) {
+  .ch-nav-cta { width: 50%; padding: 12px; margin-left: 15.6px; }
 }
 `;
 
