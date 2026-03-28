@@ -1,0 +1,20 @@
+[build]
+  base = "jwt-auth-frontend"
+  command = "npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+  environment = { NODE_VERSION = "20", REACT_APP_API_URL = "https://crochet-haven-ryvg.onrender.com" }
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200
+  force = true
+
+[functions]
+  directory = "netlify/functions"

@@ -1,0 +1,11 @@
+# Netlify SPA Redirects
+# This file ensures that all routes serve the index.html file
+# Required for React Router to work properly
+
+/*    /index.html   200
+
+# API redirect - forward /api/* to Netlify function
+/api/*   /.netlify/functions/server/:splat   200!
+
+# Also support /auth/* path without api prefix
+/auth/*   /.netlify/functions/server/:splat   200!
