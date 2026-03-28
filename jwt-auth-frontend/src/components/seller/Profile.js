@@ -55,6 +55,18 @@ const profileStyles = `
   .ch-prof-loader { width:32px; height:32px; border:2.5px solid rgba(232,114,138,.2); border-top-color:var(--rose); border-radius:50%; animation:profSpin .8s linear infinite; }
   @keyframes profSpin { to { transform:rotate(360deg); } }
 
+  /* Password change panel */
+  .ch-prof-pwd-panel { padding:20px; background:var(--cream); border-top:1px solid var(--border); }
+  .ch-prof-pwd-panel-title { font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; color:var(--charcoal); margin-bottom:6px; }
+  .ch-prof-pwd-panel-sub { font-size:.82rem; color:var(--muted); font-weight:300; margin-bottom:16px; line-height:1.5; }
+  .ch-prof-pwd-field { margin-bottom:14px; }
+  .ch-prof-pwd-field label { display:block; font-size:.67rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .ch-prof-pwd-input { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:3px; font-family:'Lato',sans-serif; font-size:.9rem; color:var(--charcoal); background:var(--warm-white); box-sizing:border-box; }
+  .ch-prof-pwd-input:focus { outline:none; border-color:var(--rose); box-shadow:0 0 0 3px rgba(232,114,138,.1); }
+  .ch-prof-pwd-error { font-size:.78rem; color:#dc2626; margin-bottom:10px; display:flex; align-items:center; gap:5px; }
+  .ch-prof-pwd-success { font-size:.78rem; color:#065f46; margin-bottom:10px; display:flex; align-items:center; gap:5px; }
+  .ch-prof-pwd-actions { display:flex; gap:10px; }
+
   @media (max-width:768px) {
     .ch-prof-title { font-size:1.5rem; }
     .ch-prof-avatar-card { flex-direction:column; text-align:center; gap:14px; padding:20px 14px; }
@@ -73,25 +85,90 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
   const fileRef = useRef(null);
-  const getToken = () => localStorage.getItem("token");
+  const getToken = () => localStorage.getItem("token") || localStorage.getItem("ch_token");
 
   useEffect(() => {
     const fetchProfile = async () => {
+      // First, load from localStorage - try ch_user first (most reliable source)
+      let saved = localStorage.getItem("ch_user");
+      if (saved) {
+        try {
+          const userData = JSON.parse(saved);
+          console.log('📦 Loaded ch_user:', userData);
+          // Map ch_user fields to seller profile format
+          setProfile({
+            name: userData.fullName || userData.name || "",
+            email: userData.email || "",
+            phone: userData.phone || "",
+            bio: userData.bio || "",
+            storeName: userData.storeName || "",
+            location: userData.location || userData.address || "",
+            avatar: userData.avatar || "https://via.placeholder.com/150"
+          });
+        } catch (e) {
+          console.error('Failed to parse ch_user:', e);
+        }
+      }
+      
+      // Also check sellerProfile for backwards compatibility
+      const sellerSaved = localStorage.getItem("sellerProfile");
+      if (sellerSaved) {
+        try {
+          const sellerData = JSON.parse(sellerSaved);
+          if (!saved) {
+            setProfile(sellerData);
+          }
+        } catch (e) {
+          console.error('Failed to parse sellerProfile:', e);
+        }
+      }
+       
       const token = getToken();
-      const saved = localStorage.getItem("sellerProfile");
-      if (saved) setProfile(JSON.parse(saved));
       if (token) {
         try {
           const r = await fetch(`${API_URL}/profile`, { headers:{ Authorization:`Bearer ${token}` } });
           if (r.ok) {
             const data = await r.json();
-            const local = saved ? JSON.parse(saved) : {};
-            const merged = { ...local, ...data, avatar: local.avatar || data.avatar || "https://via.placeholder.com/150" };
-            setProfile(merged);
-            localStorage.setItem("sellerProfile", JSON.stringify(merged));
+            console.log('📡 Seller API profile data:', data);
+            // Merge API data - API takes precedence
+            setProfile(prev => ({
+              ...prev,
+              name: data.fullName || data.name || prev.name || "",
+              email: data.email || prev.email || "",
+              phone: data.phone || prev.phone || "",
+              bio: data.bio || prev.bio || "",
+              storeName: data.storeName || prev.storeName || "",
+              location: data.location || data.address || prev.location || "",
+              avatar: data.avatar || prev.avatar || "https://via.placeholder.com/150"
+            }));
+            // Save to localStorage
+            localStorage.setItem("sellerProfile", JSON.stringify({
+              name: data.fullName || data.name || "",
+              email: data.email || "",
+              phone: data.phone || "",
+              bio: data.bio || "",
+              storeName: data.storeName || "",
+              location: data.location || data.address || "",
+              avatar: data.avatar || "https://via.placeholder.com/150"
+            }));
+            // Also update ch_user with API data
+            const currentChUser = JSON.parse(localStorage.getItem("ch_user") || "{}");
+            localStorage.setItem("ch_user", JSON.stringify({ ...currentChUser, ...data }));
+          } else {
+            console.error('Failed to fetch profile:', r.status);
           }
-        } catch {}
+        } catch (err) {
+          console.error('Error fetching profile:', err);
+        }
+      } else {
+        console.log('No token found for profile fetch');
       }
       setLoading(false);
     };
@@ -116,15 +193,89 @@ const Profile = () => {
     const token = getToken();
     try {
       if (token) {
-        const r = await fetch(`${API_URL}/profile`, { method:"PUT", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify(profile) });
-        if (r.ok) { const d = await r.json(); setProfile(d); localStorage.setItem("sellerProfile", JSON.stringify(d)); }
-      } else localStorage.setItem("sellerProfile", JSON.stringify(profile));
+        const r = await fetch(`${API_URL}/profile`, { 
+          method:"PUT", 
+          headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, 
+          body:JSON.stringify({
+            fullName: profile.name,
+            phone: profile.phone,
+            address: profile.location,
+            bio: profile.bio,
+            storeName: profile.storeName,
+            location: profile.location,
+            avatar: profile.avatar
+          }) 
+        });
+        if (r.ok) { 
+          const d = await r.json(); 
+          setProfile(prev => ({ ...prev, name: d.fullName || d.name || prev.name }));
+          localStorage.setItem("sellerProfile", JSON.stringify(profile));
+        }
+      } else {
+        localStorage.setItem("sellerProfile", JSON.stringify(profile));
+      }
       setIsEditing(false);
-    } catch { localStorage.setItem("sellerProfile", JSON.stringify(profile)); setIsEditing(false); }
+    } catch { 
+      localStorage.setItem("sellerProfile", JSON.stringify(profile)); 
+      setIsEditing(false); 
+    }
     finally { setSaving(false); }
   };
 
-  const handleCancel = () => { setIsEditing(false); const s = localStorage.getItem("sellerProfile"); if (s) setProfile(JSON.parse(s)); };
+  const handleCancel = () => { 
+    setIsEditing(false); 
+    setShowPasswordForm(false);
+    const s = localStorage.getItem("sellerProfile"); 
+    if (s) setProfile(JSON.parse(s)); 
+  };
+
+  // Password change handlers
+  const handlePasswordFieldChange = (field, value) => {
+    setPasswords(p => ({ ...p, [field]: value }));
+    setPasswordError('');
+    setPasswordSuccess('');
+  };
+
+  const handleChangePassword = async () => {
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    if (passwords.newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordError('');
+    
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_URL}/change-password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordSuccess(data.message);
+        setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setTimeout(() => { setShowPasswordForm(false); setPasswordSuccess(''); }, 2000);
+      } else {
+        setPasswordError(data.message);
+      }
+    } catch {
+      setPasswordError('Failed. Please try again.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const resetPasswordForm = () => {
+    setShowPasswordForm(false);
+    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordError('');
+    setPasswordSuccess('');
+  };
 
   const fields = [
     { key:"name",      label:"Full Name",   type:"text",  placeholder:"Your full name" },
@@ -158,7 +309,12 @@ const Profile = () => {
       <div className="ch-prof-info-card">
         <div className="ch-prof-card-head">
           <span className="ch-prof-card-title">Profile Information</span>
-          {!isEditing && <button className="ch-prof-btn-primary" onClick={() => setIsEditing(true)}><span>✏️ Edit Profile</span></button>}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {!isEditing && !showPasswordForm && (
+              <button className="ch-prof-btn-ghost" onClick={() => setShowPasswordForm(true)}>🔑 Change Password</button>
+            )}
+            {!isEditing && <button className="ch-prof-btn-primary" onClick={() => setIsEditing(true)}><span>✏️ Edit Profile</span></button>}
+          </div>
         </div>
         <div className="ch-prof-card-body">
           <div className="ch-prof-form-grid">
@@ -191,6 +347,55 @@ const Profile = () => {
           <div className="ch-prof-save-bar">
             <button className="ch-prof-btn-primary" onClick={handleSave} disabled={saving}><span>{saving ? "Saving…" : "💾 Save Profile"}</span></button>
             <button className="ch-prof-btn-ghost" onClick={handleCancel}>Cancel</button>
+          </div>
+        )}
+        {showPasswordForm && (
+          <div className="ch-prof-pwd-panel">
+            <div className="ch-prof-pwd-panel-title">🔑 Change Your Password</div>
+            <div className="ch-prof-pwd-panel-sub">Enter your current password and choose a new one.</div>
+
+            <div className="ch-prof-pwd-field">
+              <label>Current Password</label>
+              <input
+                type="password"
+                className="ch-prof-pwd-input"
+                value={passwords.currentPassword}
+                onChange={e => handlePasswordFieldChange('currentPassword', e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div className="ch-prof-pwd-field">
+              <label>New Password</label>
+              <input
+                type="password"
+                className="ch-prof-pwd-input"
+                value={passwords.newPassword}
+                onChange={e => handlePasswordFieldChange('newPassword', e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div className="ch-prof-pwd-field">
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                className="ch-prof-pwd-input"
+                value={passwords.confirmPassword}
+                onChange={e => handlePasswordFieldChange('confirmPassword', e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            {passwordError && <div className="ch-prof-pwd-error">⚠ {passwordError}</div>}
+            {passwordSuccess && <div className="ch-prof-pwd-success">✓ {passwordSuccess}</div>}
+
+            <div className="ch-prof-pwd-actions">
+              <button className="ch-prof-btn-ghost" onClick={resetPasswordForm}>Cancel</button>
+              <button className="ch-prof-btn-primary" onClick={handleChangePassword} disabled={savingPassword}>
+                <span>{savingPassword ? 'Saving…' : '💾 Save Password'}</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -567,6 +567,60 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // ── GET PROFILE ─────────────────────────────────────────────────────────────
+    else if (p === '/api/auth/profile' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const db = readDb();
+        const user = db.users.find(u => u.id === decoded.id);
+        if (!user) {
+          statusCode = 404; responseData = { message: "User not found" };
+        } else {
+          // Return user profile data (excluding password)
+          const { password, ...userProfile } = user;
+          responseData = userProfile;
+        }
+      }
+    }
+
+    // ── PUT PROFILE ─────────────────────────────────────────────────────────────
+    else if (p === '/api/auth/profile' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const { fullName, phone, address, avatar, bio, storeName, location } = body;
+        const db = readDb();
+        const userIndex = db.users.findIndex(u => u.id === decoded.id);
+        
+        if (userIndex === -1) {
+          statusCode = 404; responseData = { message: "User not found" };
+        } else {
+          // Update user profile fields
+          db.users[userIndex] = {
+            ...db.users[userIndex],
+            fullName: fullName || db.users[userIndex].fullName || "",
+            phone: phone || db.users[userIndex].phone || "",
+            address: address || db.users[userIndex].address || "",
+            avatar: avatar || db.users[userIndex].avatar || "",
+            bio: bio || db.users[userIndex].bio || "",
+            storeName: storeName || db.users[userIndex].storeName || "",
+            location: location || db.users[userIndex].location || "",
+          };
+          
+          writeDb(db);
+          const { password, ...updatedProfile } = db.users[userIndex];
+          responseData = updatedProfile;
+        }
+      }
+    }
+
     // ── Products ──────────────────────────────────────────────────────────────
     else if (p === '/products' && method === 'GET') {
       responseData = readDb().products;

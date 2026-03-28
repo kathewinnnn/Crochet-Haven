@@ -693,50 +693,48 @@ const Profile = () => {
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
 
-      // First, try to fetch the latest profile from the API
+      // Fetch fresh user data from API - this is the most up-to-date source
+      let apiData = null;
       if (token) {
         try {
           const profileRes = await fetch(`${API_URL}/profile`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (profileRes.ok) {
-            const apiData = await profileRes.json();
-            // Save API data to localStorage for future use
-            if (apiData) {
-              const userId = decoded.id || apiData.id;
-              localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: userId }));
-              // Also save to profile storage so it persists
-              if (userId) {
-                localStorage.setItem(`ch_profile_${userId}`, JSON.stringify(apiData));
-              }
-              if (apiData.avatar) saveAvatar(apiData.avatar);
-            }
+            apiData = await profileRes.json();
+            console.log('📡 API profile data received:', apiData);
           }
         } catch (apiErr) {
           console.log('Could not fetch profile from API, using stored data');
         }
       }
 
+      // Start with API data (most reliable), then merge with stored data as fallback
       let storedUser = {};
       try {
         const raw = localStorage.getItem('ch_user');
         if (raw) storedUser = JSON.parse(raw);
       } catch { /* ignore */ }
 
+      // Merge API data with stored data - API takes priority
       const merged = loadFullUser(decoded);
-
+      
       const combined = {
         ...(merged || {}),
         ...storedUser,
-        id:        storedUser.id        || decoded.id        || merged?.id        || "",
-        username:  storedUser.username  || decoded.username  || merged?.username  || "",
-        email:     storedUser.email     || decoded.email     || merged?.email     || "",
-        role:      storedUser.role      || decoded.role      || merged?.role      || "user",
-        fullName:  storedUser.fullName  || decoded.fullName  || merged?.fullName  || "",
-        phone:     storedUser.phone     || decoded.phone     || merged?.phone     || "",
-        address:   storedUser.address   || decoded.address   || merged?.address   || "",
-        createdAt: storedUser.createdAt || decoded.createdAt || merged?.createdAt || "",
+        // Use API data if available, otherwise fall back to stored data
+        id:        apiData?.id        || storedUser.id        || decoded.id        || merged?.id        || "",
+        username:  apiData?.username  || storedUser.username  || decoded.username  || merged?.username  || "",
+        email:     apiData?.email     || storedUser.email     || decoded.email     || merged?.email     || "",
+        role:      apiData?.role      || storedUser.role      || decoded.role      || merged?.role      || "user",
+        fullName:  apiData?.fullName  || storedUser.fullName  || decoded.fullName  || merged?.fullName  || "",
+        phone:     apiData?.phone     || storedUser.phone     || decoded.phone     || merged?.phone     || "",
+        address:   apiData?.address   || storedUser.address   || decoded.address   || merged?.address   || "",
+        avatar:    apiData?.avatar    || storedUser.avatar    || decoded.avatar    || merged?.avatar    || null,
+        createdAt: apiData?.createdAt || storedUser.createdAt || decoded.createdAt || merged?.createdAt || "",
       };
+
+      console.log('👤 Combined user data:', combined);
 
       if (combined && (combined.username || combined.email)) {
         const avatar = loadAvatar();
