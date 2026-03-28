@@ -186,6 +186,12 @@ const styles = `
   .ch-quote-strip { padding: 56px 30px; }
   .ch-nav-cta { width: 38%; padding: 12px; }
 }
+
+@media (max-width: 750px) and (min-width: 414px) {
+  .ch-nav-cta { width: 45%; padding: 12px; margin-left: 15.6px; }
+  .ch-logo-yarn { font-size: 1.3rem; }
+  .ch-logo-text { font-size: 1.2rem; }
+}
 `;
 
 function About() {

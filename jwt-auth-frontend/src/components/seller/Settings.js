@@ -52,6 +52,10 @@ const settingsStyles = `
   .ch-set-form-input { width:100%; max-width:400px; padding:9px 13px; border:1.5px solid var(--border); border-radius:3px; background:var(--cream); color:var(--charcoal); font-family:'Lato',sans-serif; font-size:.84rem; outline:none; transition:border-color .18s,box-shadow .18s; }
   .ch-set-form-input:focus { border-color:var(--rose); box-shadow:0 0 0 3px rgba(232,114,138,.1); }
   .ch-set-otp-input { max-width:170px; text-align:center; letter-spacing:.5em; font-size:1.05rem; font-family:'Playfair Display',serif; }
+  .ch-set-form-input-wrapper { position:relative; display:inline-block; width:100%; max-width:400px; }
+  .ch-set-form-input-wrapper .ch-set-form-input { padding-right:40px; }
+  .ch-set-pwd-toggle { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--muted); padding:4px; font-size:1rem; transition:color .2s; }
+  .ch-set-pwd-toggle:hover { color:var(--rose); }
   .ch-set-form-actions { display:flex; gap:9px; margin-top:16px; flex-wrap:wrap; }
   .ch-set-alert { display:flex; align-items:center; gap:9px; padding:10px 13px; border-radius:3px; font-size:.81rem; margin-bottom:13px; margin-top:3px; }
   .ch-set-alert.error { background:rgba(192,57,43,.08); border:1px solid rgba(192,57,43,.2); color:#c0392b; }
@@ -82,6 +86,9 @@ const Settings = () => {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [show2FAForm, setShow2FAForm] = useState(false);
   const [twoFAStatus, setTwoFAStatus] = useState({ enabled:false, verified:false, method:null });
   const [twoFAMethod, setTwoFAMethod] = useState("sms");
@@ -106,7 +113,9 @@ const Settings = () => {
   const handlePasswordChange = (f, v) => { setPasswords(p => ({ ...p, [f]:v })); setPasswordError(""); setPasswordSuccess(""); };
 
   const handleChangePassword = async () => {
-    if (passwords.newPassword !== passwords.confirmPassword) { setPasswordError("Passwords do not match"); return; }
+    if (!passwords.currentPassword) { setPasswordError("Please enter your current password"); return; }
+    if (passwords.currentPassword === passwords.newPassword) { setPasswordError("New password cannot be the same as your current password"); return; }
+    if (passwords.newPassword !== passwords.confirmPassword) { setPasswordError("New password and confirm password do not match"); return; }
     if (passwords.newPassword.length < 6) { setPasswordError("Password must be at least 6 characters"); return; }
     setSavingPassword(true);
     try {
@@ -210,12 +219,27 @@ const Settings = () => {
           {showPasswordForm && (
             <div className="ch-set-panel">
               <div className="ch-set-panel-title">Change Password</div>
-              {[{ f:"currentPassword", l:"Current Password" }, { f:"newPassword", l:"New Password" }, { f:"confirmPassword", l:"Confirm New Password" }].map(({ f, l }) => (
-                <div key={f} className="ch-set-form-group">
-                  <label className="ch-set-form-label">{l}</label>
-                  <input type="password" className="ch-set-form-input" value={passwords[f]} onChange={e => handlePasswordChange(f, e.target.value)} placeholder="••••••••" />
+              <div className="ch-set-form-group">
+                <label className="ch-set-form-label">Current Password</label>
+                <div className="ch-set-form-input-wrapper">
+                  <input type={showCurrentPassword ? "text" : "password"} className="ch-set-form-input" value={passwords.currentPassword} onChange={e => handlePasswordChange('currentPassword', e.target.value)} placeholder="••••••••" />
+                  <button type="button" className="ch-set-pwd-toggle" onClick={() => setShowCurrentPassword(!showCurrentPassword)}>{showCurrentPassword ? "👁️" : "👁️‍🗨️"}</button>
                 </div>
-              ))}
+              </div>
+              <div className="ch-set-form-group">
+                <label className="ch-set-form-label">New Password</label>
+                <div className="ch-set-form-input-wrapper">
+                  <input type={showNewPassword ? "text" : "password"} className="ch-set-form-input" value={passwords.newPassword} onChange={e => handlePasswordChange('newPassword', e.target.value)} placeholder="••••••••" />
+                  <button type="button" className="ch-set-pwd-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>{showNewPassword ? "👁️" : "👁️‍🗨️"}</button>
+                </div>
+              </div>
+              <div className="ch-set-form-group">
+                <label className="ch-set-form-label">Confirm New Password</label>
+                <div className="ch-set-form-input-wrapper">
+                  <input type={showConfirmPassword ? "text" : "password"} className="ch-set-form-input" value={passwords.confirmPassword} onChange={e => handlePasswordChange('confirmPassword', e.target.value)} placeholder="••••••••" />
+                  <button type="button" className="ch-set-pwd-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? "👁️" : "👁️‍🗨️"}</button>
+                </div>
+              </div>
               {passwordError && <div className="ch-set-alert error">⚠ {passwordError}</div>}
               {passwordSuccess && <div className="ch-set-alert success">✓ {passwordSuccess}</div>}
               <div className="ch-set-form-actions">

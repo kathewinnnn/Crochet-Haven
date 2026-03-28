@@ -201,6 +201,36 @@ const styles = `
     box-shadow: 0 0 0 3px rgba(232,114,138,0.1);
   }
 
+  .ch-pwd-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .ch-pwd-input-wrapper .ch-pwd-input {
+    padding-right: 40px;
+    flex: 1;
+  }
+
+  .ch-pwd-toggle {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+  }
+
+  .ch-pwd-toggle:hover {
+    color: var(--rose);
+  }
+
   .ch-pwd-error {
     font-size: 0.78rem;
     color: #dc2626;
@@ -380,6 +410,9 @@ const styles = `
     .ch-danger { flex-direction: column; text-align: center; }
   }
   @media (max-width: 768px) {
+    .ch-header-inner { padding: 20px 16px 16px 68px; margin-left: -50px; }
+    .ch-logo-yarn { font-size: 2rem; }
+    .ch-logo-text { font-size: 1.4rem; }
     .ch-page { margin-left: 0; padding-top: 56px; }
     .ch-header-inner { padding: 14px 16px 14px 68px; margin-left: -50px; }
     .ch-page-banner { padding: 28px 16px; }
@@ -388,12 +421,17 @@ const styles = `
     .ch-profile-layout { grid-template-columns: 1fr; }
     .ch-form-row { grid-template-columns: 1fr; }
     .ch-footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 16px; }
+    .ch-tagline { display: none; }
   }
   @media (max-width: 1024px) and (min-width: 769px) {
     .ch-page { margin-left: 160px; }
     .ch-profile-layout { grid-template-columns: 1fr; }
     .ch-profile-aside { position: static; }
   }
+
+  @media (max-width: 750px) and (min-width: 428px) {
+  .ch-nav-cta { width: 25%; padding: 12px; margin-left: 15.6px; }
+}
 `;
 
 const API_URL = `${API_BASE_URL}/api/auth`;
@@ -522,9 +560,12 @@ const DeleteAccountModal = ({ user, onClose, onDeleted }) => {
     setStep(3);
 
     try {
-      const res = await fetch("/api/auth/delete-account", {
+      const res = await fetch(`${API_URL}/delete-account`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('ch_token') || localStorage.getItem('token') || ""}`
+        },
         body: JSON.stringify({ username, password }),
       });
 
@@ -648,6 +689,9 @@ const Profile = () => {
   const [passwordError,     setPasswordError]     = useState('');
   const [passwordSuccess,   setPasswordSuccess]   = useState('');
   const [savingPassword,    setSavingPassword]    = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const getNotifKey   = () => `ch_notifications_${resolveUserId() || 'guest'}`;
   const getPrivacyKey = () => `ch_privacy_${resolveUserId() || 'guest'}`;
@@ -676,18 +720,20 @@ const Profile = () => {
   useEffect(() => { localStorage.setItem(getNotifKey(), JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem(getPrivacyKey(), JSON.stringify(privacy)); }, [privacy]);
 
-  const loadUser = () => {
+  const loadUser = async () => {
     try {
       const token = loadToken();
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
 
+      // First load from localStorage for immediate display
       let storedUser = {};
       try {
         const raw = localStorage.getItem('ch_user');
         if (raw) storedUser = JSON.parse(raw);
       } catch { /* ignore */ }
 
+      // Merge with decoded token data
       const merged = loadFullUser(decoded);
 
       const combined = {
@@ -697,10 +743,10 @@ const Profile = () => {
         username:  storedUser.username  || decoded.username  || merged?.username  || "",
         email:     storedUser.email     || decoded.email     || merged?.email     || "",
         role:      storedUser.role      || decoded.role      || merged?.role      || "user",
-        fullName:  storedUser.fullName  || merged?.fullName  || "",
-        phone:     storedUser.phone     || merged?.phone     || "",
-        address:   storedUser.address   || merged?.address   || "",
-        createdAt: storedUser.createdAt || merged?.createdAt || "",
+        fullName:  storedUser.fullName  || decoded.fullName  || merged?.fullName  || "",
+        phone:     storedUser.phone     || decoded.phone     || merged?.phone     || "",
+        address:   storedUser.address   || decoded.address   || merged?.address   || "",
+        createdAt: storedUser.createdAt || decoded.createdAt || merged?.createdAt || "",
       };
 
       if (combined && (combined.username || combined.email)) {
@@ -714,6 +760,40 @@ const Profile = () => {
           address:  combined.address  || "",
         });
       }
+
+      // Then, try to fetch the latest profile from the API
+      if (token) {
+        try {
+          const profileRes = await fetch(`${API_URL}/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (profileRes.ok) {
+            const apiData = await profileRes.json();
+            // Save API data to localStorage for future use
+            if (apiData) {
+              const userId = decoded.id || apiData.id;
+              localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: userId }));
+              // Also save to profile storage so it persists
+              if (userId) {
+                localStorage.setItem(`ch_profile_${userId}`, JSON.stringify(apiData));
+              }
+              if (apiData.avatar) saveAvatar(apiData.avatar);
+              
+              // Update state with latest API data
+              const updatedUser = { ...combined, ...apiData };
+              setUser(updatedUser);
+              setEditForm({
+                fullName: apiData.fullName || combined.username || "",
+                email:    apiData.email    || combined.email    || "",
+                phone:    apiData.phone    || combined.phone    || "",
+                address:  apiData.address  || combined.address  || "",
+              });
+            }
+          }
+        } catch (apiErr) {
+          console.log('Could not fetch profile from API, using stored data');
+        }
+      }
     } catch { addToast("error", "Failed to load user data."); }
     finally  { setLoading(false); }
   };
@@ -721,8 +801,47 @@ const Profile = () => {
   const handleEditSubmit = async (e) => {
     e?.preventDefault(); setLoading(true);
     try {
-      await new Promise(r => setTimeout(r, 800));
-      const updated    = saveUserProfile({ ...editForm, username: user.username });
+      const token = loadToken();
+      console.log('handleEditSubmit - token exists:', !!token);
+      
+      // Save to backend API first
+      if (token) {
+        try {
+          console.log('Sending PUT to:', `${API_URL}/profile`);
+          const res = await fetch(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              fullName: editForm.fullName,
+              phone: editForm.phone,
+              address: editForm.address,
+            }),
+          });
+          console.log('API response status:', res.status);
+          
+          if (res.ok) {
+            const apiData = await res.json();
+            console.log('API response data:', apiData);
+            // Save API response to localStorage
+            localStorage.setItem('ch_user', JSON.stringify({ ...apiData, id: user.id }));
+            if (user.id) {
+              localStorage.setItem(`ch_profile_${user.id}`, JSON.stringify(apiData));
+            }
+            
+            // Update state with API data
+            setUser({ ...user, ...apiData });
+          } else {
+            const errorText = await res.text();
+            console.error('API error:', res.status, errorText);
+          }
+        } catch (apiErr) {
+          console.error('API error:', apiErr);
+          console.log('Could not save to API, using localStorage only');
+        }
+      }
+      
+      // Also save to localStorage
+      const updated = saveUserProfile({ ...editForm, username: user.username });
       const withAvatar = { ...user, ...updated, avatar: loadAvatar() || user?.avatar || null };
 
       const currentStored = JSON.parse(localStorage.getItem('ch_user') || '{}');
@@ -748,8 +867,16 @@ const Profile = () => {
   };
 
   const handleChangePassword = async () => {
+    if (!passwords.currentPassword) {
+      setPasswordError('Please enter your current password');
+      return;
+    }
+    if (passwords.currentPassword === passwords.newPassword) {
+      setPasswordError('New password cannot be the same as your current password');
+      return;
+    }
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError('New password and confirm password do not match');
       return;
     }
     if (passwords.newPassword.length < 6) {
@@ -759,7 +886,7 @@ const Profile = () => {
     setSavingPassword(true);
     setPasswordError('');
     try {
-      const token = localStorage.getItem('token');
+      const token = loadToken();
       const res = await fetch(`${API_URL}/change-password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -915,7 +1042,7 @@ const Profile = () => {
                           { label: "Email Address", value: user?.email     || "—"                                                                                                     },
                           { label: "Phone Number",  value: user?.phone     || "—"                                                                                                     },
                           { label: "Address",       value: user?.address   || "—", full: true                                                                                         },
-                          { label: "Member Since",  value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
+                          { label: "Member Since",  value: user?.createdAt && user.createdAt !== "" ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"           },
                           { label: "Account Status", badge: true                                                                                                                      },
                         ].map((item, i) => (
                           <div key={i} className={`ch-info-item${item.full ? " full" : ""}`}>
@@ -988,35 +1115,62 @@ const Profile = () => {
 
                         <div className="ch-pwd-field">
                           <label>Current Password</label>
-                          <input
-                            type="password"
-                            className="ch-pwd-input"
-                            value={passwords.currentPassword}
-                            onChange={e => handlePasswordFieldChange('currentPassword', e.target.value)}
-                            placeholder="••••••••"
-                          />
+                          <div className="ch-pwd-input-wrapper">
+                            <input
+                              type={showCurrentPassword ? "text" : "password"}
+                              className="ch-pwd-input"
+                              value={passwords.currentPassword}
+                              onChange={e => handlePasswordFieldChange('currentPassword', e.target.value)}
+                              placeholder="••••••••"
+                            />
+                            <button
+                              type="button"
+                              className="ch-pwd-toggle"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            >
+                              {showCurrentPassword ? "👁️" : "👁️‍🗨️"}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="ch-pwd-field">
                           <label>New Password</label>
-                          <input
-                            type="password"
-                            className="ch-pwd-input"
-                            value={passwords.newPassword}
-                            onChange={e => handlePasswordFieldChange('newPassword', e.target.value)}
-                            placeholder="••••••••"
-                          />
+                          <div className="ch-pwd-input-wrapper">
+                            <input
+                              type={showNewPassword ? "text" : "password"}
+                              className="ch-pwd-input"
+                              value={passwords.newPassword}
+                              onChange={e => handlePasswordFieldChange('newPassword', e.target.value)}
+                              placeholder="••••••••"
+                            />
+                            <button
+                              type="button"
+                              className="ch-pwd-toggle"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                            >
+                              {showNewPassword ? "👁️" : "👁️‍🗨️"}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="ch-pwd-field">
                           <label>Confirm New Password</label>
-                          <input
-                            type="password"
-                            className="ch-pwd-input"
-                            value={passwords.confirmPassword}
-                            onChange={e => handlePasswordFieldChange('confirmPassword', e.target.value)}
-                            placeholder="••••••••"
-                          />
+                          <div className="ch-pwd-input-wrapper">
+                            <input
+                              type={showConfirmPassword ? "text" : "password"}
+                              className="ch-pwd-input"
+                              value={passwords.confirmPassword}
+                              onChange={e => handlePasswordFieldChange('confirmPassword', e.target.value)}
+                              placeholder="••••••••"
+                            />
+                            <button
+                              type="button"
+                              className="ch-pwd-toggle"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                              {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                            </button>
+                          </div>
                         </div>
 
                         {passwordError   && <div className="ch-pwd-error">⚠ {passwordError}</div>}
