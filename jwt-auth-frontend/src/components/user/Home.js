@@ -552,7 +552,7 @@ const styles = `
   .ch-nav-cta { width: 35%; padding: 12px; margin-left: 15.6px; }
 }
 
-@media (max-width: 750px) and (min-width: 428px) {
+@media (max-width: 750px) and (min-width: 414px) {
   .ch-nav-cta { width: 50%; padding: 12px; margin-left: 15.6px; }
 }
 `;
