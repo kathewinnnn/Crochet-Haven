@@ -1,25 +1,22 @@
-// API configuration that works with the proxy
-// The proxy in package.json forwards requests to localhost:5000
+// API configuration for connecting to backend
+// Update the RENDER_URL when you deploy to Render
 
 const getApiUrl = () => {
-  // For development, use relative paths - proxy will forward to backend
-  // For production (Netlify), use relative path - API is served from same domain via netlify function
-  const envUrl = process.env.REACT_APP_API_URL;
-  if (envUrl) {
-    return envUrl;
-  }
+  // For production (deployed on Render/Netlify), use your Render URL
+  // Replace with your actual Render backend URL after deployment
+  // Example: https://jwt-auth-backend.onrender.com
+  const RENDER_URL = 'https://jwt-auth-backend-jgb3.onrender.com';
   
-  // Check if we're in production (Netlify)
-  // Use relative path in production so it goes to the same domain
+  // Check if we're in production
   if (process.env.NODE_ENV === 'production') {
-    return '';
+    return RENDER_URL;
   }
   
-  // Default to relative path for development (proxy handles forwarding)
-  return '';
+  // For development, use localhost
+  // Your json-server runs on port 5000
+  return 'http://localhost:5000';
 };
 
-// Build dynamic endpoints based on current base URL
 const buildEndpoints = (baseUrl) => ({
   AUTH: `${baseUrl}/api/auth`,
   PRODUCTS: `${baseUrl}/products`,

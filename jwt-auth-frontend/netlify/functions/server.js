@@ -18,9 +18,11 @@ const getDbPath = () => {
   const possiblePaths = [
     path.join(process.cwd(), 'db.json'),                    // project root
     path.join(__dirname, 'db.json'),                       // netlify/functions folder
-    path.join(__dirname, '../db.json'),                    // relative to functions
-    path.join(__dirname, '../../db.json'),                 // from root
+    path.join(__dirname, '../db.json'),                    // netlify folder
+    path.join(__dirname, '../../db.json'),                 // from functions
     path.join(__dirname, '../../build/db.json'),           // build folder
+    path.join(__dirname, '../../public/db.json'),          // public folder
+    path.join(__dirname, '../../../db.json'),              // one more level up
   ];
   
   for (const p of possiblePaths) {
