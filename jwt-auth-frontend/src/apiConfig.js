@@ -8,9 +8,9 @@ const getApiUrl = () => {
     return envUrl;
   }
   
-  // In production (Netlify), use relative path - API is served from same domain
+  // Point to Render backend
   if (process.env.NODE_ENV === 'production') {
-    return '';
+    return 'https://jwt-auth-backend-obe2.onrender.com';
   }
   
   // Default to relative path for development
