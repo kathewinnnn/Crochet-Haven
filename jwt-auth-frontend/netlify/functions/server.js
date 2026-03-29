@@ -16,11 +16,12 @@ const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
 // In Netlify: /var/task is typically the project root
 const getDbPath = () => {
   const possiblePaths = [
+    path.join(__dirname, '../../build/db.json'),           // build folder (has all users)
+    path.join(__dirname, '../../public/db.json'),           // public folder
     path.join(process.cwd(), 'db.json'),                    // project root
     path.join(__dirname, 'db.json'),                       // netlify/functions folder
     path.join(__dirname, '../db.json'),                    // relative to functions
     path.join(__dirname, '../../db.json'),                 // from root
-    path.join(__dirname, '../../build/db.json'),           // build folder
   ];
   
   for (const p of possiblePaths) {

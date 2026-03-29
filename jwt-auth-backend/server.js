@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
+
+// Configure CORS explicitly
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -14,18 +16,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
+const dbPath = path.join(__dirname, 'db.json');
 
-// For Render (production) vs local development
-const getDbPath = () => {
-  // Render environment - look in the app root
-  if (process.env.RENDER) {
-    return path.join(process.cwd(), 'db.json');
-  }
-  // Local development - look relative to the script
-  return path.join(__dirname, 'db.json');
-};
-
-const dbPath = getDbPath();
+const PORT = process.env.PORT || 5000;
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 const readDb = () => {
@@ -58,7 +51,7 @@ const decodeToken = (authHeader) => {
 // ─── Auth routes ──────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullName, phone, address, avatar } = req.body;
     if (!username || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
 
@@ -73,16 +66,30 @@ app.post('/api/auth/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = {
-      id: Date.now().toString(),
-      username: username.trim(),
-      email: email.trim(),
-      password: hashedPassword,
-      role: "user",
+      id:        Date.now().toString(),
+      username:  username.trim(),
+      email:     email.trim(),
+      password:  hashedPassword,
+      role:      "user",
       createdAt: new Date().toISOString(),
+      fullName:  (fullName  || "").trim(),
+      phone:     (phone     || "").trim(),
+      address:   (address   || "").trim(),
+      avatar:    avatar     || "",
     };
     db.users.push(newUser);
     writeDb(db);
-    return res.status(201).json({ message: "Registration successful" });
+    return res.status(201).json({
+      message:   "Registration successful",
+      id:        newUser.id,
+      username:  newUser.username,
+      email:     newUser.email,
+      fullName:  newUser.fullName,
+      phone:     newUser.phone,
+      address:   newUser.address,
+      role:      newUser.role,
+      createdAt: newUser.createdAt,
+    });
   } catch {
     return res.status(500).json({ message: "Server error during registration" });
   }
@@ -125,9 +132,6 @@ app.get('/api/auth/check-username', (req, res) => {
 });
 
 // ─── DELETE account ───────────────────────────────────────────────────────────
-// POST (not DELETE) so Netlify Functions can read the body reliably.
-// Frontend sends { username, password } — no JWT required so even an
-// expired token doesn't block the user from deleting their account.
 app.post('/api/auth/delete-account', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -146,7 +150,6 @@ app.post('/api/auth/delete-account', async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Incorrect password. Please try again." });
 
-    // Remove the user and all their orders from the DB
     db.users  = db.users.filter((_, i) => i !== idx);
     db.orders = db.orders.filter(o => o.userId !== user.id);
     writeDb(db);
@@ -154,6 +157,48 @@ app.post('/api/auth/delete-account', async (req, res) => {
     return res.json({ message: "Account deleted successfully" });
   } catch {
     return res.status(500).json({ message: "Server error during account deletion" });
+  }
+});
+
+// ─── CHANGE password ───────────────────────────────────────────────────────────
+app.put('/api/auth/change-password', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ message: "Current password and new password are required" });
+
+    if (newPassword.length < 6)
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+
+    const db = readDb();
+    const userIndex = db.users.findIndex(u => u.id === decoded.id);
+    
+    if (userIndex === -1)
+      return res.status(404).json({ message: "User not found" });
+
+    const user = db.users[userIndex];
+    
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Current password is incorrect" });
+
+    // Hash new password and update
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    db.users[userIndex].password = hashedNewPassword;
+    writeDb(db);
+
+    console.log(`✅ Password changed for user: ${user.username}`);
+    return res.json({ message: "Password changed successfully. You can now login with your new password." });
+  } catch {
+    return res.status(500).json({ message: "Server error during password change" });
   }
 });
 
@@ -220,7 +265,7 @@ app.post('/orders', (req, res) => {
       username:  decoded?.username || null,
       ...req.body,
       createdAt: new Date().toISOString(),
-      status:    "Pending",
+      status:    "Processing",
     };
     if (!db.orders) db.orders = [];
     db.orders.push(order);
@@ -260,17 +305,6 @@ app.put('/orders/:id', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to update order" }); }
 });
 
-app.delete('/orders/:id', (req, res) => {
-  try {
-    const db    = readDb();
-    const index = db.orders.findIndex(o => o.id === req.params.id);
-    if (index === -1) return res.status(404).json({ error: "Order not found" });
-    db.orders = db.orders.filter(o => o.id !== req.params.id);
-    writeDb(db);
-    res.json({ message: "Order deleted successfully" });
-  } catch { res.status(500).json({ error: "Failed to delete order" }); }
-});
-
 app.post('/orders/:id/cancel', (req, res) => {
   try {
     const db    = readDb();
@@ -280,6 +314,24 @@ app.post('/orders/:id/cancel', (req, res) => {
     writeDb(db);
     res.json(db.orders[index]);
   } catch { res.status(500).json({ error: "Failed to cancel order" }); }
+});
+
+app.delete('/orders/:id', (req, res) => {
+  console.log('DELETE /orders/:id called with params:', req.params);
+  try {
+    const db    = readDb();
+    const orderIdParam = String(req.params.id); // Ensure string comparison
+    console.log('Looking for order with ID:', orderIdParam);
+    console.log('Available orders:', db.orders.map(o => o.id));
+    const index = db.orders.findIndex(o => String(o.id) === orderIdParam);
+    if (index === -1) return res.status(404).json({ error: "Order not found" });
+    db.orders.splice(index, 1);
+    writeDb(db);
+    res.json({ success: true, message: "Order deleted successfully" });
+  } catch (err) { 
+    console.error('Delete error:', err);
+    res.status(500).json({ error: "Failed to delete order" }); 
+  }
 });
 
 module.exports = app;
@@ -314,7 +366,7 @@ exports.handler = async (event, context) => {
   try {
     // ── Auth ──────────────────────────────────────────────────────────────────
     if (p === '/api/auth/register' && method === 'POST') {
-      const { username, email, password } = body;
+      const { username, email, password, fullName, phone, address, avatar } = body;
       if (!username || !email || !password) {
         statusCode = 400; responseData = { message: "All fields are required" };
       } else {
@@ -327,9 +379,31 @@ exports.handler = async (event, context) => {
           statusCode = 400; responseData = { message: "Email is already registered" };
         } else {
           const hashed  = await bcrypt.hash(password, 10);
-          const newUser = { id: Date.now().toString(), username: username.trim(), email: email.trim(), password: hashed, role: "user", createdAt: new Date().toISOString() };
+          const newUser = {
+            id:        Date.now().toString(),
+            username:  username.trim(),
+            email:     email.trim(),
+            password:  hashed,
+            role:      "user",
+            createdAt: new Date().toISOString(),
+            fullName:  (fullName  || "").trim(),
+            phone:     (phone     || "").trim(),
+            address:   (address   || "").trim(),
+            avatar:    avatar     || "",
+          };
           db.users.push(newUser); writeDb(db);
-          statusCode = 201; responseData = { message: "Registration successful" };
+          statusCode = 201;
+          responseData = {
+            message:   "Registration successful",
+            id:        newUser.id,
+            username:  newUser.username,
+            email:     newUser.email,
+            fullName:  newUser.fullName,
+            phone:     newUser.phone,
+            address:   newUser.address,
+            role:      newUser.role,
+            createdAt: newUser.createdAt,
+          };
         }
       }
     }
@@ -369,36 +443,29 @@ exports.handler = async (event, context) => {
     }
 
     // ── DELETE ACCOUNT ────────────────────────────────────────────────────────
-    // Uses POST so Netlify can reliably read the request body.
-    // Expects { username, password } — verifies password against the stored
-    // bcrypt hash, then removes the user + all their orders from db.json.
     else if (p === '/api/auth/delete-account' && method === 'POST') {
       const { username, password, email } = body;
       if (!password) {
         statusCode = 400; responseData = { message: "Password is required" };
       } else {
         const db  = readDb();
-        // Find user by username OR email
         let idx = -1;
-        let user = null;
-        
+
         if (username) {
           idx = db.users.findIndex(
             u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
           );
         }
-        
-        // If not found by username, try email
         if (idx === -1 && email) {
           idx = db.users.findIndex(
             u => u.email && u.email.trim().toLowerCase() === email.trim().toLowerCase()
           );
         }
-        
+
         if (idx === -1) {
           statusCode = 404; responseData = { message: "Account not found" };
         } else {
-          user    = db.users[idx];
+          const user    = db.users[idx];
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
             statusCode = 401; responseData = { message: "Incorrect password. Please try again." };
@@ -407,6 +474,41 @@ exports.handler = async (event, context) => {
             db.orders = db.orders.filter(o => o.userId !== user.id);
             writeDb(db);
             responseData = { message: "Account deleted successfully" };
+          }
+        }
+      }
+    }
+
+    // ── CHANGE PASSWORD ────────────────────────────────────────────────────────
+    else if (p === '/api/auth/change-password' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const { currentPassword, newPassword } = body;
+        if (!currentPassword || !newPassword) {
+          statusCode = 400; responseData = { message: "Current password and new password are required" };
+        } else if (newPassword.length < 6) {
+          statusCode = 400; responseData = { message: "Password must be at least 6 characters" };
+        } else {
+          const db = readDb();
+          const userIndex = db.users.findIndex(u => u.id === decoded.id);
+          
+          if (userIndex === -1) {
+            statusCode = 404; responseData = { message: "User not found" };
+          } else {
+            const user = db.users[userIndex];
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+              statusCode = 401; responseData = { message: "Current password is incorrect" };
+            } else {
+              const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+              db.users[userIndex].password = hashedNewPassword;
+              writeDb(db);
+              responseData = { message: "Password changed successfully. You can now login with your new password." };
+            }
           }
         }
       }
@@ -459,7 +561,7 @@ exports.handler = async (event, context) => {
         username: decoded?.username || null,
         ...body,
         createdAt: new Date().toISOString(),
-        status:    "Pending",
+        status:    "Processing",
       };
       if (!db.orders) db.orders = [];
       db.orders.push(order); writeDb(db);
@@ -482,14 +584,9 @@ exports.handler = async (event, context) => {
 
     else if (p.startsWith('/orders/') && method === 'DELETE') {
       const id = p.split('/orders/')[1];
-      const db = readDb();
-      const idx = db.orders.findIndex(o => o.id === id);
-      if (idx === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
-      else {
-        db.orders = db.orders.filter(o => o.id !== id);
-        writeDb(db);
-        responseData = { message: "Order deleted successfully" };
-      }
+      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
+      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
+      else { db.orders.splice(i, 1); writeDb(db); responseData = { success: true, message: "Order deleted successfully" }; }
     }
 
     else { statusCode = 404; responseData = { error: "Not found" }; }
@@ -506,8 +603,7 @@ exports.handler = async (event, context) => {
   };
 };
 
-const PORT = process.env.PORT || 5000;
-
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
