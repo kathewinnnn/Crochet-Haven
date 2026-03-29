@@ -11,17 +11,16 @@ app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
 
-// For Netlify functions, we need to find the db.json from the project root
-// In local dev: process.cwd() = project root
-// In Netlify: /var/task is typically the project root
+// For Netlify functions, find db.json from multiple locations
+// Priority: parent directory (root), then same directory, then public
 const getDbPath = () => {
   const possiblePaths = [
-    path.join(__dirname, '../../public/db.json'),           // public folder (has all users) - PRIORITY for Netlify
-    path.join(__dirname, '../../build/db.json'),           // build folder (if exists)
-    path.join(process.cwd(), 'db.json'),                    // project root
-    path.join(__dirname, 'db.json'),                       // netlify/functions folder
-    path.join(__dirname, '../db.json'),                    // relative to functions
-    path.join(__dirname, '../../db.json'),                 // from root
+    path.join(__dirname, '../../db.json'),                 // from root (PRIORITY for Render/Netlify hybrid)
+    path.join(__dirname, '../../public/db.json'),           // public folder
+    path.join(__dirname, '../../build/db.json'),         // build folder
+    path.join(process.cwd(), 'db.json'),               // project root
+    path.join(__dirname, 'db.json'),                   // netlify/functions folder
+    path.join(__dirname, '../db.json'),                // relative to functions
   ];
   
   for (const p of possiblePaths) {

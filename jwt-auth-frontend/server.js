@@ -16,7 +16,28 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
-const dbPath = path.join(__dirname, 'db.json');
+
+// Find db.json - check multiple locations for deployment flexibility
+const findDbPath = () => {
+  const possiblePaths = [
+    path.join(__dirname, 'db.json'),           // same directory as server.js (e.g., jwt-auth-frontend/
+    path.join(__dirname, '../db.json'),         // parent directory (root)
+    path.join(process.cwd(), 'db.json'),     // process cwd
+  ];
+  
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        console.log('Found db.json at:', p);
+        return p;
+      }
+    } catch {}
+  }
+  
+  return path.join(__dirname, 'db.json'); // fallback
+};
+
+const dbPath = findDbPath();
 
 const PORT = process.env.PORT || 5000;
 
