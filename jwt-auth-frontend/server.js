@@ -202,6 +202,68 @@ app.put('/api/auth/change-password', async (req, res) => {
   }
 });
 
+// ─── UPDATE profile ───────────────────────────────────────────────────────────
+app.put('/api/auth/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { fullName, phone, address, avatar } = req.body;
+    
+    const db = readDb();
+    const userIndex = db.users.findIndex(u => u.id === decoded.id);
+    
+    if (userIndex === -1)
+      return res.status(404).json({ message: "User not found" });
+
+    // Update user fields (except password and username)
+    const user = db.users[userIndex];
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (avatar !== undefined) user.avatar = avatar;
+    
+    db.users[userIndex] = user;
+    writeDb(db);
+
+    console.log(`✅ Profile updated for user: ${user.username}`);
+    
+    // Return updated user (excluding password)
+    const { password, ...userWithoutPassword } = user;
+    return res.json(userWithoutPassword);
+  } catch {
+    return res.status(500).json({ message: "Server error during profile update" });
+  }
+});
+
+// ─── GET profile ─────────────────────────────────────────────────────────────
+app.get('/api/auth/profile', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const db = readDb();
+    const user = db.users.find(u => u.id === decoded.id);
+    
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    return res.json(userWithoutPassword);
+  } catch {
+    return res.status(500).json({ message: "Server error fetching profile" });
+  }
+});
+
 // ─── Products routes ──────────────────────────────────────────────────────────
 app.get('/products', (req, res) => {
   try { res.json(readDb().products); }

@@ -497,6 +497,57 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // ── UPDATE PROFILE ────────────────────────────────────────────────────────
+    else if (p === '/api/auth/profile' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const { fullName, phone, address, avatar } = body;
+        const db = readDb();
+        const userIndex = db.users.findIndex(u => u.id === decoded.id);
+        
+        if (userIndex === -1) {
+          statusCode = 404; responseData = { message: "User not found" };
+        } else {
+          const user = db.users[userIndex];
+          if (fullName) user.fullName = fullName;
+          if (phone) user.phone = phone;
+          if (address) user.address = address;
+          if (avatar !== undefined) user.avatar = avatar;
+          
+          db.users[userIndex] = user;
+          writeDb(db);
+          
+          // Return user without password
+          const { password, ...userWithoutPassword } = user;
+          responseData = userWithoutPassword;
+        }
+      }
+    }
+
+    // ── GET PROFILE ──────────────────────────────────────────────────────
+    else if (p === '/api/auth/profile' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const db = readDb();
+        const user = db.users.find(u => u.id === decoded.id);
+        
+        if (!user) {
+          statusCode = 404; responseData = { message: "User not found" };
+        } else {
+          const { password, ...userWithoutPassword } = user;
+          responseData = userWithoutPassword;
+        }
+      }
+    }
+
     // ── Products ──────────────────────────────────────────────────────────────
     else if (p === '/products' && method === 'GET') {
       responseData = readDb().products;
