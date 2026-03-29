@@ -181,21 +181,7 @@ const Order = () => {
     } catch {}
   };
 
-  useEffect(() => {
-    fetchOrders();
-    const poll = setInterval(fetchOrders, 5000);
-    const onUpdate = () => fetchOrders();
-    const onStorage = e => { if (e.key === "ordersUpdatedAt") fetchOrders(); };
-    window.addEventListener("ordersUpdated", onUpdate);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      clearInterval(poll);
-      window.removeEventListener("ordersUpdated", onUpdate);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, [fetchOrders]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setError(null);
       const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
@@ -232,7 +218,22 @@ const Order = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+    const poll = setInterval(fetchOrders, 5000);
+    const onUpdate = () => fetchOrders();
+    const onStorage = e => { if (e.key === "ordersUpdatedAt") fetchOrders(); };
+    window.addEventListener("ordersUpdated", onUpdate);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener("ordersUpdated", onUpdate);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [fetchOrders]);
+
 
   const updateStatus = async (id, status) => {
     if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
