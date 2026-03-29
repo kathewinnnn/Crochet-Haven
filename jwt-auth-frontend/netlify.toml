@@ -3,7 +3,7 @@
   command = "npm ci --no-optional && npm run build"
   publish = "build"
   functions = "netlify/functions"
-  environment = { NODE_VERSION = "20", REACT_APP_API_URL = "https://jwt-auth-backend-obe2.onrender.com" }
+  environment = { NODE_VERSION = "20", REACT_APP_API_URL = "" }
 
 [[redirects]]
   from = "/*"
