@@ -77,6 +77,10 @@ const settingsStyles = `
     .ch-set-form-input { max-width:86%; }
     .ch-set-form-actions { flex-direction:column; }
   }
+
+  @media (max-width: 750px) and (min-width: 414px) {
+  .ch-set-form-input { width:83%;}
+}
 `;
 
 const Settings = () => {
