@@ -80,18 +80,50 @@ const Profile = () => {
     const fetchProfile = async () => {
       const token = getToken();
       const saved = localStorage.getItem("sellerProfile");
-      if (saved) setProfile(JSON.parse(saved));
+      console.log('useEffect called, token exists:', !!token);
+      console.log('saved in localStorage:', saved ? 'yes' : 'no');
+      
+      // Always load localStorage first for immediate display
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('Loaded from localStorage:', parsed);
+        setProfile(parsed);
+      }
+      
+      // Then try to fetch from API to get latest data
       if (token) {
         try {
+          console.log('Fetching from API:', `${API_URL}/profile`);
           const r = await fetch(`${API_URL}/profile`, { headers:{ Authorization:`Bearer ${token}` } });
+          console.log('API response status:', r.status);
           if (r.ok) {
             const data = await r.json();
-            const local = saved ? JSON.parse(saved) : {};
-            const merged = { ...local, ...data, avatar: local.avatar || data.avatar || "https://via.placeholder.com/150" };
-            setProfile(merged);
-            localStorage.setItem("sellerProfile", JSON.stringify(merged));
+            console.log('API response data:', data);
+            // Map API data to local state format
+            const apiProfile = {
+              name: data.fullName || data.name || "",
+              email: data.email || "",
+              phone: data.phone || "",
+              storeName: data.storeName || "",
+              location: data.location || "",
+              bio: data.bio || "",
+              avatar: data.avatar || "https://via.placeholder.com/150",
+            };
+            
+            // Merge: localStorage data takes priority, but use API as base
+            const merged = saved ? JSON.parse(saved) : {};
+            const finalProfile = {
+              ...apiProfile,
+              ...merged,
+              avatar: merged.avatar || apiProfile.avatar,
+            };
+            console.log('Final merged profile:', finalProfile);
+            setProfile(finalProfile);
+            localStorage.setItem("sellerProfile", JSON.stringify(finalProfile));
           }
-        } catch {}
+        } catch (err) {
+          console.error('Error fetching profile:', err);
+        }
       }
       setLoading(false);
     };
@@ -114,13 +146,63 @@ const Profile = () => {
   const handleSave = async () => {
     setSaving(true);
     const token = getToken();
+    console.log('handleSave called, token exists:', !!token);
+    console.log('API_URL:', API_URL);
+    
+    const profileData = {
+      fullName: profile.name,
+      phone: profile.phone,
+      storeName: profile.storeName,
+      location: profile.location,
+      bio: profile.bio,
+      avatar: profile.avatar,
+    };
+    console.log('profileData to send:', profileData);
+    
     try {
       if (token) {
-        const r = await fetch(`${API_URL}/profile`, { method:"PUT", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify(profile) });
-        if (r.ok) { const d = await r.json(); setProfile(d); localStorage.setItem("sellerProfile", JSON.stringify(d)); }
-      } else localStorage.setItem("sellerProfile", JSON.stringify(profile));
+        console.log('Making API call to:', `${API_URL}/profile`);
+        const r = await fetch(`${API_URL}/profile`, { 
+          method: "PUT", 
+          headers: { 
+            "Content-Type": "application/json", 
+            "Authorization": `Bearer ${token}` 
+          }, 
+          body: JSON.stringify(profileData) 
+        });
+        console.log('API response status:', r.status);
+        
+        if (r.ok) { 
+          const d = await r.json();
+          console.log('API response data:', d);
+          // Merge API response with local profile, preserving all fields
+          const updatedProfile = { 
+            ...profile, 
+            name: d.fullName || profile.name,
+            storeName: d.storeName || profile.storeName,
+            location: d.location || profile.location,
+            bio: d.bio || profile.bio,
+            avatar: d.avatar || profile.avatar,
+            phone: d.phone || profile.phone,
+          };
+          setProfile(updatedProfile); 
+          localStorage.setItem("sellerProfile", JSON.stringify(updatedProfile)); 
+        } else {
+          const errorText = await r.text();
+          console.error('API error:', r.status, errorText);
+          // Still save locally even if API fails
+          localStorage.setItem("sellerProfile", JSON.stringify(profile));
+        }
+      } else {
+        console.log('No token, saving to localStorage only');
+        localStorage.setItem("sellerProfile", JSON.stringify(profile));
+      }
       setIsEditing(false);
-    } catch { localStorage.setItem("sellerProfile", JSON.stringify(profile)); setIsEditing(false); }
+    } catch (err) { 
+      console.error('Save error:', err);
+      localStorage.setItem("sellerProfile", JSON.stringify(profile)); 
+      setIsEditing(false); 
+    }
     finally { setSaving(false); }
   };
 

@@ -5,6 +5,18 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 
+// Firestore database (primary database with local fallback)
+const firestoreDb = require('../firestore-db');
+firestoreDb.initializeFirestore().then(() => console.log('Firestore initialized'));
+
+// Firebase backup utility
+let firebaseBackup = null;
+try {
+  firebaseBackup = require('../firebase-backup');
+} catch (e) {
+  console.log('Firebase backup module not available');
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -38,25 +50,27 @@ const getDbPath = () => {
 
 const dbPath = getDbPath();
 
+// Firebase backup - optional, requires service account
+// Note: Netlify functions have limited filesystem access, Firebase backup works best locally
+// Supports two methods:
+// 1. File path: FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json
+// 2. Inline JSON: FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+
+let db = null;
+
+// Firebase initialization
+if (firebaseBackup && firebaseBackup.initializeFirebase()) {
+  console.log('Firebase backup initialized');
+} else {
+  console.log('Firebase backup: service account not configured');
+}
+
 const PORT = process.env.PORT || 5000;
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
-const readDb = () => {
-  try {
-    const raw = fs.readFileSync(dbPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!parsed.users)    parsed.users    = [];
-    if (!parsed.products) parsed.products = [];
-    if (!parsed.orders)   parsed.orders   = [];
-    return parsed;
-  } catch {
-    return { users: [], products: [], orders: [] };
-  }
-};
-
-const writeDb = (data) => {
-  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-};
+// Using Firestore as primary database with local fallback
+const readDb = () => firestoreDb.readDb();
+const writeDb = (data) => firestoreDb.writeDb(data);
 
 // ─── JWT helper — returns decoded payload or null ─────────────────────────────
 const decodeToken = (authHeader) => {

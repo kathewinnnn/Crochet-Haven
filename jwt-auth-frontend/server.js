@@ -1,9 +1,15 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
+
+// Firestore database (primary database with local fallback)
+const firestoreDb = require('./firestore-db');
+firestoreDb.initializeFirestore().then(() => console.log('Firestore initialized'));
 
 const app = express();
 
@@ -57,6 +63,7 @@ const readDb = () => {
 
 const writeDb = (data) => {
   fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+  firestoreDb.writeDb(data);
 };
 
 // ─── JWT helper — returns decoded payload or null ─────────────────────────────

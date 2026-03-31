@@ -5,22 +5,30 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 
+// Firebase backup utility
+let firebaseBackup = null;
+try {
+  firebaseBackup = require('../firebase-backup');
+} catch (e) {
+  console.log('Firebase backup module not available');
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
 
-// For Netlify functions, we need to find the db.json from the project root
-// In local dev: process.cwd() = project root
-// In Netlify: /var/task is typically the project root
+// For Netlify functions, find db.json from multiple locations
+// Priority: parent directory (root), then same directory, then public
 const getDbPath = () => {
   const possiblePaths = [
-    path.join(process.cwd(), 'db.json'),                    // project root
-    path.join(__dirname, 'db.json'),                       // netlify/functions folder
-    path.join(__dirname, '../db.json'),                    // relative to functions
-    path.join(__dirname, '../../db.json'),                 // from root
-    path.join(__dirname, '../../build/db.json'),           // build folder
+    path.join(__dirname, '../../db.json'),                 // from root (PRIORITY for Render/Netlify hybrid)
+    path.join(__dirname, '../../public/db.json'),           // public folder
+    path.join(__dirname, '../../build/db.json'),         // build folder
+    path.join(process.cwd(), 'db.json'),               // project root
+    path.join(__dirname, 'db.json'),                   // netlify/functions folder
+    path.join(__dirname, '../db.json'),                // relative to functions
   ];
   
   for (const p of possiblePaths) {
@@ -37,6 +45,21 @@ const getDbPath = () => {
 };
 
 const dbPath = getDbPath();
+
+// Firebase backup - optional, requires service account
+// Note: Netlify functions have limited filesystem access, Firebase backup works best locally
+// Supports two methods:
+// 1. File path: FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json
+// 2. Inline JSON: FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+
+let db = null;
+
+// Firebase initialization
+if (firebaseBackup && firebaseBackup.initializeFirebase()) {
+  console.log('Firebase backup initialized');
+} else {
+  console.log('Firebase backup: service account not configured');
+}
 
 const PORT = process.env.PORT || 5000;
 
@@ -56,6 +79,13 @@ const readDb = () => {
 
 const writeDb = (data) => {
   fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+  
+  // Async backup to Firebase (non-blocking)
+  if (firebaseBackup && firebaseBackup.db) {
+    firebaseBackup.syncToFirebase(dbPath).catch(err => 
+      console.warn('Firebase backup failed:', err.message)
+    );
+  }
 };
 
 // ─── JWT helper — returns decoded payload or null ─────────────────────────────
@@ -492,6 +522,57 @@ exports.handler = async (event, context) => {
               responseData = { message: "Password changed successfully. You can now login with your new password." };
             }
           }
+        }
+      }
+    }
+
+    // ── UPDATE PROFILE ────────────────────────────────────────────────────────
+    else if (p === '/api/auth/profile' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const { fullName, phone, address, avatar } = body;
+        const db = readDb();
+        const userIndex = db.users.findIndex(u => u.id === decoded.id);
+        
+        if (userIndex === -1) {
+          statusCode = 404; responseData = { message: "User not found" };
+        } else {
+          const user = db.users[userIndex];
+          if (fullName) user.fullName = fullName;
+          if (phone) user.phone = phone;
+          if (address) user.address = address;
+          if (avatar !== undefined) user.avatar = avatar;
+          
+          db.users[userIndex] = user;
+          writeDb(db);
+          
+          // Return user without password
+          const { password, ...userWithoutPassword } = user;
+          responseData = userWithoutPassword;
+        }
+      }
+    }
+
+    // ── GET PROFILE ──────────────────────────────────────────────────────
+    else if (p === '/api/auth/profile' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      const decoded = decodeToken(authHeader);
+      
+      if (!decoded) {
+        statusCode = 401; responseData = { message: "Unauthorized" };
+      } else {
+        const db = readDb();
+        const user = db.users.find(u => u.id === decoded.id);
+        
+        if (!user) {
+          statusCode = 404; responseData = { message: "User not found" };
+        } else {
+          const { password, ...userWithoutPassword } = user;
+          responseData = userWithoutPassword;
         }
       }
     }

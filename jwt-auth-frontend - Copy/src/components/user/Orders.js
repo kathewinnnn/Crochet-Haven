@@ -443,28 +443,7 @@ const Orders = () => {
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
   const [productsMap, setProductsMap] = useState({});
 
-  useEffect(() => {
-    fetchOrders();
-    fetchProductsMap();
-    const onUpdate = () => fetchOrders();
-    const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
-    window.addEventListener('ordersUpdated', onUpdate);
-    window.addEventListener('storage', onStorage);
-    return () => { window.removeEventListener('ordersUpdated', onUpdate); window.removeEventListener('storage', onStorage); };
-  }, []);
-
-  const fetchProductsMap = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/products`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const map = {};
-      data.forEach(p => { map[p.id] = p; });
-      setProductsMap(map);
-    } catch { /* non-critical */ }
-  };
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -519,7 +498,29 @@ const Orders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchProductsMap = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/products`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const map = {};
+      data.forEach(p => { map[p.id] = p; });
+      setProductsMap(map);
+    } catch { /* non-critical */ }
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+    fetchProductsMap();
+    const onUpdate = () => fetchOrders();
+    const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
+    window.addEventListener('ordersUpdated', onUpdate);
+    window.addEventListener('storage', onStorage);
+    return () => { window.removeEventListener('ordersUpdated', onUpdate); window.removeEventListener('storage', onStorage); };
+  }, [fetchOrders, fetchProductsMap]);
+
 
   const mapStatus = (s) => ({ Processing: 'to_ship', Shipped: 'to_receive', Delivered: 'completed', Cancelled: 'cancelled' }[s] || 'to_ship');
   const statusLabel = (s) => ({ to_pay: 'To Pay', to_ship: 'To Ship', to_receive: 'To Receive', out_for_delivery: 'Out for Delivery', completed: 'Completed', cancelled: 'Cancelled' }[s] || s);

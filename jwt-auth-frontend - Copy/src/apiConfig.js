@@ -1,21 +1,19 @@
-// API configuration that works with the proxy
-// The proxy in package.json forwards requests to localhost:5000
+// API configuration that works with Netlify functions
+// In production, API calls go to the same domain via Netlify functions
 
 const getApiUrl = () => {
   // For development, use relative paths - proxy will forward to backend
-  // For production (Netlify), use relative path - API is served from same domain via netlify function
   const envUrl = process.env.REACT_APP_API_URL;
   if (envUrl) {
     return envUrl;
   }
   
-  // Check if we're in production (Netlify)
-  // Use relative path in production so it goes to the same domain
+  // Point to Render backend
   if (process.env.NODE_ENV === 'production') {
-    return '';
+    return 'https://jwt-auth-backend-obe2.onrender.com';
   }
   
-  // Default to relative path for development (proxy handles forwarding)
+  // Default to relative path for development
   return '';
 };
 

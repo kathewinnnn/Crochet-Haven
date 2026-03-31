@@ -1,9 +1,26 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
+
+// Firestore database module (primary database with local fallback)
+const firestoreDb = require('./firestore-db');
+
+// Initialize Firestore and start server
+const startServer = async () => {
+  await firestoreDb.initializeFirestore();
+
+// Firebase backup utility
+const {
+  initializeFirebase,
+  syncToFirebase,
+  syncFromFirebase,
+  getBackupStatus
+} = require('./firebase-backup');
 
 const app = express();
 
@@ -16,26 +33,51 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
-const dbPath = path.join(__dirname, 'db.json');
+
+// Find db.json - check multiple locations for deployment flexibility
+const findDbPath = () => {
+  const possiblePaths = [
+    path.join(__dirname, 'db.json'),           // same directory as server.js (e.g., jwt-auth-frontend/
+    path.join(__dirname, '../db.json'),         // parent directory (root)
+    path.join(process.cwd(), 'db.json'),     // process cwd
+  ];
+  
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        console.log('Found db.json at:', p);
+        return p;
+      }
+    } catch {}
+  }
+  
+  return path.join(__dirname, 'db.json'); // fallback
+};
+
+const dbPath = findDbPath();
 
 const PORT = process.env.PORT || 5000;
 
+// Firebase backup - optional, requires service account
+// Supports two methods:
+// 1. File path: FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json
+// 2. Inline JSON: FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+const firebaseBackup = require('./firebase-backup');
+if (firebaseBackup.initializeFirebase()) {
+  console.log('Firebase backup initialized');
+} else {
+  console.log('Firebase backup: service account not configured');
+}
+
 // ─── DB helpers ───────────────────────────────────────────────────────────────
-const readDb = () => {
-  try {
-    const raw = fs.readFileSync(dbPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!parsed.users)    parsed.users    = [];
-    if (!parsed.products) parsed.products = [];
-    if (!parsed.orders)   parsed.orders   = [];
-    return parsed;
-  } catch {
-    return { users: [], products: [], orders: [] };
-  }
+// Using Firestore as primary database with local fallback
+
+const readDb = async () => {
+  return await firestoreDb.loadAllData();
 };
 
-const writeDb = (data) => {
-  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+const writeDb = async (data) => {
+  await firestoreDb.saveAllData(data);
 };
 
 // ─── JWT helper — returns decoded payload or null ─────────────────────────────
@@ -49,6 +91,34 @@ const decodeToken = (authHeader) => {
 };
 
 // ─── Auth routes ──────────────────────────────────────────────────────────────
+
+// Firebase backup endpoints (manual triggers)
+app.post('/api/admin/backup-to-firebase', async (req, res) => {
+  try {
+    const result = await syncToFirebase(dbPath);
+    res.json({ success: result, message: result ? 'Backup completed' : 'Backup skipped (Firebase not configured)' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/restore-from-firebase', async (req, res) => {
+  try {
+    const result = await syncFromFirebase(dbPath);
+    res.json({ success: result, message: result ? 'Restore completed' : 'Restore skipped (Firebase not configured)' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/admin/backup-status', async (req, res) => {
+  try {
+    const status = await getBackupStatus();
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password, fullName, phone, address, avatar } = req.body;
@@ -101,7 +171,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!username || !password)
       return res.status(400).json({ message: "Username and password are required" });
 
-    const db   = readDb();
+    const db   = await readDb();
     const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
     if (!user) return res.status(401).json({ message: "Invalid username or password" });
 
@@ -199,6 +269,68 @@ app.put('/api/auth/change-password', async (req, res) => {
     return res.json({ message: "Password changed successfully. You can now login with your new password." });
   } catch {
     return res.status(500).json({ message: "Server error during password change" });
+  }
+});
+
+// ─── UPDATE profile ───────────────────────────────────────────────────────────
+app.put('/api/auth/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { fullName, phone, address, avatar } = req.body;
+    
+    const db = readDb();
+    const userIndex = db.users.findIndex(u => u.id === decoded.id);
+    
+    if (userIndex === -1)
+      return res.status(404).json({ message: "User not found" });
+
+    // Update user fields (except password and username)
+    const user = db.users[userIndex];
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (avatar !== undefined) user.avatar = avatar;
+    
+    db.users[userIndex] = user;
+    writeDb(db);
+
+    console.log(`✅ Profile updated for user: ${user.username}`);
+    
+    // Return updated user (excluding password)
+    const { password, ...userWithoutPassword } = user;
+    return res.json(userWithoutPassword);
+  } catch {
+    return res.status(500).json({ message: "Server error during profile update" });
+  }
+});
+
+// ─── GET profile ─────────────────────────────────────────────────────────────
+app.get('/api/auth/profile', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const db = readDb();
+    const user = db.users.find(u => u.id === decoded.id);
+    
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    return res.json(userWithoutPassword);
+  } catch {
+    return res.status(500).json({ message: "Server error fetching profile" });
   }
 });
 
@@ -604,6 +736,7 @@ exports.handler = async (event, context) => {
 };
 
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await firestoreDb.initializeFirestore();
   console.log(`Server running on port ${PORT}`);
 });

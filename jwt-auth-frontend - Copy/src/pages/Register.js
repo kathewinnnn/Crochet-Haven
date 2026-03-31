@@ -485,6 +485,7 @@ const Register = () => {
         fullName:  res.data?.fullName  || form.fullName,
         phone:     res.data?.phone     || form.phone,
         address:   res.data?.address   || form.address,
+        avatar:    res.data?.avatar    || avatar || null,
         role:      res.data?.role      || 'user',
         createdAt: res.data?.createdAt || new Date().toISOString(),
       };
@@ -500,6 +501,7 @@ const Register = () => {
         address:   userData.address,
         role:      userData.role,
         createdAt: userData.createdAt,
+        avatar:    userData.avatar,
       });
       saveAvatar(avatar || null);
 

@@ -223,9 +223,6 @@ const Cart = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
-  const currentUserId = resolveCurrentUserId();
-  const isAuthenticated = !!currentUserId;
-
   const safeCart = Array.isArray(cart) ? cart : [];
   const sortedCart = [...safeCart].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
   const uniqueCount = sortedCart.length;
