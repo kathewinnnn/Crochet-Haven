@@ -6,13 +6,13 @@ const fs = require('fs');
 const path = require('path');
 
 // Firestore database (primary database with local fallback)
-const firestoreDb = require('../firestore-db');
+const firestoreDb = require('./firestore-db');
 firestoreDb.initializeFirestore().then(() => console.log('Firestore initialized'));
 
 // Firebase backup utility
 let firebaseBackup = null;
 try {
-  firebaseBackup = require('../firebase-backup');
+  firebaseBackup = require('./firebase-backup');
 } catch (e) {
   console.log('Firebase backup module not available');
 }
