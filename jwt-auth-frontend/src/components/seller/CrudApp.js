@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import API_BASE_URL from '../../apiConfig';
+import { getProductsWithCache, API_BASE_URL } from '../../apiConfig';
 
 const API_URL = `${API_BASE_URL}/products`;
 const categories = ["Accessories & Bouquet", "Bags", "Clothing", "Home Decor"];
@@ -127,8 +127,8 @@ const CrudApp = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get(API_URL);
-      setProducts(res.data);
+      const data = await getProductsWithCache();
+      setProducts(data || []);
     } catch (e) { console.error(e); setProducts([]); }
     finally { setLoading(false); }
   };

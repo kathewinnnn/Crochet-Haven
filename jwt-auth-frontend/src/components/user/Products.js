@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from '../../context/CartContext';
-import API_BASE_URL from '../../apiConfig';
-
-const API_URL = `${API_BASE_URL}/products`;
+import { getProductsWithCache, isOnline } from '../../apiConfig';
 
 const sharedStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -1166,8 +1163,8 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(API_URL);
-      setProducts(response.data);
+      const products = await getProductsWithCache();
+      setProducts(products);
     } catch (error) {
       console.error("Error fetching products:", error);
       setProducts([]);

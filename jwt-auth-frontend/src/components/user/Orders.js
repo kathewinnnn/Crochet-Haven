@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
-import API_BASE_URL from '../../apiConfig';
+import { getOrdersWithCache, getProductsWithCache, API_BASE_URL } from '../../apiConfig';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -447,26 +447,20 @@ const Orders = () => {
     setLoading(true);
     setError(null);
     try {
-      // Try multiple token sources for robustness
       let token = localStorage.getItem('token') || localStorage.getItem('ch_token');
       
-      // If no token found, try decoding from user object
       if (!token) {
         try {
           const storedUser = localStorage.getItem('user') || localStorage.getItem('ch_user');
           if (storedUser) {
-            // The user object doesn't contain token - we need token for auth
-            // Try to get token from decoded JWT if available
             const existingToken = localStorage.getItem('token') || localStorage.getItem('ch_token');
             if (existingToken) token = existingToken;
           }
         } catch (e) { /* ignore */ }
       }
 
-      // ── Resolve current user ID from ALL possible localStorage sources ────
       const currentUserId = resolveCurrentUserId();
 
-      // Persist so future calls (and Checkout) always find it fast
       if (currentUserId) localStorage.setItem('userId', currentUserId);
 
       if (!currentUserId) {
@@ -475,11 +469,7 @@ const Orders = () => {
         return;
       }
 
-      const res = await fetch(`${API_BASE_URL}/orders`, {
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
-      if (!res.ok) throw new Error('Failed to fetch orders');
-      const data = await res.json();
+      const data = await getOrdersWithCache(token);
 
       const mapped = data
         // ── Show ONLY orders belonging to the currently logged-in user ───────
@@ -517,9 +507,7 @@ const Orders = () => {
 
   const fetchProductsMap = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/products`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await getProductsWithCache();
       const map = {};
       data.forEach(p => { map[p.id] = p; });
       setProductsMap(map);

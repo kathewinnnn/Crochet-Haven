@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import API_BASE_URL from '../../apiConfig';
+import { getProductsWithCache, API_BASE_URL } from '../../apiConfig';
 
 const API_URL = `${API_BASE_URL}/products`;
 
@@ -87,8 +86,8 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(API_URL);
-      const grouped = res.data.reduce((acc, p) => {
+      const data = await getProductsWithCache();
+      const grouped = (data || []).reduce((acc, p) => {
         if (!acc[p.category]) acc[p.category] = [];
         acc[p.category].push(p);
         return acc;

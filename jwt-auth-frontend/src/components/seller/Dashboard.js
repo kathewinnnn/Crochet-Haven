@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import API_BASE_URL from '../../apiConfig';
-
-const API_URL = `${API_BASE_URL}/products`;
+import { getProductsWithCache, getOrdersWithCache, API_BASE_URL } from '../../apiConfig';
 
 const dashStyles = `
   :root {
@@ -99,11 +96,11 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [pr, or] = await Promise.allSettled([
-        axios.get(API_URL),
-        fetch(`${API_BASE_URL}/orders`).then(r => r.json()),
+        getProductsWithCache(),
+        getOrdersWithCache(null),
       ]);
-      if (pr.status === "fulfilled") setProducts(pr.value.data);
-      if (or.status === "fulfilled") setOrders(or.value);
+      if (pr.status === "fulfilled") setProducts(pr.value || []);
+      if (or.status === "fulfilled") setOrders(or.value || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
