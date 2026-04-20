@@ -1,4 +1,4 @@
-// API configuration that works with Netlify functions
+// API configuration that works with Netlify functions + Firebase
 // In production, API calls go to the same domain via Netlify functions
 
 const getApiUrl = () => {
@@ -8,9 +8,9 @@ const getApiUrl = () => {
     return envUrl;
   }
   
-  // Point to Render backend
+  // In production (Netlify), use relative paths to Netlify functions
   if (process.env.NODE_ENV === 'production') {
-    return 'https://jwt-auth-backend-obe2.onrender.com';
+    return '';  // Will use /api/Netlify functions
   }
   
   // Default to relative path for development
@@ -20,8 +20,8 @@ const getApiUrl = () => {
 // Build dynamic endpoints based on current base URL
 const buildEndpoints = (baseUrl) => ({
   AUTH: `${baseUrl}/api/auth`,
-  PRODUCTS: `${baseUrl}/products`,
-  ORDERS: `${baseUrl}/orders`,
+  PRODUCTS: `${baseUrl}/api/products`,
+  ORDERS: `${baseUrl}/api/orders`,
 });
 
 export const API_BASE_URL = getApiUrl();

@@ -133,21 +133,37 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password)
-      return res.status(400).json({ message: "Username and password are required" });
+      return res.status(400).json({ message: "Username/email and password are required" });
 
     const db   = readDb();
-    const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-    if (!user) return res.status(401).json({ message: "Invalid username or password" });
+    const user = db.users.find(u => 
+      u.username.trim().toLowerCase() === username.trim().toLowerCase() ||
+      u.email.trim().toLowerCase() === username.trim().toLowerCase()
+    );
+    if (!user) return res.status(401).json({ message: "Invalid username/email or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid username or password" });
+    if (!isMatch) return res.status(401).json({ message: "Invalid username/email or password" });
 
     const token = jwt.sign(
       { id: user.id, username: user.username, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-    return res.json({ token });
+    return res.json({ 
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        role: user.role,
+        avatar: user.avatar || null,
+        createdAt: user.createdAt,
+      }
+    });
   } catch {
     return res.status(500).json({ message: "Server error during login" });
   }
