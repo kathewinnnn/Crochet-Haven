@@ -1,6 +1,7 @@
 /**
  * Firestore Database Manager (Synchronous API)
  * Uses Firebase Firestore as primary database with local cache
+ * Now with embedded data for Netlify deployment
  */
 
 const fs = require('fs');
@@ -11,18 +12,37 @@ let admin = null;
 let db = null;
 let firestoreInitialized = false;
 
+// Embedded initial data for Netlify - this is used when db.json file is not available
+const EMBEDDED_DATA = {
+  "users": [
+    {
+      "id": "1",
+      "username": "admin",
+      "email": "admin@admin.com",
+      "password": "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
+      "role": "admin",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "fullName": "Admin",
+      "phone": "0912-345-6789",
+      "address": ""
+    }
+  ],
+  "products": [],
+  "orders": []
+};
+
 // Local cache - loaded at startup, updated on every write
 let cache = { users: [], products: [], orders: [] };
 
-// Correct path for Netlify deployment
+// Correct path for Netlify deployment - check multiple locations
 const getDbPath = () => {
   const possiblePaths = [
-    path.join(__dirname, 'db.json'),                      // Same directory as function (netlify/functions/db.json)
-    path.join(__dirname, '../../db.json'),                // From jwt-auth-frontend root (for local dev)
-    path.join(__dirname, '../../jwt-auth-frontend/db.json'), // From project root
-    path.join(process.cwd(), 'db.json'),                 // Current working directory
-    path.join(process.cwd(), 'jwt-auth-frontend/db.json'), // CWD with base
-    path.join(__dirname, '../db.json'),                  // One directory up
+    path.join(__dirname, 'db.json'),
+    path.join(__dirname, '../../public/db.json'),
+    path.join(__dirname, '../../build/db.json'),
+    path.join(process.cwd(), 'public/db.json'),
+    path.join(process.cwd(), 'build/db.json'),
+    path.join(process.cwd(), 'db.json'),
   ];
   
   for (const p of possiblePaths) {
@@ -34,8 +54,8 @@ const getDbPath = () => {
     } catch {}
   }
   
-  console.log('Warning: db.json not found, using fallback');
-  return path.join(__dirname, '../../db.json');
+  console.log('Warning: db.json not found, using embedded data');
+  return null;
 };
 
 const LOCAL_DB_PATH = getDbPath();
@@ -92,21 +112,24 @@ const initializeFirestore = async () => {
 };
 
 /**
- * Load data from local file
+ * Load data from local file or use embedded data
  */
 const loadFromLocal = () => {
   try {
-    if (fs.existsSync(LOCAL_DB_PATH)) {
+    if (LOCAL_DB_PATH && fs.existsSync(LOCAL_DB_PATH)) {
       const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
       cache = JSON.parse(raw);
       console.log('Loaded data from local file. Users:', cache.users?.length || 0);
+    } else if (LOCAL_DB_PATH) {
+      console.log('db.json not found at:', LOCAL_DB_PATH, '- using embedded data');
+      cache = { ...EMBEDDED_DATA };
     } else {
-      console.log('db.json not found at:', LOCAL_DB_PATH);
-      cache = { users: [], products: [], orders: [] };
+      console.log('No db.json path - using embedded data');
+      cache = { ...EMBEDDED_DATA };
     }
   } catch (e) {
-    console.warn('Failed to load local file:', e.message);
-    cache = { users: [], products: [], orders: [] };
+    console.warn('Failed to load local file:', e.message, '- using embedded data');
+    cache = { ...EMBEDDED_DATA };
   }
   return true;
 };

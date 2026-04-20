@@ -438,7 +438,9 @@ exports.handler = async (event, context) => {
               { id: user.id, username: user.username, email: user.email, role: user.role },
               JWT_SECRET, { expiresIn: "7d" }
             );
-            responseData = { token };
+            // Return both token and user object
+            const { password: _, ...userWithoutPassword } = user;
+            responseData = { token, user: userWithoutPassword };
           }
         }
       }
