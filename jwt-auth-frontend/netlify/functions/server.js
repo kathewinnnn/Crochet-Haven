@@ -5,24 +5,32 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 
-// Firestore database (primary database with local fallback)
-const firestoreDb = require('./firestore-db');
-firestoreDb.initializeFirestore().then(() => console.log('Database initialized'))
-  .catch(err => console.log('DB init error:', err.message));
-
-// Firebase backup utility
-let firebaseBackup = null;
-try {
-  firebaseBackup = require('./firebase-backup');
-} catch (e) {
-  console.log('Firebase backup module not available');
-}
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
+
+// EMBEDDED DATA - works without Firebase
+const EMBEDDED_DATA = {
+  users: [
+    { id: "1", username: "admin", email: "admin@admin.com", password: "$2b$10$8fF0dor3JqNqLGiLN6ks6OgFFBjR5Qu0/RtgGbJ2lt1Hf41yw3Ooi", role: "admin", createdAt: "2024-01-01T00:00:00.000Z" },
+    { id: "2", username: "testuser", email: "test@test.com", password: "$2b$10$8fF0dor3JqNqLGiLN6ks6OgFFBjR5Qu0/RtgGbJ2lt1Hf41yw3Ooi", role: "user", createdAt: "2026-03-24T10:14:36.506Z" }
+  ],
+  products: [
+    { id: "1", name: "Crochet Keychain", description: "Handmade crochet keychain", price: "50", category: "Accessories" },
+    { id: "2", name: "Crochet Tote Bags", description: "Stylish tote bag", price: "200", category: "Bags" },
+    { id: "3", name: "Crochet Scarf", description: "Warm scarf", price: "150", category: "Clothing" }
+  ],
+  orders: []
+};
+
+let cache = { ...EMBEDDED_DATA };
+
+const readDb = () => cache;
+const writeDb = (data) => { cache = data; };
+
+console.log('Server initialized with embedded data');
 
 // For Netlify functions, find db.json from multiple locations
 // Priority: parent directory (root), then same directory, then public
@@ -67,11 +75,6 @@ if (firebaseBackup && firebaseBackup.initializeFirebase()) {
 }
 
 const PORT = process.env.PORT || 5000;
-
-// ─── DB helpers ───────────────────────────────────────────────────────────────
-// Using Firestore as primary database with local fallback
-const readDb = () => firestoreDb.readDb();
-const writeDb = (data) => firestoreDb.writeDb(data);
 
 // ─── JWT helper — returns decoded payload or null ─────────────────────────────
 const decodeToken = (authHeader) => {
