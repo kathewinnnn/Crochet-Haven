@@ -494,7 +494,8 @@ const Orders = () => {
 
       setOrders(mapped);
     } catch (err) {
-      setError('Failed to load orders. Please try again.');
+      console.error('Failed to load orders:', err);
+      setError('Failed to load orders. Please try again. ' + (err.message || ''));
     } finally {
       setLoading(false);
     }
