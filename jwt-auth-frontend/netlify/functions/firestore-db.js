@@ -1,21 +1,19 @@
 /**
  * Firestore Database Manager
- * Uses Firebase Firestore as primary database with local fallback
+ * Uses embedded data by default, with Firebase as optional sync
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Load firebase-admin at startup
 let admin = null;
+let db = null;
+
 try {
   admin = require('firebase-admin');
-  console.log('firebase-admin loaded successfully');
 } catch (e) {
-  console.log('firebase-admin not found:', e.message);
+  console.log('firebase-admin not available');
 }
-
-let db = null;
 
 // EMBEDDED DATA - All users from local db.json
 // Password reset to password123 for all users
