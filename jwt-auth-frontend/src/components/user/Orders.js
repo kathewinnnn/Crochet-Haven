@@ -455,7 +455,7 @@ const Orders = () => {
         try {
           const storedUser = localStorage.getItem('user') || localStorage.getItem('ch_user');
           if (storedUser) {
-            const userObj = JSON.parse(storedUser);
+            JSON.parse(storedUser);
             // The user object doesn't contain token - we need token for auth
             // Try to get token from decoded JWT if available
             const existingToken = localStorage.getItem('token') || localStorage.getItem('ch_token');
