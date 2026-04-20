@@ -360,7 +360,7 @@ const Login = () => {
 
           <form onSubmit={handleLogin}>
             <div className="login__form-group">
-              <label className="login__label">👤 Username or Email</label>
+              <label className="login__label">👤 Username</label>
               <div className="login__input-wrapper">
                 <input
                   type="text" value={username} required
@@ -399,7 +399,7 @@ const Login = () => {
             <p className="login__demo-title">Demo Credentials</p>
             <div className="login__demo-credentials">
               <div className="login__demo-item">
-                <span className="login__demo-label">Username/Email</span>
+                <span className="login__demo-label">Username</span>
                 <span className="login__demo-value">admin</span>
               </div>
               <div className="login__demo-item">
