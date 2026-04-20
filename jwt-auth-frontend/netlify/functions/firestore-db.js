@@ -1,7 +1,6 @@
 /**
  * Firestore Database Manager (Synchronous API)
- * This module replaces local db.json with Firebase Firestore
- * Uses local cache for sync operations, async background sync to Firestore
+ * Uses Firebase Firestore as primary database with local cache
  */
 
 const fs = require('fs');
@@ -10,6 +9,7 @@ const path = require('path');
 // Firebase Admin SDK
 let admin = null;
 let db = null;
+let firestoreInitialized = false;
 
 // Local cache - loaded at startup, updated on every write
 let cache = { users: [], products: [], orders: [] };
@@ -17,11 +17,12 @@ let cache = { users: [], products: [], orders: [] };
 // Correct path for Netlify deployment
 const getDbPath = () => {
   const possiblePaths = [
-    path.join(__dirname, '../../db.json'),
-    path.join(__dirname, '../../public/db.json'),
-    path.join(__dirname, '../../build/db.json'),
-    path.join(process.cwd(), 'db.json'),
-    path.join(__dirname, '../db.json'),
+    path.join(__dirname, 'db.json'),                      // Same directory as function (netlify/functions/db.json)
+    path.join(__dirname, '../../db.json'),                // From jwt-auth-frontend root (for local dev)
+    path.join(__dirname, '../../jwt-auth-frontend/db.json'), // From project root
+    path.join(process.cwd(), 'db.json'),                 // Current working directory
+    path.join(process.cwd(), 'jwt-auth-frontend/db.json'), // CWD with base
+    path.join(__dirname, '../db.json'),                  // One directory up
   ];
   
   for (const p of possiblePaths) {
@@ -39,27 +40,52 @@ const getDbPath = () => {
 
 const LOCAL_DB_PATH = getDbPath();
 
+const initializeFirebase = async () => {
+  try {
+    admin = require('firebase-admin');
+    
+    if (admin.apps.length) {
+      console.log('Firebase already initialized');
+      db = admin.firestore();
+      return true;
+    }
+    
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (!serviceAccountJson) {
+      console.log('No FIREBASE_SERVICE_ACCOUNT env var - using local db.json only');
+      return false;
+    }
+    
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    
+    db = admin.firestore();
+    console.log('Firebase Firestore connected successfully');
+    return true;
+  } catch (error) {
+    console.warn('Firebase initialization failed:', error.message);
+    return false;
+  }
+};
+
 /**
- * Initialize - load from local file immediately
- * Firebase is optional and only used if service account is provided
+ * Initialize - load from local file first, then try Firestore
  */
 const initializeFirestore = async () => {
-  // Always load from local file first (works without Firebase)
   console.log('Loading data from local db.json at:', LOCAL_DB_PATH);
   loadFromLocal();
   
-  // Try to initialize Firebase only if service account is provided
-  try {
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-    
-    if (serviceAccountPath || serviceAccountJson) {
-      console.log('Firebase service account detected, attempting to connect...');
-    } else {
-      console.log('No Firebase service account - using local db.json only');
-    }
-  } catch (e) {
-    console.log('Firebase not configured, using local db.json');
+  const firebaseReady = await initializeFirebase();
+  
+  if (firebaseReady && db) {
+    firestoreInitialized = true;
+    console.log('Attempting to load from Firestore...');
+    await loadFromFirestore();
+  } else {
+    console.log('Using local db.json only (no persistence)');
   }
   
   return true;

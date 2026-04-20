@@ -7,7 +7,8 @@ const path = require('path');
 
 // Firestore database (primary database with local fallback)
 const firestoreDb = require('./firestore-db');
-firestoreDb.initializeFirestore().then(() => console.log('Firestore initialized'));
+firestoreDb.initializeFirestore().then(() => console.log('Database initialized'))
+  .catch(err => console.log('DB init error:', err.message));
 
 // Firebase backup utility
 let firebaseBackup = null;
