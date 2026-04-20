@@ -7,12 +7,12 @@ const getApiUrl = () => {
     return envUrl;
   }
   
-  // Use localhost for development
-  if (process.env.NODE_ENV === 'development') {
+  // Use relative paths for production (works with Netlify redirects)
+  if (process.env.NODE_ENV === 'production') {
     return '';
   }
   
-  // Default to empty (will use relative paths)
+  // Use localhost for development
   return '';
 };
 
