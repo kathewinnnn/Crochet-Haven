@@ -111,7 +111,8 @@ const Dashboard = () => {
   const totalProducts   = products.length;
   const totalCategories = new Set(products.map(p => p.category)).size;
   const totalValue      = products.reduce((s, p) => s + parseFloat(p.price || 0), 0);
-  const totalOrders     = orders.length;
+  const totalOrders     = orders.filter(o => o.status === "Processing" || o.status === "Shipped").length;
+  const allOrders      = orders.length;
   const grouped = products.reduce((a, p) => { a[p.category] = (a[p.category] || 0) + 1; return a; }, {});
 
   if (loading) return (

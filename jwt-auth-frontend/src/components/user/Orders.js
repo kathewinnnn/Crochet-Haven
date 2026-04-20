@@ -469,7 +469,7 @@ const Orders = () => {
 
       const mapped = data
         // ── Show ONLY orders belonging to the currently logged-in user ───────
-        .filter(order => String(order.userId) === String(currentUserId))
+        .filter(order => order.userId && currentUserId && String(order.userId) === String(currentUserId))
         .map(order => {
           const uiStatus = order.tracking?.status === 'out_for_delivery'
             ? 'out_for_delivery'
