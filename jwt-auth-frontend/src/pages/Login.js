@@ -299,7 +299,7 @@ const Login = () => {
         navigate(decoded.role === 'admin' ? '/seller' : '/user');
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid username or password');
+      setError(err.response?.data?.message || 'Invalid username/email or password');
       setIsLoading(false);
     }
   };
@@ -333,12 +333,12 @@ const Login = () => {
 
           <form onSubmit={handleLogin}>
             <div className="login__form-group">
-              <label className="login__label">👤 Username</label>
+              <label className="login__label">👤 Username or Email</label>
               <div className="login__input-wrapper">
                 <input
                   type="text" value={username} required
                   onChange={e => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  placeholder="Enter username or email"
                   className={`login__input${isUsernameFocused ? ' login__input--focused' : ''}`}
                   onFocus={() => setIsUsernameFocused(true)}
                   onBlur={() => setIsUsernameFocused(false)}
@@ -372,7 +372,7 @@ const Login = () => {
             <p className="login__demo-title">Demo Credentials</p>
             <div className="login__demo-credentials">
               <div className="login__demo-item">
-                <span className="login__demo-label">Username</span>
+                <span className="login__demo-label">Username/Email</span>
                 <span className="login__demo-value">admin</span>
               </div>
               <div className="login__demo-item">
