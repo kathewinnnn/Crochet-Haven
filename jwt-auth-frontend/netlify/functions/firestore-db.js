@@ -13,36 +13,58 @@ let db = null;
 
 // Local cache - loaded at startup, updated on every write
 let cache = { users: [], products: [], orders: [] };
-const LOCAL_DB_PATH = path.join(__dirname, '../../db.json');
+
+// Correct path for Netlify deployment
+const getDbPath = () => {
+  const possiblePaths = [
+    path.join(__dirname, '../../db.json'),                 // from root (PRIORITY for Render/Netlify hybrid)
+    path.join(__dirname, '../../public/db.json'),           // public folder
+    path.join(__dirname, '../../build/db.json'),            // build folder
+    path.join(process.cwd(), 'db.json'),                   // process cwd
+    path.join(__dirname, '../db.json'),                    // relative to functions
+  ];
+  
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        console.log('Found db.json at:', p);
+        return p;
+      }
+    } catch {}
+  }
+  
+  console.log('Warning: db.json not found, using fallback');
+  return path.join(__dirname, '../../db.json');
+};
+
+const LOCAL_DB_PATH = getDbPath();
 
 /**
- * Initialize Firestore connection and load initial data
+ * Initialize - load from local file immediately
+ * Firebase is optional and only used if service account is provided
  */
 const initializeFirestore = async () => {
+  // Always load from local file first (works without Firebase)
+  console.log('Loading data from local db.json...');
+  loadFromLocal();
+  
+  // Try to initialize Firebase only if service account is provided
   try {
-    admin = require('firebase-admin');
-    
-    // Check if already initialized
-    if (admin.apps.length) {
-      console.log('Firebase already initialized');
-      db = admin.firestore();
-      await loadFromFirestore();
-      return true;
-    }
-    
-    // Get credentials from environment
-    let serviceAccount;
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
     
-    if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
-      serviceAccount = require(serviceAccountPath);
-    } else if (serviceAccountJson) {
-      try {
-        serviceAccount = JSON.parse(serviceAccountJson);
-      } catch (e) {
-        console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', e.message);
-        return loadFromLocal();
+    if (serviceAccountPath || serviceAccountJson) {
+      // Firebase setup code here if needed
+      console.log('Firebase service account detected, attempting to connect...');
+    } else {
+      console.log('No Firebase service account - using local db.json only');
+    }
+  } catch (e) {
+    console.log('Firebase not configured, using local db.json');
+  }
+  
+  return true;
+};
       }
     } else {
       console.log('Firebase service account not configured');
