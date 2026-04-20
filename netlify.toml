@@ -1,0 +1,24 @@
+[build]
+  base = "jwt-auth-frontend"
+  command = "npm ci --no-optional && npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+  environment = { NODE_VERSION = "20" }
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/seller/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  directory = "jwt-auth-frontend/netlify/functions"
