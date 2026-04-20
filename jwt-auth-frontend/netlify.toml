@@ -6,13 +6,13 @@
   environment = { NODE_VERSION = "20", REACT_APP_API_URL = "" }
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
   status = 200
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/server/:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
 
 [functions]
