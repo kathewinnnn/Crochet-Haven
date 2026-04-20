@@ -1,0 +1,5 @@
+# API redirect FIRST - forward /api/* to Netlify function
+/api/*   /.netlify/functions/server/:splat   200
+
+# SPA redirect - serve index.html for all other routes
+/*    /index.html   200
