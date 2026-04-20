@@ -1,6 +1,6 @@
 [build]
   base = "jwt-auth-frontend"
-  command = "npm ci --no-optional && npm run build"
+  command = "npm ci --no-optional && npm run build && cd netlify/functions && npm install"
   publish = "build"
   functions = "netlify/functions"
   environment = { NODE_VERSION = "20", REACT_APP_API_URL = "" }
