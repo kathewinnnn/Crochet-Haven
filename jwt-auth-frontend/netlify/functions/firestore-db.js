@@ -17,11 +17,11 @@ let cache = { users: [], products: [], orders: [] };
 // Correct path for Netlify deployment
 const getDbPath = () => {
   const possiblePaths = [
-    path.join(__dirname, '../../db.json'),                 // from root (PRIORITY for Render/Netlify hybrid)
-    path.join(__dirname, '../../public/db.json'),           // public folder
-    path.join(__dirname, '../../build/db.json'),            // build folder
-    path.join(process.cwd(), 'db.json'),                   // process cwd
-    path.join(__dirname, '../db.json'),                    // relative to functions
+    path.join(__dirname, '../../db.json'),
+    path.join(__dirname, '../../public/db.json'),
+    path.join(__dirname, '../../build/db.json'),
+    path.join(process.cwd(), 'db.json'),
+    path.join(__dirname, '../db.json'),
   ];
   
   for (const p of possiblePaths) {
@@ -45,7 +45,7 @@ const LOCAL_DB_PATH = getDbPath();
  */
 const initializeFirestore = async () => {
   // Always load from local file first (works without Firebase)
-  console.log('Loading data from local db.json...');
+  console.log('Loading data from local db.json at:', LOCAL_DB_PATH);
   loadFromLocal();
   
   // Try to initialize Firebase only if service account is provided
@@ -54,7 +54,6 @@ const initializeFirestore = async () => {
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
     
     if (serviceAccountPath || serviceAccountJson) {
-      // Firebase setup code here if needed
       console.log('Firebase service account detected, attempting to connect...');
     } else {
       console.log('No Firebase service account - using local db.json only');
@@ -65,37 +64,19 @@ const initializeFirestore = async () => {
   
   return true;
 };
-      }
-    } else {
-      console.log('Firebase service account not configured');
-      return loadFromLocal();
-    }
-    
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    
-    db = admin.firestore();
-    console.log('Firebase Firestore connected as primary database');
-    
-    // Try to load from Firestore first
-    await loadFromFirestore();
-    return true;
-  } catch (error) {
-    console.warn('Firebase not available, using local data:', error.message);
-    return loadFromLocal();
-  }
-};
 
 /**
- * Load data from local file (fallback)
+ * Load data from local file
  */
 const loadFromLocal = () => {
   try {
     if (fs.existsSync(LOCAL_DB_PATH)) {
       const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
       cache = JSON.parse(raw);
-      console.log('Loaded data from local file');
+      console.log('Loaded data from local file. Users:', cache.users?.length || 0);
+    } else {
+      console.log('db.json not found at:', LOCAL_DB_PATH);
+      cache = { users: [], products: [], orders: [] };
     }
   } catch (e) {
     console.warn('Failed to load local file:', e.message);
@@ -123,7 +104,7 @@ const loadFromFirestore = async () => {
     ordersSnap.docs.forEach(d => data.orders.push(d.data()));
     
     cache = data;
-    console.log(`Loaded from Firestore: ${data.users.length} users, ${data.products.length} products, ${data.products.length} orders`);
+    console.log(`Loaded from Firestore: ${data.users.length} users, ${data.products.length} products`);
     return true;
   } catch (error) {
     console.warn('Failed to load from Firestore:', error.message);
@@ -133,15 +114,16 @@ const loadFromFirestore = async () => {
 
 /**
  * Save data - updates local cache + local file + async Firestore sync
- * Returns sync (no await) for performance
  */
 const saveToAll = (data) => {
   // Update cache immediately
   cache = data;
   
-  // Save to local file
+  // Save to local file (won't persist in Netlify functions but keeps cache updated)
   try {
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(data, null, 2));
+    if (fs.existsSync(path.dirname(LOCAL_DB_PATH))) {
+      fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(data, null, 2));
+    }
   } catch (e) {
     console.warn('Failed to save local file:', e.message);
   }
