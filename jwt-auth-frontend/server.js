@@ -130,8 +130,11 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: "Username and password are required" });
 
     const db   = readDb();
-    const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-    if (!user) return res.status(401).json({ message: "Invalid username or password" });
+    const user = db.users.find(u => 
+      u.username.trim().toLowerCase() === username.trim().toLowerCase() ||
+      u.email.trim().toLowerCase() === username.trim().toLowerCase()
+    );
+    if (!user) return res.status(401).json({ message: "Invalid username/email or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid username or password" });
@@ -504,13 +507,16 @@ exports.handler = async (event, context) => {
         statusCode = 400; responseData = { message: "Username and password are required" };
       } else {
         const db   = readDb();
-        const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+        const user = db.users.find(u => 
+          u.username.trim().toLowerCase() === username.trim().toLowerCase() ||
+          u.email.trim().toLowerCase() === username.trim().toLowerCase()
+        );
         if (!user) {
-          statusCode = 401; responseData = { message: "Invalid username or password" };
+          statusCode = 401; responseData = { message: "Invalid username/email or password" };
         } else {
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
-            statusCode = 401; responseData = { message: "Invalid username or password" };
+            statusCode = 401; responseData = { message: "Invalid username/email or password" };
           } else {
             const token = jwt.sign(
               { id: user.id, username: user.username, email: user.email, role: user.role },
