@@ -6,7 +6,15 @@
 const fs = require('fs');
 const path = require('path');
 
+// Load firebase-admin at startup
 let admin = null;
+try {
+  admin = require('firebase-admin');
+  console.log('firebase-admin loaded successfully');
+} catch (e) {
+  console.log('firebase-admin not found:', e.message);
+}
+
 let db = null;
 
 // EMBEDDED DATA - All users from local db.json
@@ -128,10 +136,16 @@ const getDbPath = () => {
 const LOCAL_DB_PATH = getDbPath();
 
 const initializeFirebase = async () => {
+  console.log('Initializing Firebase...');
+  console.log('__dirname:', __dirname);
+  console.log('CWD:', process.cwd());
   try {
-    admin = require('firebase-admin');
+    if (!admin) {
+      console.log('firebase-admin not available');
+      return false;
+    }
     
-    if (admin.apps.length) {
+    if (admin.apps.length > 0) {
       db = admin.firestore();
       console.log('Firebase already initialized');
       return true;
@@ -143,30 +157,36 @@ const initializeFirebase = async () => {
       path.join(__dirname, 'service-account.json'),
       path.join(__dirname, '../../service-account.json'),
       path.join(process.cwd(), 'service-account.json'),
+      path.join(__dirname, '../service-account.json'),
     ];
     
     let serviceAccountPath = null;
     for (const p of possiblePaths) {
       try {
         if (fs.existsSync(p)) {
+          console.log('Found service account at:', p);
           serviceAccountPath = p;
           break;
         }
-      } catch {}
+      } catch (e) {
+        console.log('Path check error:', e.message);
+      }
     }
     
     if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
       serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
     }
     
-    if (fs.existsSync(serviceAccountPath)) {
+    if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
       try {
         const serviceAccountContent = fs.readFileSync(serviceAccountPath, 'utf8');
         serviceAccount = JSON.parse(serviceAccountContent);
-        console.log('Loaded service account from:', serviceAccountPath);
+        console.log('Loaded service account from file');
       } catch (e) {
         console.log('Failed to load service account file:', e.message);
       }
+    } else if (!serviceAccountPath) {
+      console.log('Service account path not found (all paths checked)');
     }
     
     // Try environment variable as fallback
@@ -179,32 +199,41 @@ const initializeFirebase = async () => {
         } catch (e) {
           console.log('Failed to parse FIREBASE_SERVICE_ACCOUNT:', e.message);
         }
+      } else {
+        console.log('No FIREBASE_SERVICE_ACCOUNT env var');
       }
     }
     
     if (!serviceAccount) {
-      console.log('No service account found - using embedded data only');
+      console.log('No service account - using embedded data only');
       return false;
     }
     
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    
-    db = admin.firestore();
-    console.log('Firebase Firestore connected successfully');
-    return true;
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      db = admin.firestore();
+      console.log('Firebase Firestore connected successfully');
+      return true;
+    } catch (initError) {
+      console.log('Firebase init error:', initError.message);
+      return false;
+    }
   } catch (error) {
     console.log('Firebase init failed:', error.message);
+    console.log('Stack:', error.stack);
     return false;
   }
 };
 
 const initializeFirestore = async () => {
-  console.log('Initializing database...');
+  console.log('=== DB INIT START ===');
   
   // Try to initialize Firebase first
+  console.log('Calling initializeFirebase...');
   const firebaseReady = await initializeFirebase();
+  console.log('initializeFirebase result:', firebaseReady, 'db:', !!db);
   
   if (firebaseReady && db) {
     try {
@@ -226,7 +255,7 @@ const initializeFirestore = async () => {
       // Use Firestore data if it exists, otherwise fallback to embedded
       if (data.users.length > 0 || data.products.length > 0) {
         cache = data;
-        console.log('Using Firestore as primary database');
+        console.log('=== Using Firestore as primary database ===');
         return true;
       } else {
         console.log('Firestore is empty - falling back to embedded data');
@@ -241,6 +270,8 @@ const initializeFirestore = async () => {
   
   // Load embedded data as fallback
   loadFromLocal();
+  console.log('Embedded data loaded, users:', cache.users?.length || 0);
+  console.log('=== DB INIT END ===');
   return true;
 };
 
