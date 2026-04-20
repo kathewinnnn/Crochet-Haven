@@ -1,6 +1,6 @@
-// Firebase configuration
-// Replace these values with your Firebase console credentials
-// Go to: Firebase Console > Project Settings > General > Your apps > Web app
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC-Eu-T8p8aA4PDTTK11DmdyHMSLrjPKfE",
@@ -12,4 +12,8 @@ const firebaseConfig = {
   measurementId: "G-K1G6Z2143J"
 };
 
-export default firebaseConfig;
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+export default app;
