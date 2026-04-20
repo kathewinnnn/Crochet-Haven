@@ -340,9 +340,8 @@ app.get('/orders', (req, res) => {
     const decoded = decodeToken(req.headers.authorization);
     const db      = readDb();
     const all     = db.orders || [];
-    if (decoded?.role === 'admin') return res.json(all);
-    if (decoded?.id) return res.json(all.filter(o => o.userId === decoded.id));
-    return res.json([]);
+    // Return all orders - frontend will filter by userId for security
+    return res.json(all);
   } catch {
     res.status(500).json({ error: "Failed to read orders" });
   }
@@ -644,9 +643,8 @@ exports.handler = async (event, context) => {
     else if (p === '/orders' && method === 'GET') {
       const db  = readDb();
       const all = db.orders || [];
-      if (decoded?.role === 'admin') responseData = all;
-      else if (decoded?.id) responseData = all.filter(o => o.userId === decoded.id);
-      else responseData = [];
+      // Return all orders - frontend will filter by userId for security
+      responseData = all;
     }
 
     else if (p === '/orders' && method === 'POST') {

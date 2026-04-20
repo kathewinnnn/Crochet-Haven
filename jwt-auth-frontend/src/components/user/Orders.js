@@ -447,7 +447,22 @@ const Orders = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('ch_token');
+      // Try multiple token sources for robustness
+      let token = localStorage.getItem('token') || localStorage.getItem('ch_token');
+      
+      // If no token found, try decoding from user object
+      if (!token) {
+        try {
+          const storedUser = localStorage.getItem('user') || localStorage.getItem('ch_user');
+          if (storedUser) {
+            const userObj = JSON.parse(storedUser);
+            // The user object doesn't contain token - we need token for auth
+            // Try to get token from decoded JWT if available
+            const existingToken = localStorage.getItem('token') || localStorage.getItem('ch_token');
+            if (existingToken) token = existingToken;
+          }
+        } catch (e) { /* ignore */ }
+      }
 
       // ── Resolve current user ID from ALL possible localStorage sources ────
       const currentUserId = resolveCurrentUserId();

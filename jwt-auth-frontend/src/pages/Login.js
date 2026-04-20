@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { jwtDecode } from "jwt-decode";
+import { saveAvatar } from './userStorage';
 import './Login.scss';
 
 const loginStyles = `
@@ -298,6 +299,23 @@ const Login = () => {
       // Save profile data separately to ensure persistence
       if (apiUser.id) {
         localStorage.setItem(`ch_profile_${apiUser.id}`, JSON.stringify(apiUser));
+      }
+
+      // Fetch complete profile from API to get avatar and all user info
+      try {
+        const profileRes = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (profileRes.data) {
+          const fullProfile = profileRes.data;
+          localStorage.setItem('ch_user', JSON.stringify(fullProfile));
+          localStorage.setItem(`ch_profile_${apiUser.id}`, JSON.stringify(fullProfile));
+          if (fullProfile.avatar) {
+            saveAvatar(fullProfile.avatar);
+          }
+        }
+      } catch (profileErr) {
+        console.log('Could not fetch profile after login:', profileErr.message);
       }
 
       window.dispatchEvent(new Event('userAuthChanged'));
