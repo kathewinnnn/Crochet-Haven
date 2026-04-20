@@ -273,26 +273,35 @@ const Login = () => {
   const [loggedInUser,      setLoggedInUser]      = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      const res     = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
-      const token   = res.data.token;
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
+      const token = res.data.token;
       const decoded = jwtDecode(token);
 
+      // Use the full user object from API response instead of decoded token
+      const apiUser = res.data.user || {};
+
+      // Save complete user data from API response
       localStorage.setItem('token',    token);
       localStorage.setItem('ch_token', token);
-      const userObj = { ...decoded };
-      localStorage.setItem('user',    JSON.stringify(userObj));
-      localStorage.setItem('ch_user', JSON.stringify(userObj));
-      const resolvedId = decoded.id || decoded.userId || decoded.sub;
-      if (resolvedId) localStorage.setItem('userId', String(resolvedId));
-      if (decoded.username) localStorage.setItem('username', decoded.username);
+      localStorage.setItem('user',     JSON.stringify(apiUser));
+      localStorage.setItem('ch_user',  JSON.stringify(apiUser));
+
+      // Save individual fields for compatibility
+      if (apiUser.id)    localStorage.setItem('userId',    String(apiUser.id));
+      if (apiUser.username) localStorage.setItem('username', apiUser.username);
+
+      // Save profile data separately to ensure persistence
+      if (apiUser.id) {
+        localStorage.setItem(`ch_profile_${apiUser.id}`, JSON.stringify(apiUser));
+      }
 
       window.dispatchEvent(new Event('userAuthChanged'));
-      setLoggedInUser(decoded.username || username);
+      setLoggedInUser(apiUser.username || username);
       setLoginSuccess(true);
 
       setTimeout(() => {

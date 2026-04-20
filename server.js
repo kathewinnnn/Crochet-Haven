@@ -50,72 +50,140 @@ const decodeToken = (authHeader) => {
 
 // ─── Auth routes ──────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { username, email, password, fullName, phone, address, avatar } = req.body;
-    if (!username || !email || !password)
-      return res.status(400).json({ message: "All fields are required" });
+   try {
+     const { username, email, password, fullName, phone, address, avatar } = req.body;
+     if (!username || !email || !password)
+       return res.status(400).json({ message: "All fields are required" });
 
-    const db = readDb();
-    const normUser  = username.trim().toLowerCase();
-    const normEmail = email.trim().toLowerCase();
+     const db = readDb();
+     const normUser  = username.trim().toLowerCase();
+     const normEmail = email.trim().toLowerCase();
 
-    if (db.users.some(u => u.username.trim().toLowerCase() === normUser))
-      return res.status(400).json({ message: "Username is already taken" });
-    if (db.users.some(u => u.email.trim().toLowerCase() === normEmail))
-      return res.status(400).json({ message: "Email is already registered" });
+     if (db.users.some(u => u.username.trim().toLowerCase() === normUser))
+       return res.status(400).json({ message: "Username is already taken" });
+     if (db.users.some(u => u.email.trim().toLowerCase() === normEmail))
+       return res.status(400).json({ message: "Email is already registered" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = {
-      id:        Date.now().toString(),
-      username:  username.trim(),
-      email:     email.trim(),
-      password:  hashedPassword,
-      role:      "user",
-      createdAt: new Date().toISOString(),
-      fullName:  (fullName  || "").trim(),
-      phone:     (phone     || "").trim(),
-      address:   (address   || "").trim(),
-      avatar:    avatar     || "",
-    };
-    db.users.push(newUser);
-    writeDb(db);
-    return res.status(201).json({
-      message:   "Registration successful",
-      id:        newUser.id,
-      username:  newUser.username,
-      email:     newUser.email,
-      fullName:  newUser.fullName,
-      phone:     newUser.phone,
-      address:   newUser.address,
-      role:      newUser.role,
-      createdAt: newUser.createdAt,
-    });
-  } catch {
-    return res.status(500).json({ message: "Server error during registration" });
-  }
+     const hashedPassword = await bcrypt.hash(password, 10);
+     const newUser = {
+       id:        Date.now().toString(),
+       username:  username.trim(),
+       email:     email.trim(),
+       password:  hashedPassword,
+       role:      "user",
+       createdAt: new Date().toISOString(),
+       fullName:  (fullName  || "").trim(),
+       phone:     (phone     || "").trim(),
+       address:   (address   || "").trim(),
+       avatar:    avatar     || null,
+     };
+     db.users.push(newUser);
+     writeDb(db);
+     
+     // Return complete user data (excluding password)
+     const { password: _, ...userWithoutPassword } = newUser;
+     return res.status(201).json({
+       message:   "Registration successful",
+       ...userWithoutPassword
+     });
+   } catch {
+     return res.status(500).json({ message: "Server error during registration" });
+   }
 });
 
 app.post('/api/auth/login', async (req, res) => {
+   try {
+     const { username, password } = req.body;
+     if (!username || !password)
+       return res.status(400).json({ message: "Username and password are required" });
+
+     const db   = readDb();
+     const user = db.users.find(u => 
+       u.username.trim().toLowerCase() === username.trim().toLowerCase() ||
+       u.email.trim().toLowerCase() === username.trim().toLowerCase()
+     );
+     if (!user) return res.status(401).json({ message: "Invalid username/email or password" });
+
+     const isMatch = await bcrypt.compare(password, user.password);
+     if (!isMatch) return res.status(401).json({ message: "Invalid username/email or password" });
+
+     const token = jwt.sign(
+       { id: user.id, username: user.username, email: user.email, role: user.role },
+       JWT_SECRET,
+       { expiresIn: "7d" }
+     );
+     return res.json({ 
+       token,
+       user: {
+         id: user.id,
+         username: user.username,
+         email: user.email,
+         fullName: user.fullName || "",
+         phone: user.phone || "",
+         address: user.address || "",
+         role: user.role,
+         avatar: user.avatar || null,
+         createdAt: user.createdAt,
+       }
+     });
+   } catch {
+     return res.status(500).json({ message: "Server error during login" });
+   }
+});
+
+// ─── GET profile ────────────────────────────────────────────────────────────────
+app.get('/api/auth/profile', (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password)
-      return res.status(400).json({ message: "Username and password are required" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const token = authHeader.slice(7);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const db = readDb();
+    const user = db.users.find(u => u.id === decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const { password, ...profile } = user;
+    res.json(profile);
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') return res.status(401).json({ message: "Invalid token" });
+    if (err.name === 'TokenExpiredError')   return res.status(401).json({ message: "Token expired" });
+    console.error('Profile error:', err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-    const db   = readDb();
-    const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-    if (!user) return res.status(401).json({ message: "Invalid username or password" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid username or password" });
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-    return res.json({ token });
-  } catch {
-    return res.status(500).json({ message: "Server error during login" });
+// ─── UPDATE profile ─────────────────────────────────────────────────────────────
+app.put('/api/auth/profile', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const token = authHeader.slice(7);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const db = readDb();
+    const userIndex = db.users.findIndex(u => u.id === decoded.id);
+    if (userIndex === -1) return res.status(404).json({ message: "User not found" });
+    const { fullName, phone, address, storeName, location, bio, avatar } = req.body;
+    db.users[userIndex] = {
+      ...db.users[userIndex],
+      fullName:  fullName  !== undefined ? fullName  : db.users[userIndex].fullName  || "",
+      phone:     phone     !== undefined ? phone     : db.users[userIndex].phone     || "",
+      address:   address   !== undefined ? address   : db.users[userIndex].address   || "",
+      storeName: storeName !== undefined ? storeName : db.users[userIndex].storeName || "",
+      location:  location  !== undefined ? location  : db.users[userIndex].location  || "",
+      bio:       bio       !== undefined ? bio       : db.users[userIndex].bio       || "",
+      avatar:    avatar    !== undefined ? avatar    : db.users[userIndex].avatar    || null,
+    };
+    writeDb(db);
+    const { password: _, ...profile } = db.users[userIndex];
+    res.json(profile);
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') return res.status(401).json({ message: "Invalid token" });
+    if (err.name === 'TokenExpiredError')   return res.status(401).json({ message: "Token expired" });
+    console.error('Update profile error:', err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -377,73 +445,136 @@ exports.handler = async (event, context) => {
           statusCode = 400; responseData = { message: "Username is already taken" };
         } else if (db.users.some(u => u.email.trim().toLowerCase() === normEmail)) {
           statusCode = 400; responseData = { message: "Email is already registered" };
-        } else {
-          const hashed  = await bcrypt.hash(password, 10);
-          const newUser = {
-            id:        Date.now().toString(),
-            username:  username.trim(),
-            email:     email.trim(),
-            password:  hashed,
-            role:      "user",
-            createdAt: new Date().toISOString(),
-            fullName:  (fullName  || "").trim(),
-            phone:     (phone     || "").trim(),
-            address:   (address   || "").trim(),
-            avatar:    avatar     || "",
-          };
-          db.users.push(newUser); writeDb(db);
-          statusCode = 201;
-          responseData = {
-            message:   "Registration successful",
-            id:        newUser.id,
-            username:  newUser.username,
-            email:     newUser.email,
-            fullName:  newUser.fullName,
-            phone:     newUser.phone,
-            address:   newUser.address,
-            role:      newUser.role,
-            createdAt: newUser.createdAt,
-          };
-        }
-      }
-    }
+         } else {
+           const hashed  = await bcrypt.hash(password, 10);
+           const newUser = {
+             id:        Date.now().toString(),
+             username:  username.trim(),
+             email:     email.trim(),
+             password:  hashed,
+             role:      "user",
+             createdAt: new Date().toISOString(),
+             fullName:  (fullName  || "").trim(),
+             phone:     (phone     || "").trim(),
+             address:   (address   || "").trim(),
+             avatar:    avatar     || null,
+           };
+           db.users.push(newUser); writeDb(db);
+           statusCode = 201;
+           const { password: _, ...userWithoutPassword } = newUser;
+           responseData = {
+             message:   "Registration successful",
+             ...userWithoutPassword
+           };
+         }
+       }
+     }
 
-    else if (p === '/api/auth/login' && method === 'POST') {
-      const { username, password } = body;
-      if (!username || !password) {
-        statusCode = 400; responseData = { message: "Username and password are required" };
-      } else {
-        const db   = readDb();
-        const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-        if (!user) {
-          statusCode = 401; responseData = { message: "Invalid username or password" };
-        } else {
-          const isMatch = await bcrypt.compare(password, user.password);
-          if (!isMatch) {
-            statusCode = 401; responseData = { message: "Invalid username or password" };
-          } else {
-            const token = jwt.sign(
-              { id: user.id, username: user.username, email: user.email, role: user.role },
-              JWT_SECRET, { expiresIn: "7d" }
-            );
-            responseData = { token };
-          }
-        }
-      }
-    }
+     else if (p === '/api/auth/login' && method === 'POST') {
+       const { username, password } = body;
+       if (!username || !password) {
+         statusCode = 400; responseData = { message: "Username and password are required" };
+       } else {
+         const db   = readDb();
+         const user = db.users.find(u => 
+           u.username.trim().toLowerCase() === username.trim().toLowerCase() ||
+           u.email.trim().toLowerCase() === username.trim().toLowerCase()
+         );
+         if (!user) {
+           statusCode = 401; responseData = { message: "Invalid username/email or password" };
+         } else {
+           const isMatch = await bcrypt.compare(password, user.password);
+           if (!isMatch) {
+             statusCode = 401; responseData = { message: "Invalid username/email or password" };
+           } else {
+             const token = jwt.sign(
+               { id: user.id, username: user.username, email: user.email, role: user.role },
+               JWT_SECRET, { expiresIn: "7d" }
+             );
+             responseData = {
+               token,
+               user: {
+                 id:        user.id,
+                 username:  user.username,
+                 email:     user.email,
+                 fullName:  user.fullName  || "",
+                 phone:     user.phone     || "",
+                 address:   user.address   || "",
+                 role:      user.role,
+                 avatar:    user.avatar    || null,
+                 createdAt: user.createdAt,
+               }
+             };
+           }
+         }
+       }
+     }
 
-    else if (p.startsWith('/api/auth/check-username') && method === 'GET') {
-      const username = (event.queryStringParameters || {}).username;
-      if (!username) { statusCode = 400; responseData = { message: "Username required" }; }
-      else {
-        const db    = readDb();
-        const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-        responseData = { available: !taken };
-      }
-    }
+     else if (p.startsWith('/api/auth/check-username') && method === 'GET') {
+       const username = (event.queryStringParameters || {}).username;
+       if (!username) { statusCode = 400; responseData = { message: "Username required" }; }
+       else {
+         const db    = readDb();
+         const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+         responseData = { available: !taken };
+       }
+     }
 
-    // ── DELETE ACCOUNT ────────────────────────────────────────────────────────
-    else if (p === '/api/auth/delete-account' && method === 'POST') {
+     // ── GET PROFILE ─────────────────────────────────────────────────────────────
+     else if (p === '/api/auth/profile' && method === 'GET') {
+       const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
+       if (!authHeader.startsWith('Bearer ')) {
+         statusCode = 401; responseData = { message: "Unauthorized" };
+       } else {
+         try {
+           const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+           const db = readDb();
+           const user = db.users.find(u => u.id === decoded.id);
+           if (!user) { statusCode = 404; responseData = { message: "User not found" }; }
+           else { const { password, ...profile } = user; responseData = profile; }
+         } catch (err) {
+           statusCode = (err.name === 'TokenExpiredError') ? 401 : 401;
+           responseData = { message: err.name === 'TokenExpiredError' ? "Token expired" : "Invalid token" };
+         }
+       }
+     }
+
+     // ── UPDATE PROFILE ───────────────────────────────────────────────────────────
+     else if (p === '/api/auth/profile' && method === 'PUT') {
+       const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
+       if (!authHeader.startsWith('Bearer ')) {
+         statusCode = 401; responseData = { message: "Unauthorized" };
+       } else {
+         try {
+           const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+           const db = readDb();
+           const userIndex = db.users.findIndex(u => u.id === decoded.id);
+           if (userIndex === -1) { statusCode = 404; responseData = { message: "User not found" }; }
+           else {
+             const { fullName, phone, address, storeName, location, bio, avatar } = body;
+             db.users[userIndex] = {
+               ...db.users[userIndex],
+               fullName:  fullName  !== undefined ? fullName  : db.users[userIndex].fullName  || "",
+               phone:     phone     !== undefined ? phone     : db.users[userIndex].phone     || "",
+               address:   address   !== undefined ? address   : db.users[userIndex].address   || "",
+               storeName: storeName !== undefined ? storeName : db.users[userIndex].storeName || "",
+               location:  location  !== undefined ? location  : db.users[userIndex].location  || "",
+               bio:       bio       !== undefined ? bio       : db.users[userIndex].bio       || "",
+               avatar:    avatar    !== undefined ? avatar    : db.users[userIndex].avatar    || null,
+             };
+             writeDb(db);
+             const { password, ...profile } = db.users[userIndex];
+             responseData = profile;
+           }
+         } catch (err) {
+           statusCode = (err.name === 'TokenExpiredError') ? 401 : 401;
+           responseData = { message: err.name === 'TokenExpiredError' ? "Token expired" : "Invalid token" };
+         }
+       }
+     }
+
+     // ── DELETE ACCOUNT ────────────────────────────────────────────────────────
+     else if (p === '/api/auth/delete-account' && method === 'POST') {
       const { username, password, email } = body;
       if (!password) {
         statusCode = 400; responseData = { message: "Password is required" };
