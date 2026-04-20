@@ -270,7 +270,7 @@ export const isOnline = () => {
   return navigator.onLine;
 };
 
-export default {
+const indexedDBUtils = {
   cacheProducts,
   getCachedProducts,
   getCacheTimestamp,
@@ -285,3 +285,5 @@ export default {
   isOnline,
   STORES
 };
+
+export default indexedDBUtils;

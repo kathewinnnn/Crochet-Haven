@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProductsWithCache, API_BASE_URL } from '../../apiConfig';
-
-const API_URL = `${API_BASE_URL}/products`;
+import { getProductsWithCache } from '../../apiConfig';
 
 const catStyles = `
   :root {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getProductsWithCache, getOrdersWithCache, API_BASE_URL } from '../../apiConfig';
+import { getProductsWithCache, getOrdersWithCache } from '../../apiConfig';
 
 const dashStyles = `
   :root {

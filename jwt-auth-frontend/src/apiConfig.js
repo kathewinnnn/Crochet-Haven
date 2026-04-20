@@ -14,33 +14,7 @@ const getApiUrl = () => {
   return '';
 };
 
-const buildEndpoints = (baseUrl) => ({
-  AUTH: `${baseUrl}/api/auth`,
-  PRODUCTS: `${baseUrl}/products`,
-  ORDERS: `${baseUrl}/orders`,
-});
-
 export const API_BASE_URL = getApiUrl();
-export const API_ENDPOINTS = buildEndpoints(API_BASE_URL);
-
-const fetchWithOfflineSupport = async (url, options = {}) => {
-  const online = isOnline();
-  
-  try {
-    const response = await axios({
-      url,
-      ...options,
-      timeout: online ? 10000 : 3000
-    });
-    return response;
-  } catch (error) {
-    if (!online || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
-      console.log('Offline - using cached data');
-      throw new Error('OFFLINE');
-    }
-    throw error;
-  }
-};
 
 export const getProductsWithCache = async () => {
   const online = isOnline();
@@ -99,7 +73,5 @@ export const saveUserWithCache = async (user) => {
 export const getUserFromCache = async () => {
   return await getCachedUser();
 };
-
-export { isOnline };
 
 export default API_BASE_URL;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from '../../context/CartContext';
-import { getProductsWithCache, isOnline } from '../../apiConfig';
+import { getProductsWithCache } from '../../apiConfig';
 
 const sharedStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
