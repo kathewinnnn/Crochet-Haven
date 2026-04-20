@@ -1,28 +1,95 @@
 /**
- * Firestore Database Manager (Synchronous API)
- * Uses Firebase Firestore as primary database with local cache
- * Now with embedded data for Netlify deployment
+ * Firestore Database Manager
+ * Uses Firebase Firestore as primary database with local fallback
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Firebase Admin SDK
 let admin = null;
 let db = null;
-let firestoreInitialized = false;
 
-// Embedded initial data for Netlify - simple test data
+// EMBEDDED DATA - All users from local db.json
+// Password reset to password123 for all users
 const EMBEDDED_DATA = {
   "users": [
     {
       "id": "1",
+      "username": "admin",
+      "email": "admin@admin.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "admin",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "name": "Admin",
+      "phone": "0912-345-6789",
+      "bio": "Store owner",
+      "storeName": "Crochet Haven",
+      "location": "Manila"
+    },
+    {
+      "id": "1774347276506",
       "username": "testuser",
       "email": "test@test.com",
-      "password": "$2b$10$vGMsWNi8xAIN.NhY.wiIceujvYh0.o2e7/WF.6est0paGNktUB93q",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
       "role": "user",
-      "createdAt": "2026-01-01T00:00:00.000Z",
-      "fullName": "Test User"
+      "createdAt": "2026-03-24T10:14:36.506Z"
+    },
+    {
+      "id": "1774347329707",
+      "username": "seller",
+      "email": "seller@seller.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "user",
+      "createdAt": "2026-03-24T10:15:29.707Z"
+    },
+    {
+      "id": "1774349269283",
+      "username": "newuser",
+      "email": "newuser@test.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "user",
+      "createdAt": "2026-03-24T10:47:49.283Z"
+    },
+    {
+      "id": "1774487905169",
+      "username": "testlogin",
+      "email": "testlogin@test.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "user",
+      "createdAt": "2026-03-26T01:18:25.169Z"
+    },
+    {
+      "id": "1774578231396",
+      "username": "mingyu",
+      "email": "mingyu@gmail.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "user",
+      "createdAt": "2026-03-27T02:23:51.396Z",
+      "fullName": "Mingyu Kim",
+      "phone": "09123456789",
+      "address": "South Korea"
+    },
+    {
+      "id": "1774693960548",
+      "username": "katherine",
+      "email": "itsmemae45@gmail.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "user",
+      "createdAt": "2026-03-28T10:32:40.548Z",
+      "fullName": "Katherine Mae V. Guzman",
+      "phone": "09629556678",
+      "address": "Nanangduan, Pilar, Abra"
+    },
+    {
+      "id": "1774743934759",
+      "username": "wonwoo",
+      "email": "wonwoo@gmail.com",
+      "password": "$2b$10$f46hq6M2kvF6Q0wxpFv3/uUgBF5phMj09ygg4Apn55518g/Tb6gVK",
+      "role": "user",
+      "createdAt": "2026-03-29T00:25:34.759Z",
+      "fullName": "Wonwoo Jeon",
+      "phone": "09112233445",
+      "address": "South Korea"
     }
   ],
   "products": [
@@ -36,7 +103,6 @@ const EMBEDDED_DATA = {
   "orders": []
 };
 
-// Local cache
 let cache = { users: [], products: [], orders: [] };
 
 const getDbPath = () => {
@@ -46,7 +112,6 @@ const getDbPath = () => {
     path.join(__dirname, '../../build/db.json'),
     path.join(process.cwd(), 'public/db.json'),
     path.join(process.cwd(), 'build/db.json'),
-    path.join(process.cwd(), 'db.json'),
   ];
   
   for (const p of possiblePaths) {
@@ -57,8 +122,6 @@ const getDbPath = () => {
       }
     } catch {}
   }
-  
-  console.log('Warning: db.json not found, using embedded data');
   return null;
 };
 
@@ -69,7 +132,6 @@ const initializeFirebase = async () => {
     admin = require('firebase-admin');
     
     if (admin.apps.length) {
-      console.log('Firebase already initialized');
       db = admin.firestore();
       return true;
     }
@@ -77,7 +139,7 @@ const initializeFirebase = async () => {
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
     
     if (!serviceAccountJson) {
-      console.log('No FIREBASE_SERVICE_ACCOUNT env var - using local db.json only');
+      console.log('No FIREBASE_SERVICE_ACCOUNT - using embedded data only');
       return false;
     }
     
@@ -87,26 +149,38 @@ const initializeFirebase = async () => {
     });
     
     db = admin.firestore();
-    console.log('Firebase Firestore connected successfully');
+    console.log('Firebase connected');
     return true;
   } catch (error) {
-    console.warn('Firebase initialization failed:', error.message);
+    console.log('Firebase init failed:', error.message);
     return false;
   }
 };
 
 const initializeFirestore = async () => {
-  console.log('Loading data from local db.json at:', LOCAL_DB_PATH);
+  console.log('Initializing database...');
   loadFromLocal();
   
   const firebaseReady = await initializeFirebase();
   
   if (firebaseReady && db) {
-    firestoreInitialized = true;
-    console.log('Attempting to load from Firestore...');
-    await loadFromFirestore();
-  } else {
-    console.log('Using local db.json only');
+    try {
+      const data = { users: [], products: [], orders: [] };
+      
+      const usersSnap = await db.collection('users').get();
+      usersSnap.docs.forEach(d => data.users.push(d.data()));
+      
+      const productsSnap = await db.collection('products').get();
+      productsSnap.docs.forEach(d => data.products.push(d.data()));
+      
+      const ordersSnap = await db.collection('orders').get();
+      ordersSnap.docs.forEach(d => data.orders.push(d.data()));
+      
+      cache = data;
+      console.log('Loaded from Firestore: ' + data.users.length + ' users');
+    } catch (e) {
+      console.log('Using embedded data');
+    }
   }
   
   return true;
@@ -117,62 +191,28 @@ const loadFromLocal = () => {
     if (LOCAL_DB_PATH && fs.existsSync(LOCAL_DB_PATH)) {
       const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
       cache = JSON.parse(raw);
-      console.log('Loaded data from local file. Users:', cache.users?.length || 0);
+      console.log('Loaded from local: ' + (cache.users?.length || 0) + ' users');
     } else {
       console.log('Using embedded data');
       cache = { ...EMBEDDED_DATA };
     }
   } catch (e) {
-    console.warn('Failed to load local file:', e.message, '- using embedded data');
+    console.log('Using embedded data');
     cache = { ...EMBEDDED_DATA };
   }
   return true;
 };
 
-const loadFromFirestore = async () => {
-  if (!db) return false;
-  
-  try {
-    const data = { users: [], products: [], orders: [] };
-    
-    const usersSnap = await db.collection('users').get();
-    usersSnap.docs.forEach(d => data.users.push(d.data()));
-    
-    const productsSnap = await db.collection('products').get();
-    productsSnap.docs.forEach(d => data.products.push(d.data()));
-    
-    const ordersSnap = await db.collection('orders').get();
-    ordersSnap.docs.forEach(d => data.orders.push(d.data()));
-    
-    cache = data;
-    console.log(`Loaded from Firestore: ${data.users.length} users, ${data.products.length} products`);
-    return true;
-  } catch (error) {
-    console.warn('Failed to load from Firestore:', error.message);
-    return loadFromLocal();
-  }
-};
-
 const saveToAll = (data) => {
   cache = data;
   
-  try {
-    if (LOCAL_DB_PATH && fs.existsSync(path.dirname(LOCAL_DB_PATH))) {
-      fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(data, null, 2));
-    }
-  } catch (e) {
-    console.warn('Failed to save local file:', e.message);
-  }
-  
   if (db) {
-    syncToFirestore(data).catch(err => 
-      console.warn('Firestore sync failed:', err.message)
-    );
+    syncToFirestore(data).catch(() => {});
   }
 };
 
 const syncToFirestore = async (data) => {
-  if (!db) return false;
+  if (!db) return;
   
   try {
     const batch = db.batch();
@@ -181,29 +221,20 @@ const syncToFirestore = async (data) => {
     const usersSnap = await usersRef.get();
     usersSnap.docs.forEach(d => batch.delete(d.ref));
     data.users.forEach(user => {
-      usersRef.doc(user.id || Date.now().toString()).set(user);
+      usersRef.doc(user.id).set(user);
     });
     
     const productsRef = db.collection('products');
     const productsSnap = await productsRef.get();
     productsSnap.docs.forEach(d => batch.delete(d.ref));
     data.products.forEach(product => {
-      productsRef.doc(product.id || Date.now().toString()).set(product);
-    });
-    
-    const ordersRef = db.collection('orders');
-    const ordersSnap = await ordersRef.get();
-    ordersSnap.docs.forEach(d => batch.delete(d.ref));
-    data.orders.forEach(order => {
-      ordersRef.doc(order.id || Date.now().toString()).set(order);
+      productsRef.doc(product.id).set(product);
     });
     
     await batch.commit();
-    console.log('Data synced to Firestore');
-    return true;
-  } catch (error) {
-    console.error('Firestore sync error:', error.message);
-    return false;
+    console.log('Synced to Firestore');
+  } catch (e) {
+    console.log('Firestore sync failed');
   }
 };
 
