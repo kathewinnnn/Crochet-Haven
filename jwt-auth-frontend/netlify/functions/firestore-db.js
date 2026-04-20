@@ -13,22 +13,185 @@ let db = null;
 let firestoreInitialized = false;
 
 // Embedded initial data for Netlify - this is used when db.json file is not available
+// Includes all existing users, products, and orders from the local db.json
 const EMBEDDED_DATA = {
   "users": [
     {
       "id": "1",
       "username": "admin",
       "email": "admin@admin.com",
-      "password": "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
+      "password": "$2b$10$JtwZ8qpYXLcx9zxDrmJdbufrB6pJ0tFlftIJiOW4wYjhtfO1K1Cz6",
       "role": "admin",
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "fullName": "Admin",
+      "name": "Admin",
       "phone": "0912-345-6789",
-      "address": ""
+      "bio": "Store owner",
+      "storeName": "Crochet Haven",
+      "location": "Manila",
+      "avatar": null
+    },
+    {
+      "id": "1774347276506",
+      "username": "testuser",
+      "email": "test@test.com",
+      "password": "$2b$10$TcDE5YN9JOs3ELzMwXGHq.cMJPaeaebMzMTWu6t7NmmcLIw7FoLXq",
+      "role": "user",
+      "createdAt": "2026-03-24T10:14:36.506Z"
+    },
+    {
+      "id": "1774347329707",
+      "username": "seller",
+      "email": "seller@seller.com",
+      "password": "$2b$10$JMJtGfqNK4df4fMEz9XEiORW0CTt7kpRPLxSi23JcDOER.9PKuGYO",
+      "role": "user",
+      "createdAt": "2026-03-24T10:15:29.707Z"
+    },
+    {
+      "id": "1774349269283",
+      "username": "newuser",
+      "email": "newuser@test.com",
+      "password": "$2b$10$X6.xq7tyfr8sjfssWtmsGOUVds.qnfv31EKWnGa0QHuwGF3IienQO",
+      "role": "user",
+      "createdAt": "2026-03-24T10:47:49.283Z"
+    },
+    {
+      "id": "1774487905169",
+      "username": "testlogin",
+      "email": "testlogin@test.com",
+      "password": "$2b$10$KyWlUTz56kzbVTeW8GKAMe2i61B5H9JHJ2Uu4DzwQtxVWrdM1Rrbq",
+      "role": "user",
+      "createdAt": "2026-03-26T01:18:25.169Z"
+    },
+    {
+      "id": "1774578231396",
+      "username": "mingyu",
+      "email": "mingyu@gmail.com",
+      "password": "$2b$10$j4z5LHxevZgxjnkshzb1MexCvzbEYoGVOTCKRC4DytyvAMywKInLy",
+      "role": "user",
+      "createdAt": "2026-03-27T02:23:51.396Z",
+      "fullName": "Mingyu Kim",
+      "phone": "09123456789",
+      "address": "South Korea"
+    },
+    {
+      "id": "1774693960548",
+      "username": "katherine",
+      "email": "itsmemae45@gmail.com",
+      "password": "$2b$10$qeEEpD2FVkPhxCUfhNJIMe0kuaTfKU83lgi37KOknKD0WZE7H6d/K",
+      "role": "user",
+      "createdAt": "2026-03-28T10:32:40.548Z",
+      "fullName": "Katherine Mae V. Guzman",
+      "phone": "09629556678",
+      "address": "Nanangduan, Pilar, Abra"
+    },
+    {
+      "id": "1774743934759",
+      "username": "wonwoo",
+      "email": "wonwoo@gmail.com",
+      "password": "$2b$10$I03tPQKInzK.7MkF3UBggegLSqy79dm1Gz1GQQnej8690eGZe/T4e",
+      "role": "user",
+      "createdAt": "2026-03-29T00:25:34.759Z",
+      "fullName": "Wonwoo Jeon",
+      "phone": "09112233445",
+      "address": "Urijib, South Korea"
     }
   ],
-  "products": [],
-  "orders": []
+  "products": [
+    {
+      "id": "1",
+      "name": "Crochet Keychain",
+      "description": "Handmade crochet keychain with cute design",
+      "price": "50",
+      "category": "Accessories & Bouquet",
+      "images": ["/img/keychain/1.jpg", "/img/keychain/2.jpg", "/img/keychain/3.jpg", "/img/keychain/4.jpg", "/img/keychain/5.jpg", "/img/keychain/6.jpg", "/img/keychain/7.jpg", "/img/keychain/8.jpg", "/img/keychain/9.jpg", "/img/keychain/10.jpg", "/img/keychain/11.jpg", "/img/keychain/12.jpg"]
+    },
+    {
+      "id": "2",
+      "name": "Crochet Tote Bags",
+      "description": "Stylish crochet tote bag for everyday use",
+      "price": "200",
+      "category": "Bags",
+      "images": ["/img/bag/1.jpg", "/img/bag/2.jpg", "/img/bag/3.jpg", "/img/bag/4.jpg", "/img/bag/5.jpg", "/img/bag/6.jpg"]
+    },
+    {
+      "id": "3",
+      "name": "Crochet Scarf",
+      "description": "Warm and cozy crochet scarf",
+      "price": "150",
+      "category": "Clothing",
+      "images": ["/img/scarf/1.jpg", "/img/scarf/2.jpg", "/img/scarf/3.jpg", "/img/scarf/4.jpg", "/img/scarf/5.jpg"]
+    },
+    {
+      "id": "4",
+      "name": "Crochet Coasters",
+      "description": "Set of 4 decorative crochet coasters",
+      "price": "200",
+      "category": "Home Decor",
+      "images": ["/img/coaster/1.jpg", "/img/coaster/2.jpg", "/img/coaster/3.jpg", "/img/coaster/4.jpg", "/img/coaster/5.jpg", "/img/coaster/6.jpg"]
+    },
+    {
+      "id": "5",
+      "name": "Crochet Headband & Bandana",
+      "description": "Lightweight crochet headbands designed for comfort and a cute, casual look",
+      "price": "50",
+      "category": "Accessories & Bouquet",
+      "images": ["/img/headband/1.jpg", "/img/headband/2.jpg", "/img/headband/3.jpg", "/img/headband/4.jpg", "/img/headband/5.jpg", "/img/headband/6.jpg", "/img/headband/7.jpg", "/img/headband/8.jpg", "/img/headband/9.jpg"]
+    },
+    {
+      "id": "6",
+      "name": "Crochet Bouquet",
+      "description": "A handmade crochet bouquet that lasts forever—beautiful, meaningful, and perfect for any occasion",
+      "price": "200",
+      "category": "Accessories & Bouquet",
+      "images": ["/img/flower/1.jpg", "/img/flower/2.jpg", "/img/flower/3.jpg", "/img/flower/4.jpg", "/img/flower/5.jpg", "/img/flower/6.jpg", "/img/flower/7.jpg", "/img/flower/8.jpg", "/img/flower/9.jpg", "/img/flower/10.jpg", "/img/flower/11.jpg"]
+    }
+  ],
+  "orders": [
+    {
+      "id": "1774579927803",
+      "userId": "1774578231396",
+      "username": "mingyu",
+      "customer": { "fullName": "Mingyu Kim", "email": "mingyu@gmail.com", "phone": "09123456789", "address": "Urijib, South Korea", "city": "Sout Korea", "zipCode": "1234", "paymentMethod": "cod", "gcashNumber": "", "gcashAccountName": "", "gcashPassword": "", "paymayaNumber": "", "paymayaAccountName": "", "paymayaPassword": "", "cardNumber": "", "cardExpiry": "", "cardCvv": "", "cardName": "", "orderNote": "" },
+      "paymentMethod": "cod",
+      "items": [{ "id": "4", "name": "Crochet Coasters", "price": 200, "quantity": 1, "selectedImage": "/img/coaster/5.jpg" }],
+      "total": 200,
+      "createdAt": "2026-03-27T02:52:07.803Z",
+      "status": "Cancelled"
+    },
+    {
+      "id": "1774695388007",
+      "userId": "1774693960548",
+      "username": "katherine",
+      "customer": { "fullName": "Katherine Mae V. Guzman", "email": "itsmemae45@gmail.com", "phone": "09629556678", "address": "Nanangduan, Pilar, Abra", "city": "Abra", "zipCode": "2812", "paymentMethod": "cod", "gcashNumber": "", "gcashAccountName": "", "gcashPassword": "", "paymayaNumber": "", "paymayaAccountName": "", "paymayaPassword": "", "cardNumber": "", "cardExpiry": "", "cardCvv": "", "cardName": "", "orderNote": "" },
+      "paymentMethod": "cod",
+      "items": [{ "id": "5", "name": "Crochet Headband & Bandana", "price": 50, "quantity": 1, "selectedImage": "/img/headband/1.jpg" }],
+      "total": 50,
+      "createdAt": "2026-03-28T10:56:28.007Z",
+      "status": "Delivered"
+    },
+    {
+      "id": "1774695452496",
+      "userId": "1774578231396",
+      "username": "mingyu",
+      "customer": { "fullName": "Mingyu Kim", "email": "mingyu@gmail.com", "phone": "09123456789", "address": "Urijib, South Korea", "city": "South Korea", "zipCode": "1234", "paymentMethod": "gcash", "gcashNumber": "09629556678", "gcashAccountName": "Mingyu Kim", "gcashPassword": "123456", "paymayaNumber": "", "paymayaAccountName": "", "paymayaPassword": "", "cardNumber": "", "cardExpiry": "", "cardCvv": "", "cardName": "", "orderNote": "" },
+      "paymentMethod": "gcash",
+      "items": [{ "id": "6", "name": "Crochet Bouquet", "price": 200, "quantity": 1, "selectedImage": "/img/flower/1.jpg" }],
+      "total": 200,
+      "createdAt": "2026-03-28T10:57:32.496Z",
+      "status": "Shipped"
+    },
+    {
+      "id": "1774744076697",
+      "userId": "1774743934759",
+      "username": "wonwoo",
+      "customer": { "fullName": "Wonwoo Jeon", "email": "wonwoo@gmail.com", "phone": "09112233445", "address": "Urijib, South Korea", "city": "South Korea", "zipCode": "1234", "paymentMethod": "cod", "gcashNumber": "", "gcashAccountName": "", "gcashPassword": "", "paymayaNumber": "", "paymayaAccountName": "", "paymayaPassword": "", "cardNumber": "", "cardExpiry": "", "cardCvv": "", "cardName": "", "orderNote": "" },
+      "paymentMethod": "cod",
+      "items": [{ "id": "1", "name": "Crochet Keychain", "price": 50, "quantity": 1, "selectedImage": "/img/keychain/4.jpg" }],
+      "total": 50,
+      "createdAt": "2026-03-29T00:27:56.697Z",
+      "status": "Processing"
+    }
+  ]
 };
 
 // Local cache - loaded at startup, updated on every write
