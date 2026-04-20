@@ -1,17 +1,8 @@
-const express = require('express');
-const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
-
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySecretKey";
 
-// EMBEDDED DATA - works without Firebase
 const EMBEDDED_DATA = {
   users: [
     { id: "1", username: "admin", email: "admin@admin.com", password: "$2b$10$8fF0dor3JqNqLGiLN6ks6OgFFBjR5Qu0/RtgGbJ2lt1Hf41yw3Ooi", role: "admin", createdAt: "2024-01-01T00:00:00.000Z" },
@@ -30,53 +21,6 @@ let cache = { ...EMBEDDED_DATA };
 const readDb = () => cache;
 const writeDb = (data) => { cache = data; };
 
-console.log('Server initialized with embedded data');
-
-// For Netlify functions, find db.json from multiple locations
-// Priority: parent directory (root), then same directory, then public
-const getDbPath = () => {
-  const possiblePaths = [
-    path.join(__dirname, '../../db.json'),                 // from root (PRIORITY for Render/Netlify hybrid)
-    path.join(__dirname, '../../public/db.json'),           // public folder
-    path.join(__dirname, '../../build/db.json'),         // build folder
-    path.join(process.cwd(), 'db.json'),               // project root
-    path.join(__dirname, 'db.json'),                   // netlify/functions folder
-    path.join(__dirname, '../db.json'),                // relative to functions
-  ];
-  
-  for (const p of possiblePaths) {
-    try {
-      if (fs.existsSync(p)) {
-        console.log('Found db.json at:', p);
-        return p;
-      }
-    } catch {}
-  }
-  
-  console.log('Warning: db.json not found in any location');
-  return path.join(process.cwd(), 'db.json'); // fallback
-};
-
-const dbPath = getDbPath();
-
-// Firebase backup - optional, requires service account
-// Note: Netlify functions have limited filesystem access, Firebase backup works best locally
-// Supports two methods:
-// 1. File path: FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json
-// 2. Inline JSON: FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
-
-let db = null;
-
-// Firebase initialization
-if (firebaseBackup && firebaseBackup.initializeFirebase()) {
-  console.log('Firebase backup initialized');
-} else {
-  console.log('Firebase backup: service account not configured');
-}
-
-const PORT = process.env.PORT || 5000;
-
-// ─── JWT helper — returns decoded payload or null ─────────────────────────────
 const decodeToken = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   try {
@@ -86,265 +30,9 @@ const decodeToken = (authHeader) => {
   }
 };
 
-// ─── Auth routes ──────────────────────────────────────────────────────────────
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { username, email, password, fullName, phone, address, avatar } = req.body;
-    if (!username || !email || !password)
-      return res.status(400).json({ message: "All fields are required" });
-
-    const db = readDb();
-    const normUser  = username.trim().toLowerCase();
-    const normEmail = email.trim().toLowerCase();
-
-    if (db.users.some(u => u.username.trim().toLowerCase() === normUser))
-      return res.status(400).json({ message: "Username is already taken" });
-    if (db.users.some(u => u.email.trim().toLowerCase() === normEmail))
-      return res.status(400).json({ message: "Email is already registered" });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = {
-      id:        Date.now().toString(),
-      username:  username.trim(),
-      email:     email.trim(),
-      password:  hashedPassword,
-      role:      "user",
-      createdAt: new Date().toISOString(),
-      fullName:  (fullName  || "").trim(),
-      phone:     (phone     || "").trim(),
-      address:   (address   || "").trim(),
-      avatar:    avatar     || "",
-    };
-    db.users.push(newUser);
-    writeDb(db);
-    return res.status(201).json({
-      message:   "Registration successful",
-      id:        newUser.id,
-      username:  newUser.username,
-      email:     newUser.email,
-      fullName:  newUser.fullName,
-      phone:     newUser.phone,
-      address:   newUser.address,
-      role:      newUser.role,
-      createdAt: newUser.createdAt,
-    });
-  } catch {
-    return res.status(500).json({ message: "Server error during registration" });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password)
-      return res.status(400).json({ message: "Username/email and password are required" });
-
-    const db   = readDb();
-    const user = db.users.find(u => 
-      u.username.trim().toLowerCase() === username.trim().toLowerCase() ||
-      u.email.trim().toLowerCase() === username.trim().toLowerCase()
-    );
-    if (!user) return res.status(401).json({ message: "Invalid username/email or password" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid username/email or password" });
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-    return res.json({ 
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName || "",
-        phone: user.phone || "",
-        address: user.address || "",
-        role: user.role,
-        avatar: user.avatar || null,
-        createdAt: user.createdAt,
-      }
-    });
-  } catch {
-    return res.status(500).json({ message: "Server error during login" });
-  }
-});
-
-app.get('/api/auth/check-username', (req, res) => {
-  try {
-    const { username } = req.query;
-    if (!username) return res.status(400).json({ message: "Username is required" });
-    const db = readDb();
-    const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-    return res.json({ available: !taken });
-  } catch {
-    return res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ─── DELETE account ───────────────────────────────────────────────────────────
-app.post('/api/auth/delete-account', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password)
-      return res.status(400).json({ message: "Username and password are required" });
-
-    const db   = readDb();
-    const idx  = db.users.findIndex(
-      u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
-    );
-    if (idx === -1)
-      return res.status(404).json({ message: "Account not found" });
-
-    const user    = db.users[idx];
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Incorrect password. Please try again." });
-
-    db.users  = db.users.filter((_, i) => i !== idx);
-    db.orders = db.orders.filter(o => o.userId !== user.id);
-    writeDb(db);
-
-    return res.json({ message: "Account deleted successfully" });
-  } catch {
-    return res.status(500).json({ message: "Server error during account deletion" });
-  }
-});
-
-// ─── Products routes ──────────────────────────────────────────────────────────
-app.get('/products', (req, res) => {
-  try { res.json(readDb().products); }
-  catch { res.status(500).json({ error: "Failed to read products" }); }
-});
-
-app.post('/products', (req, res) => {
-  try {
-    const db = readDb();
-    const newProduct = { ...req.body };
-    db.products.push(newProduct);
-    writeDb(db);
-    res.status(201).json(newProduct);
-  } catch { res.status(500).json({ error: "Failed to add product" }); }
-});
-
-app.put('/products/:id', (req, res) => {
-  try {
-    const db    = readDb();
-    const index = db.products.findIndex(p => p.id === req.params.id);
-    if (index === -1) return res.status(404).json({ error: "Product not found" });
-    db.products[index] = { ...req.body };
-    writeDb(db);
-    res.json(db.products[index]);
-  } catch { res.status(500).json({ error: "Failed to update product" }); }
-});
-
-app.delete('/products/:id', (req, res) => {
-  try {
-    const db       = readDb();
-    const filtered = db.products.filter(p => p.id !== req.params.id);
-    if (filtered.length === db.products.length)
-      return res.status(404).json({ error: "Product not found" });
-    db.products = filtered;
-    writeDb(db);
-    res.json({ message: "Product deleted" });
-  } catch { res.status(500).json({ error: "Failed to delete product" }); }
-});
-
-// ─── Orders routes ────────────────────────────────────────────────────────────
-app.get('/orders', (req, res) => {
-  try {
-    const decoded = decodeToken(req.headers.authorization);
-    const db      = readDb();
-    const all     = db.orders || [];
-    // Return all orders - frontend will filter by userId for security
-    return res.json(all);
-  } catch {
-    res.status(500).json({ error: "Failed to read orders" });
-  }
-});
-
-app.post('/orders', (req, res) => {
-  try {
-    const decoded = decodeToken(req.headers.authorization);
-    const db      = readDb();
-    const order = {
-      id:        Date.now().toString(),
-      userId:    decoded?.id       || null,
-      username:  decoded?.username || null,
-      ...req.body,
-      createdAt: new Date().toISOString(),
-      status:    "Processing",
-    };
-    if (!db.orders) db.orders = [];
-    db.orders.push(order);
-    writeDb(db);
-    res.status(201).json(order);
-  } catch {
-    res.status(500).json({ error: "Failed to create order" });
-  }
-});
-
-app.get('/orders/latest', (req, res) => {
-  try {
-    const db     = readDb();
-    const orders = db.orders || [];
-    if (orders.length === 0)
-      return res.json({ latestOrderId: null, latestTimestamp: null });
-    const latest = orders[orders.length - 1];
-    res.json({ latestOrderId: latest.id, latestTimestamp: latest.createdAt });
-  } catch { res.status(500).json({ error: "Failed to get latest order" }); }
-});
-
-app.get('/orders/count', (req, res) => {
-  try {
-    const db = readDb();
-    res.json({ count: db.orders ? db.orders.length : 0 });
-  } catch { res.status(500).json({ error: "Failed to get order count" }); }
-});
-
-app.put('/orders/:id', (req, res) => {
-  try {
-    const db    = readDb();
-    const index = db.orders.findIndex(o => o.id === req.params.id);
-    if (index === -1) return res.status(404).json({ error: "Order not found" });
-    db.orders[index] = { ...db.orders[index], status: req.body.status };
-    writeDb(db);
-    res.json(db.orders[index]);
-  } catch { res.status(500).json({ error: "Failed to update order" }); }
-});
-
-app.post('/orders/:id/cancel', (req, res) => {
-  try {
-    const db    = readDb();
-    const index = db.orders.findIndex(o => o.id === req.params.id);
-    if (index === -1) return res.status(404).json({ error: "Order not found" });
-    db.orders[index] = { ...db.orders[index], status: "Cancelled" };
-    writeDb(db);
-    res.json(db.orders[index]);
-  } catch { res.status(500).json({ error: "Failed to cancel order" }); }
-});
-
-app.delete('/orders/:id', (req, res) => {
-  try {
-    const db    = readDb();
-    const orderIdParam = String(req.params.id); // Ensure string comparison
-    const index = db.orders.findIndex(o => String(o.id) === orderIdParam);
-    if (index === -1) return res.status(404).json({ error: "Order not found" });
-    db.orders.splice(index, 1);
-    writeDb(db);
-    res.json({ success: true, message: "Order deleted successfully" });
-  } catch { res.status(500).json({ error: "Failed to delete order" }); }
-});
-
-module.exports = app;
-
-// ─── Netlify Functions handler ────────────────────────────────────────────────
 exports.handler = async (event, context) => {
   const corsHeaders = {
-    'Access-Control-Allow-Origin':  '*',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   };
@@ -353,95 +41,43 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: 'OK' }) };
   }
 
-  let body = event.body;
-  if (body && typeof body === 'string') {
-    try { body = JSON.parse(body); } catch { body = {}; }
-  }
-  if (!body) body = {};
+  let body = {};
+  try {
+    if (event.body) body = JSON.parse(event.body);
+  } catch {}
 
-  const authHeader = (event.headers || {}).authorization || (event.headers || {}).Authorization || '';
-  const decoded    = decodeToken(authHeader);
-
-  const p      = event.path;
+  const path = event.path || event.rawUrl || '';
   const method = event.httpMethod;
-
-  console.log('=== DEBUG ===');
-  console.log('Full event:', JSON.stringify(event, null, 2));
-  console.log('Path p:', p);
-  console.log('Method:', method);
-  console.log('Body:', JSON.stringify(body));
+  const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
 
   let responseData = null;
-  let statusCode   = 200;
+  let statusCode = 200;
 
   try {
-    // ── Auth ──────────────────────────────────────────────────────────────────
-    if (p === '/api/auth/register' && method === 'POST') {
-      const { username, email, password, fullName, phone, address, avatar } = body;
-      if (!username || !email || !password) {
-        statusCode = 400; responseData = { message: "All fields are required" };
-      } else {
-        const db        = readDb();
-        const normUser  = username.trim().toLowerCase();
-        const normEmail = email.trim().toLowerCase();
-        if (db.users.some(u => u.username.trim().toLowerCase() === normUser)) {
-          statusCode = 400; responseData = { message: "Username is already taken" };
-        } else if (db.users.some(u => u.email.trim().toLowerCase() === normEmail)) {
-          statusCode = 400; responseData = { message: "Email is already registered" };
-        } else {
-          const hashed  = await bcrypt.hash(password, 10);
-          const newUser = {
-            id:        Date.now().toString(),
-            username:  username.trim(),
-            email:     email.trim(),
-            password:  hashed,
-            role:      "user",
-            createdAt: new Date().toISOString(),
-            fullName:  (fullName  || "").trim(),
-            phone:     (phone     || "").trim(),
-            address:   (address   || "").trim(),
-            avatar:    avatar     || "",
-          };
-          db.users.push(newUser); writeDb(db);
-          statusCode = 201;
-          responseData = {
-            message:   "Registration successful",
-            id:        newUser.id,
-            username:  newUser.username,
-            email:     newUser.email,
-            fullName:  newUser.fullName,
-            phone:     newUser.phone,
-            address:   newUser.address,
-            role:      newUser.role,
-            createdAt: newUser.createdAt,
-          };
-        }
-      }
-    }
-
-    else if (p === '/api/auth/login' && method === 'POST') {
-      console.log('Login handler TRIGGERED');
+    if (path.includes('/api/auth/login') && method === 'POST') {
       const { username, password } = body;
-      console.log('Login attempt - username:', username, 'password provided:', !!password);
       if (!username || !password) {
-        statusCode = 400; responseData = { message: "Username and password are required" };
+        statusCode = 400;
+        responseData = { message: "Username and password required" };
       } else {
-        const db   = readDb();
-        const user = db.users.find(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-        console.log('DB users:', db.users.map(u => u.username));
+        const user = cache.users.find(u => 
+          u.username.toLowerCase() === username.toLowerCase() ||
+          u.email?.toLowerCase() === username.toLowerCase()
+        );
         if (!user) {
-          console.log('User NOT found in DB');
-          statusCode = 401; responseData = { message: "Invalid username or password" };
+          statusCode = 401;
+          responseData = { message: "Invalid credentials" };
         } else {
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
-            statusCode = 401; responseData = { message: "Invalid username or password" };
+            statusCode = 401;
+            responseData = { message: "Invalid credentials" };
           } else {
             const token = jwt.sign(
-              { id: user.id, username: user.username, email: user.email, role: user.role },
-              JWT_SECRET, { expiresIn: "7d" }
+              { id: user.id, username: user.username, role: user.role },
+              JWT_SECRET,
+              { expiresIn: "7d" }
             );
-            // Return both token and user object
             const { password: _, ...userWithoutPassword } = user;
             responseData = { token, user: userWithoutPassword };
           }
@@ -449,218 +85,80 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (p.startsWith('/api/auth/check-username') && method === 'GET') {
-      const username = (event.queryStringParameters || {}).username;
-      if (!username) { statusCode = 400; responseData = { message: "Username required" }; }
-      else {
-        const db    = readDb();
-        const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-        responseData = { available: !taken };
-      }
-    }
-
-    // ── DELETE ACCOUNT ────────────────────────────────────────────────────────
-    else if (p === '/api/auth/delete-account' && method === 'POST') {
-      const { username, password, email } = body;
-      if (!password) {
-        statusCode = 400; responseData = { message: "Password is required" };
+    else if (path.includes('/api/auth/register') && method === 'POST') {
+      const { username, email, password } = body;
+      if (!username || !email || !password) {
+        statusCode = 400;
+        responseData = { message: "All fields required" };
       } else {
-        const db  = readDb();
-        let idx = -1;
-
-        if (username) {
-          idx = db.users.findIndex(
-            u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
-          );
-        }
-        if (idx === -1 && email) {
-          idx = db.users.findIndex(
-            u => u.email && u.email.trim().toLowerCase() === email.trim().toLowerCase()
-          );
-        }
-
-        if (idx === -1) {
-          statusCode = 404; responseData = { message: "Account not found" };
+        if (cache.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+          statusCode = 400;
+          responseData = { message: "Username taken" };
         } else {
-          const user    = db.users[idx];
-          const isMatch = await bcrypt.compare(password, user.password);
-          if (!isMatch) {
-            statusCode = 401; responseData = { message: "Incorrect password. Please try again." };
-          } else {
-            db.users  = db.users.filter((_, i) => i !== idx);
-            db.orders = db.orders.filter(o => o.userId !== user.id);
-            writeDb(db);
-            responseData = { message: "Account deleted successfully" };
-          }
+          const hashed = await bcrypt.hash(password, 10);
+          const newUser = {
+            id: Date.now().toString(),
+            username,
+            email,
+            password: hashed,
+            role: "user",
+            createdAt: new Date().toISOString()
+          };
+          cache.users.push(newUser);
+          const { password: _, ...userWithoutPassword } = newUser;
+          responseData = { message: "Registration successful", ...userWithoutPassword };
         }
       }
     }
 
-    // ── CHANGE PASSWORD ────────────────────────────────────────────────────────
-    else if (p === '/api/auth/change-password' && method === 'PUT') {
-      const authHeader = req.headers.authorization;
+    else if (path.includes('/products') && method === 'GET') {
+      responseData = cache.products;
+    }
+
+    else if (path.includes('/orders') && method === 'GET') {
+      responseData = cache.orders || [];
+    }
+
+    else if (path.includes('/orders') && method === 'POST') {
       const decoded = decodeToken(authHeader);
-      
-      if (!decoded) {
-        statusCode = 401; responseData = { message: "Unauthorized" };
-      } else {
-        const { currentPassword, newPassword } = body;
-        if (!currentPassword || !newPassword) {
-          statusCode = 400; responseData = { message: "Current password and new password are required" };
-        } else if (newPassword.length < 6) {
-          statusCode = 400; responseData = { message: "Password must be at least 6 characters" };
-        } else {
-          const db = readDb();
-          const userIndex = db.users.findIndex(u => u.id === decoded.id);
-          
-          if (userIndex === -1) {
-            statusCode = 404; responseData = { message: "User not found" };
-          } else {
-            const user = db.users[userIndex];
-            const isMatch = await bcrypt.compare(currentPassword, user.password);
-            if (!isMatch) {
-              statusCode = 401; responseData = { message: "Current password is incorrect" };
-            } else {
-              const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-              db.users[userIndex].password = hashedNewPassword;
-              writeDb(db);
-              responseData = { message: "Password changed successfully. You can now login with your new password." };
-            }
-          }
-        }
-      }
-    }
-
-    // ── UPDATE PROFILE ────────────────────────────────────────────────────────
-    else if (p === '/api/auth/profile' && method === 'PUT') {
-      const authHeader = req.headers.authorization;
-      const decoded = decodeToken(authHeader);
-      
-      if (!decoded) {
-        statusCode = 401; responseData = { message: "Unauthorized" };
-      } else {
-        const { fullName, phone, address, avatar } = body;
-        const db = readDb();
-        const userIndex = db.users.findIndex(u => u.id === decoded.id);
-        
-        if (userIndex === -1) {
-          statusCode = 404; responseData = { message: "User not found" };
-        } else {
-          const user = db.users[userIndex];
-          if (fullName) user.fullName = fullName;
-          if (phone) user.phone = phone;
-          if (address) user.address = address;
-          if (avatar !== undefined) user.avatar = avatar;
-          
-          db.users[userIndex] = user;
-          writeDb(db);
-          
-          // Return user without password
-          const { password, ...userWithoutPassword } = user;
-          responseData = userWithoutPassword;
-        }
-      }
-    }
-
-    // ── GET PROFILE ──────────────────────────────────────────────────────
-    else if (p === '/api/auth/profile' && method === 'GET') {
-      const authHeader = req.headers.authorization;
-      const decoded = decodeToken(authHeader);
-      
-      if (!decoded) {
-        statusCode = 401; responseData = { message: "Unauthorized" };
-      } else {
-        const db = readDb();
-        const user = db.users.find(u => u.id === decoded.id);
-        
-        if (!user) {
-          statusCode = 404; responseData = { message: "User not found" };
-        } else {
-          const { password, ...userWithoutPassword } = user;
-          responseData = userWithoutPassword;
-        }
-      }
-    }
-
-    // ── Products ──────────────────────────────────────────────────────────────
-    else if (p === '/products' && method === 'GET') {
-      responseData = readDb().products;
-    }
-    else if (p === '/products' && method === 'POST') {
-      const db = readDb(); const np = { ...body }; db.products.push(np); writeDb(db); statusCode = 201; responseData = np;
-    }
-    else if (p.startsWith('/products/') && method === 'PUT') {
-      const id = p.split('/products/')[1]; const db = readDb();
-      const i  = db.products.findIndex(p => p.id === id);
-      if (i === -1) { statusCode = 404; responseData = { error: "Product not found" }; }
-      else { db.products[i] = { ...body }; writeDb(db); responseData = db.products[i]; }
-    }
-    else if (p.startsWith('/products/') && method === 'DELETE') {
-      const id = p.split('/products/')[1]; const db = readDb();
-      const f  = db.products.filter(p => p.id !== id);
-      if (f.length === db.products.length) { statusCode = 404; responseData = { error: "Product not found" }; }
-      else { db.products = f; writeDb(db); responseData = { message: "Product deleted" }; }
-    }
-
-    // ── Orders ────────────────────────────────────────────────────────────────
-    else if (p === '/orders/latest' && method === 'GET') {
-      const db = readDb(); const orders = db.orders || [];
-      if (!orders.length) responseData = { latestOrderId: null, latestTimestamp: null };
-      else { const l = orders[orders.length - 1]; responseData = { latestOrderId: l.id, latestTimestamp: l.createdAt }; }
-    }
-
-    else if (p === '/orders/count' && method === 'GET') {
-      const db = readDb(); responseData = { count: db.orders ? db.orders.length : 0 };
-    }
-
-    else if (p === '/orders' && method === 'GET') {
-      const db  = readDb();
-      const all = db.orders || [];
-      // Return all orders - frontend will filter by userId for security
-      responseData = all;
-    }
-
-    else if (p === '/orders' && method === 'POST') {
-      const db    = readDb();
       const order = {
-        id:       Date.now().toString(),
-        userId:   decoded?.id       || null,
-        username: decoded?.username || null,
+        id: Date.now().toString(),
+        userId: decoded?.id || null,
         ...body,
         createdAt: new Date().toISOString(),
-        status:    "Processing",
+        status: "Processing"
       };
-      if (!db.orders) db.orders = [];
-      db.orders.push(order); writeDb(db);
-      statusCode = 201; responseData = order;
+      if (!cache.orders) cache.orders = [];
+      cache.orders.push(order);
+      statusCode = 201;
+      responseData = order;
     }
 
-    else if (p.startsWith('/orders/') && p.includes('/cancel') && method === 'POST') {
-      const id = p.split('/orders/')[1].split('/cancel')[0];
-      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
-      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
-      else { db.orders[i] = { ...db.orders[i], status: "Cancelled" }; writeDb(db); responseData = db.orders[i]; }
+    else if (path.includes('/api/auth/profile') && method === 'GET') {
+      const decoded = decodeToken(authHeader);
+      if (!decoded) {
+        statusCode = 401;
+        responseData = { message: "Unauthorized" };
+      } else {
+        const user = cache.users.find(u => u.id === decoded.id);
+        if (user) {
+          const { password, ...userWithoutPassword } = user;
+          responseData = userWithoutPassword;
+        } else {
+          statusCode = 404;
+          responseData = { message: "User not found" };
+        }
+      }
     }
 
-    else if (p.startsWith('/orders/') && method === 'PUT') {
-      const id = p.split('/orders/')[1];
-      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
-      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
-      else { db.orders[i] = { ...db.orders[i], status: body.status }; writeDb(db); responseData = db.orders[i]; }
+    else {
+      statusCode = 404;
+      responseData = { error: "Not found", path, method };
     }
-
-    else if (p.startsWith('/orders/') && method === 'DELETE') {
-      const id = p.split('/orders/')[1];
-      const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
-      if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
-      else { db.orders.splice(i, 1); writeDb(db); responseData = { success: true, message: "Order deleted successfully" }; }
-    }
-
-    else { statusCode = 404; responseData = { error: "Not found" }; }
-
   } catch (err) {
-    console.error('Handler error:', err);
-    statusCode = 500; responseData = { error: "Internal server error" };
+    console.error('Error:', err);
+    statusCode = 500;
+    responseData = { error: "Internal server error", message: err.message };
   }
 
   return {
@@ -669,8 +167,3 @@ exports.handler = async (event, context) => {
     body: JSON.stringify(responseData),
   };
 };
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});

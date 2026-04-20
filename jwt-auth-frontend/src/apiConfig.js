@@ -7,10 +7,12 @@ const getApiUrl = () => {
     return envUrl;
   }
   
-  if (process.env.NODE_ENV === 'production') {
+  // Use localhost for development
+  if (process.env.NODE_ENV === 'development') {
     return '';
   }
   
+  // Default to empty (will use relative paths)
   return '';
 };
 
