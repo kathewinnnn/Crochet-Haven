@@ -326,7 +326,7 @@ const Login = () => {
         navigate(decoded.role === 'admin' ? '/seller' : '/user');
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid username/email or password');
+      setError(err.response?.data?.message || 'Invalid username or password');
       setIsLoading(false);
     }
   };
@@ -365,7 +365,7 @@ const Login = () => {
                 <input
                   type="text" value={username} required
                   onChange={e => setUsername(e.target.value)}
-                  placeholder="Enter username or email"
+                  placeholder="Enter your username"
                   className={`login__input${isUsernameFocused ? ' login__input--focused' : ''}`}
                   onFocus={() => setIsUsernameFocused(true)}
                   onBlur={() => setIsUsernameFocused(false)}
