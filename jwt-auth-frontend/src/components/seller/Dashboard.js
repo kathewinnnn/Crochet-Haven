@@ -132,21 +132,24 @@ const Dashboard = () => {
     }
   };
 
+  // Initialize variables with default values
+  let totalProducts = 0;
+  let totalCategories = 0;
+  let totalValue = 0;
+  let totalOrders = 0;
+  let grouped = {};
+
   try {
     console.log('Dashboard Debug - Calculating stats from products:', products.length, 'orders:', orders.length);
-    var totalProducts   = products.length;
-    var totalCategories = new Set(products.map(p => p.category)).size;
-    var totalValue      = products.reduce((s, p) => s + parseFloat(p.price || 0), 0);
-    var totalOrders     = orders.filter(o => o.status === "Processing" || o.status === "Shipped").length;
-    var grouped = products.reduce((a, p) => { a[p.category] = (a[p.category] || 0) + 1; return a; }, {});
+    totalProducts   = products.length;
+    totalCategories = new Set(products.map(p => p.category)).size;
+    totalValue      = products.reduce((s, p) => s + parseFloat(p.price || 0), 0);
+    totalOrders     = orders.filter(o => o.status === "Processing" || o.status === "Shipped").length;
+    grouped = products.reduce((a, p) => { a[p.category] = (a[p.category] || 0) + 1; return a; }, {});
     console.log('Dashboard Debug - Stats calculated:', { totalProducts, totalCategories, totalValue, totalOrders });
   } catch (error) {
     console.error('Dashboard Debug - Error calculating stats:', error);
-    var totalProducts = 0;
-    var totalCategories = 0;
-    var totalValue = 0;
-    var totalOrders = 0;
-    var grouped = {};
+    // Variables already initialized with default values above
   }
 
   console.log('Dashboard Debug - Render check - loading:', loading);
