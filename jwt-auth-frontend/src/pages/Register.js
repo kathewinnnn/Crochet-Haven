@@ -501,9 +501,14 @@ const Register = () => {
   };
 
   const goToAvatar = async () => {
-    // Capture current status values to avoid race conditions
+    // Prevent double-click
+    if (uStatus === U.CHECKING || eStatus === E.CHECKING) return;
+
+    // Capture current values
     const currentUStatus = uStatus;
     const currentEStatus = eStatus;
+    const u = form.username.trim();
+    const e = form.email.trim();
 
     // Block immediately if known invalid states
     if (currentUStatus === U.TAKEN) {
@@ -531,16 +536,13 @@ const Register = () => {
       return;
     }
 
-    const u = form.username.trim();
-    const e = form.email.trim();
-
-    // Basic length validation first
+    // Basic validation first
     if (u.length < 5) {
       setFieldErrors(validateInfoWithStatus(currentUStatus, currentEStatus));
       return;
     }
 
-    // Perform definitive checks with server for both username and email
+    // Perform definitive checks with server
     clearTimeout(uTimer.current);
     clearTimeout(eTimer.current);
     setUStatus(U.CHECKING);
@@ -548,7 +550,6 @@ const Register = () => {
     setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
 
     try {
-      // Run both checks in parallel
       const [usernameRes, emailRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`),
         axios.get(`${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(e)}`)
@@ -579,6 +580,8 @@ const Register = () => {
 
   /* ─── SUBMIT ─── */
   const handleSubmit = async () => {
+    if (isLoading) return; // Prevent double-submission
+
     setIsLoading(true);
     setGlobalError('');
     try {
