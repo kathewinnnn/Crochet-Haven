@@ -528,7 +528,7 @@ const Orders = () => {
   };
 
   const confirmCancel = async () => {
-    const { displayId, backendId } = cancelModal;
+    const { backendId } = cancelModal;
     setCancelModal({ show: false, displayId: null, backendId: null });
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('ch_token');
@@ -723,19 +723,21 @@ const Orders = () => {
           <p className="ch-footer-copy">© 2026 Crochet Haven. Made with ❤️ and yarn.</p>
         </footer>
 
-        {cancelModal.show && (
-          <div className="ch-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setCancelModal({ show: false, displayId: null, backendId: null }); }}>
-            <div className="ch-modal">
-              <span className="ch-modal-icon">🗑️</span>
-              <div className="ch-modal-title">Cancel Order</div>
-              <div className="ch-modal-desc">Are you sure you want to cancel this order? This action cannot be undone.</div>
-              <div className="ch-modal-actions">
-                <button className="ch-modal-cancel" onClick={() => setCancelModal({ show: false, displayId: null, backendId: null })}>Keep Order</button>
-                <button className="ch-modal-confirm" onClick={confirmCancel}><span>Cancel Order</span></button>
-              </div>
-            </div>
-          </div>
-        )}
+         {cancelModal.show && (
+           <div className="ch-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setCancelModal({ show: false, displayId: null, backendId: null }); }}>
+             <div className="ch-modal">
+               <span className="ch-modal-icon">🗑️</span>
+               <div className="ch-modal-title">Cancel Order</div>
+               <div className="ch-modal-desc">
+                 Are you sure you want to cancel order <strong>#{cancelModal.displayId || 'this'}</strong>? This action cannot be undone.
+               </div>
+               <div className="ch-modal-actions">
+                 <button className="ch-modal-cancel" onClick={() => setCancelModal({ show: false, displayId: null, backendId: null })}>Keep Order</button>
+                 <button className="ch-modal-confirm" onClick={confirmCancel}><span>Cancel Order</span></button>
+               </div>
+             </div>
+           </div>
+         )}
 
         {buyAgainModal.show && buyAgainModal.order && (
           <BuyAgainModal order={buyAgainModal.order}
