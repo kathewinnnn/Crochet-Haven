@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { clearAuthData } from '../../pages/userStorage';
 
 const sidebarStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800&family=Lato:wght@300;400;700&display=swap');
@@ -616,11 +617,10 @@ const SellerSidebar = ({ setActivePage, activePage }) => {
   const cancelButtonRef = useRef(null);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+   const handleLogout = () => {
     setIsLoggingOut(true);
     setTimeout(() => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      clearAuthData();
       navigate("/");
     }, 1500);
   };

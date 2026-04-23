@@ -110,68 +110,69 @@ const loadFromFirestore = async () => {
 };
 
 /**
- * Save data - updates local cache + local file + async Firestore sync
- * Returns sync (no await) for performance
+ * Save data - updates local cache + local file + Firestore sync (awaited)
+ * Returns a promise that resolves when all writes are complete.
  */
-const saveToAll = (data) => {
+const saveToAll = async (data) => {
   // Update cache immediately
   cache = data;
   
-  // Save to local file
+  // Save to local file (best effort)
   try {
     fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(data, null, 2));
   } catch (e) {
     console.warn('Failed to save local file:', e.message);
   }
   
-  // Async sync to Firestore (non-blocking)
+  // Sync to Firestore and WAIT for it to complete before resolving
   if (db) {
-    syncToFirestore(data).catch(err => 
-      console.warn('Firestore sync failed:', err.message)
-    );
+    try {
+      await syncToFirestore(data);
+      console.log('Data synced to Firestore');
+    } catch (err) {
+      console.warn('Firestore sync failed:', err.message);
+      // Still resolve - the local cache is updated
+    }
   }
 };
 
 /**
- * Background sync to Firestore
+ * Sync data to Firestore
+ * @throws Will throw if Firestore write fails
  */
 const syncToFirestore = async (data) => {
-  if (!db) return false;
-  
-  try {
-    const batch = db.batch();
-    
-    // Sync users
-    const usersRef = db.collection('users');
-    const usersSnap = await usersRef.get();
-    usersSnap.docs.forEach(d => batch.delete(d.ref));
-    data.users.forEach(user => {
-      usersRef.doc(user.id || Date.now().toString()).set(user);
-    });
-    
-    // Sync products
-    const productsRef = db.collection('products');
-    const productsSnap = await productsRef.get();
-    productsSnap.docs.forEach(d => batch.delete(d.ref));
-    data.products.forEach(product => {
-      productsRef.doc(product.id || Date.now().toString()).set(product);
-    });
-    
-    // Sync orders
-    const ordersRef = db.collection('orders');
-    const ordersSnap = await ordersRef.get();
-    ordersSnap.docs.forEach(d => batch.delete(d.ref));
-    data.orders.forEach(order => {
-      ordersRef.doc(order.id || Date.now().toString()).set(order);
-    });
-    
-    await batch.commit();
-    console.log('Data synced to Firestore');
-    return true;
-  } catch (error) {
-    console.error('Firestore sync error:', error.message);
-    return false;
+  if (!db) {
+    throw new Error('Firestore not initialized - cannot sync data');
   }
+  
+  const batch = db.batch();
+  
+  // Sync users
+  const usersRef = db.collection('users');
+  const usersSnap = await usersRef.get();
+  usersSnap.docs.forEach(d => batch.delete(d.ref));
+  data.users.forEach(user => {
+    usersRef.doc(user.id || Date.now().toString()).set(user);
+  });
+  
+  // Sync products
+  const productsRef = db.collection('products');
+  const productsSnap = await productsRef.get();
+  productsSnap.docs.forEach(d => batch.delete(d.ref));
+  data.products.forEach(product => {
+    productsRef.doc(product.id || Date.now().toString()).set(product);
+  });
+  
+  // Sync orders
+  const ordersRef = db.collection('orders');
+  const ordersSnap = await ordersRef.get();
+  ordersSnap.docs.forEach(d => batch.delete(d.ref));
+  data.orders.forEach(order => {
+    ordersRef.doc(order.id || Date.now().toString()).set(order);
+  });
+  
+  await batch.commit();
+  console.log('Data synced to Firestore');
 };
 
 // Sync API - returns cached data (synchronous)

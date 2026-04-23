@@ -184,7 +184,7 @@ const saveToAll = async (data) => {
 
   console.log('Serverless Debug - Saving data, Firestore initialized:', firebaseInitialized);
 
-  // Always save to the local db.json file
+  // Always save to the local db.json file (best effort)
   try {
     const fs = require('fs');
     const path = require('path');
@@ -195,50 +195,46 @@ const saveToAll = async (data) => {
     console.warn('Failed to save local file:', e.message);
   }
 
+  // If Firebase is initialized, sync to Firestore and WAIT for it to complete
   if (db && firebaseInitialized) {
-    try {
-      await syncToFirestore(data);
-      console.log('Data synced to Firestore successfully');
-    } catch (err) {
-      console.warn('Firestore sync failed:', err.message);
-    }
+    await syncToFirestore(data);
+    console.log('Data synced to Firestore successfully');
   }
 };
 
 const syncToFirestore = async (data) => {
-  if (!db) return false;
-  
-  try {
-    const batch = db.batch();
-    
-    const usersRef = db.collection('users');
-    const usersSnap = await usersRef.get();
-    usersSnap.docs.forEach(d => batch.delete(d.ref));
-    data.users.forEach(user => {
-      usersRef.doc(user.id || Date.now().toString()).set(user);
-    });
-    
-    const productsRef = db.collection('products');
-    const productsSnap = await productsRef.get();
-    productsSnap.docs.forEach(d => batch.delete(d.ref));
-    data.products.forEach(product => {
-      productsRef.doc(product.id || Date.now().toString()).set(product);
-    });
-    
-    const ordersRef = db.collection('orders');
-    const ordersSnap = await ordersRef.get();
-    ordersSnap.docs.forEach(d => batch.delete(d.ref));
-    data.orders.forEach(order => {
-      ordersRef.doc(order.id || Date.now().toString()).set(order);
-    });
-    
-    await batch.commit();
-    console.log('Data synced to Firestore');
-    return true;
-  } catch (error) {
-    console.error('Firestore sync error:', error.message);
-    return false;
+  if (!db) {
+    throw new Error('Firestore not initialized - cannot sync data');
   }
+  
+  const batch = db.batch();
+  
+  // Sync users
+  const usersRef = db.collection('users');
+  const usersSnap = await usersRef.get();
+  usersSnap.docs.forEach(d => batch.delete(d.ref));
+  data.users.forEach(user => {
+    usersRef.doc(user.id || Date.now().toString()).set(user);
+  });
+  
+  // Sync products
+  const productsRef = db.collection('products');
+  const productsSnap = await productsRef.get();
+  productsSnap.docs.forEach(d => batch.delete(d.ref));
+  data.products.forEach(product => {
+    productsRef.doc(product.id || Date.now().toString()).set(product);
+  });
+  
+  // Sync orders
+  const ordersRef = db.collection('orders');
+  const ordersSnap = await ordersRef.get();
+  ordersSnap.docs.forEach(d => batch.delete(d.ref));
+  data.orders.forEach(order => {
+    ordersRef.doc(order.id || Date.now().toString()).set(order);
+  });
+  
+  await batch.commit();
+  console.log('Data synced to Firestore');
 };
 
 const readDb = () => cache;
@@ -463,6 +459,8 @@ exports.handler = async (event, context) => {
         const user = cache.users.find(u => u.id === decoded.id);
         if (user) {
           const { password, ...userWithoutPassword } = user;
+          // Also check if there's a separately stored avatar in localStorage-style storage
+          // For now, the avatar should be in the user object itself
           responseData = userWithoutPassword;
         } else {
           statusCode = 404;
@@ -567,25 +565,7 @@ exports.handler = async (event, context) => {
       console.log('Serverless Debug - Returning orders data:', responseData);
     }
 
-      else if (path.includes('/api/orders') && method === 'GET') {
-        const decoded = decodeToken(authHeader);
-        if (!decoded) {
-          statusCode = 401;
-          responseData = { message: "Unauthorized" };
-        } else {
-          let orders = cache.orders || [];
-          // For non-admin users, filter to only their orders
-          const isAdmin = decoded.role === 'admin' || decoded.role === 'seller';
-          if (isAdmin) {
-            // Admins/sellers see all orders
-            responseData = orders;
-          } else {
-            // Regular users only see their own orders
-            responseData = orders.filter(o => o.userId === decoded.id);
-          }
-          console.log('Serverless Debug - Returning orders:', responseData.length, 'for user:', decoded.id, 'admin:', isAdmin);
-        }
-      }
+
 
       else if (path.includes('/api/orders') && method === 'POST') {
        console.log('Serverless Debug - Processing order POST request');

@@ -110,16 +110,9 @@ const Profile = () => {
               avatar: data.avatar || "https://via.placeholder.com/150",
             };
             
-            // Merge: localStorage data takes priority, but use API as base
-            const merged = saved ? JSON.parse(saved) : {};
-            const finalProfile = {
-              ...apiProfile,
-              ...merged,
-              avatar: merged.avatar || apiProfile.avatar,
-            };
-            console.log('Final merged profile:', finalProfile);
-            setProfile(finalProfile);
-            localStorage.setItem("sellerProfile", JSON.stringify(finalProfile));
+            // Use API data as source of truth; overwrite localStorage cache
+            localStorage.setItem("sellerProfile", JSON.stringify(apiProfile));
+            setProfile(apiProfile);
           }
         } catch (err) {
           console.error('Error fetching profile:', err);
@@ -143,7 +136,7 @@ const Profile = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSave = async () => {
+   const handleSave = async () => {
     setSaving(true);
     const token = getToken();
     console.log('handleSave called, token exists:', !!token);
@@ -186,7 +179,36 @@ const Profile = () => {
             phone: d.phone || profile.phone,
           };
           setProfile(updatedProfile); 
-          localStorage.setItem("sellerProfile", JSON.stringify(updatedProfile)); 
+          localStorage.setItem("sellerProfile", JSON.stringify(updatedProfile));
+          
+          // Also update global user storage so changes persist across app/components
+          try {
+            const userId = localStorage.getItem('userId');
+            if (userId) {
+              // Preserve existing global user fields (username, email, role, createdAt)
+              const currentGlobal = JSON.parse(localStorage.getItem('ch_user') || '{}');
+              const userData = { 
+                ...currentGlobal,
+                id: userId,
+                fullName: d.fullName || profile.name,
+                phone: d.phone || profile.phone,
+                storeName: d.storeName || profile.storeName,
+                location: d.location || profile.location,
+                bio: d.bio || profile.bio,
+                avatar: d.avatar || profile.avatar,
+              };
+              localStorage.setItem('ch_user', JSON.stringify(userData));
+              localStorage.setItem('user', JSON.stringify(userData));
+              localStorage.setItem(`ch_profile_${userId}`, JSON.stringify(userData));
+              // Also update ch_avatar_ separately for consistency with other components
+              if (d.avatar) {
+                localStorage.setItem(`ch_avatar_${userId}`, d.avatar);
+              }
+              console.log('Updated global user storage with profile changes');
+            }
+          } catch (storageErr) {
+            console.warn('Could not update global user storage:', storageErr);
+          }
         } else {
           const errorText = await r.text();
           console.error('API error:', r.status, errorText);

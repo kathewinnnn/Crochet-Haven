@@ -266,7 +266,7 @@ const Order = () => {
 
   useEffect(() => {
     fetchOrders();
-    const poll = setInterval(fetchOrders, 5000);
+    const poll = setInterval(fetchOrders, 10000); // refresh every 10s
     const onUpdate = () => fetchOrders();
     const onStorage = e => { if (e.key === "ordersUpdatedAt") fetchOrders(); };
     window.addEventListener("ordersUpdated", onUpdate);
