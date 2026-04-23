@@ -238,13 +238,7 @@ const syncToFirestore = async (data) => {
 };
 
 const readDb = () => cache;
-
-// Guard against partial/incomplete registrations
-const users = cache.users || [];
-const saveDb = async (data) => {
-  cache = data;
-  await saveToAll(data);
-};
+const writeDb = async (data) => await saveToAll(data);
 
 const decodeToken = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -301,39 +295,10 @@ exports.handler = async (event, context) => {
         statusCode = 400;
         responseData = { message: "Username and password required" };
       } else {
-        // Try Firestore first for cross-instance consistency, fallback to cache
-        let user = null;
-        if (db && firebaseInitialized) {
-          try {
-            const snapshot = await db.collection('users')
-              .where('username', '==', username)
-              .limit(1)
-              .get();
-            if (!snapshot.empty) {
-              user = snapshot.docs[0].data();
-            } else {
-              // Also check by email
-              const emailSnapshot = await db.collection('users')
-                .where('email', '==', username)
-                .limit(1)
-                .get();
-              if (!emailSnapshot.empty) {
-                user = emailSnapshot.docs[0].data();
-              }
-            }
-            console.log('Login - user fetched from Firestore:', user ? user.username : 'not found');
-          } catch (err) {
-            console.error('Firestore login query error:', err);
-          }
-        }
-        // Fallback to cache if not found in Firestore
-        if (!user) {
-          user = cache.users.find(u =>
-            u.username.toLowerCase() === username.toLowerCase() ||
-            u.email?.toLowerCase() === username.toLowerCase()
-          );
-          console.log('Login - user fetched from cache:', user ? user.username : 'not found');
-        }
+        const user = cache.users.find(u => 
+          u.username.toLowerCase() === username.toLowerCase() ||
+          u.email?.toLowerCase() === username.toLowerCase()
+        );
         if (!user) {
           statusCode = 401;
           responseData = { message: "Invalid username/email or password" };
@@ -355,68 +320,40 @@ exports.handler = async (event, context) => {
       }
     }
 
-     else if (path.includes('/api/auth/register') && method === 'POST') {
-       const { username, email, password, fullName, phone, address, avatar } = body;
-       if (!username || !email || !password) {
-         statusCode = 400;
-         responseData = { message: "All fields required" };
-       } else {
-         // Check Firestore first for duplicates (cross-instance safety)
-         let usernameTaken = false;
-         let emailTaken = false;
-         if (db && firebaseInitialized) {
-           try {
-             const usernameSnapshot = await db.collection('users')
-               .where('username', '==', username)
-               .limit(1)
-               .get();
-             usernameTaken = !usernameSnapshot.empty;
-
-             const emailSnapshot = await db.collection('users')
-               .where('email', '==', email)
-               .limit(1)
-               .get();
-             emailTaken = !emailSnapshot.empty;
-           } catch (err) {
-             console.error('Firestore duplicate check error:', err);
-             // Fallback to cache on error
-             usernameTaken = cache.users.some(u => u.username.toLowerCase() === username.toLowerCase());
-             emailTaken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-           }
-         } else {
-           // Fallback to cache if Firestore not available
-           usernameTaken = cache.users.some(u => u.username.toLowerCase() === username.toLowerCase());
-           emailTaken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-         }
-
-         if (usernameTaken) {
-           statusCode = 400;
-           responseData = { message: "Username taken" };
-         } else if (emailTaken) {
-           statusCode = 400;
-           responseData = { message: "Email already registered" };
-         } else {
-           const hashed = await bcrypt.hash(password, 10);
-           const newUser = {
-             id: Date.now().toString(),
-             username,
-             email,
-             password: hashed,
-             role: "user",
-             createdAt: new Date().toISOString(),
-             fullName: fullName || "",
-             phone: phone || "",
-             address: address || "",
-             avatar: avatar || ""
-           };
-           cache.users.push(newUser);
-           await saveToAll(cache);
-           const { password: _, ...userWithoutPassword } = newUser;
-           statusCode = 201;
-           responseData = { message: "Registration successful", ...userWithoutPassword };
-         }
-       }
-     }
+    else if (path.includes('/api/auth/register') && method === 'POST') {
+      const { username, email, password, fullName, phone, address, avatar } = body;
+      if (!username || !email || !password) {
+        statusCode = 400;
+        responseData = { message: "All fields required" };
+      } else {
+        if (cache.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+          statusCode = 400;
+          responseData = { message: "Username taken" };
+        } else if (cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase())) {
+          statusCode = 400;
+          responseData = { message: "Email already registered" };
+        } else {
+          const hashed = await bcrypt.hash(password, 10);
+          const newUser = {
+            id: Date.now().toString(),
+            username,
+            email,
+            password: hashed,
+            role: "user",
+            createdAt: new Date().toISOString(),
+            fullName: fullName || "",
+            phone: phone || "",
+            address: address || "",
+            avatar: avatar || ""
+          };
+          cache.users.push(newUser);
+          await saveToAll(cache);
+          const { password: _, ...userWithoutPassword } = newUser;
+          statusCode = 201;
+          responseData = { message: "Registration successful", ...userWithoutPassword };
+        }
+      }
+    }
 
     else if (path.includes('/api/auth/check-username') && method === 'GET') {
       const params = event.queryStringParameters || {};
@@ -425,22 +362,7 @@ exports.handler = async (event, context) => {
         statusCode = 400;
         responseData = { message: "Username required" };
       } else {
-        // Check Firestore for cross-instance consistency
-        let taken = false;
-        if (db && firebaseInitialized) {
-          try {
-            const snapshot = await db.collection('users')
-              .where('username', '==', username)
-              .limit(1)
-              .get();
-            taken = !snapshot.empty;
-          } catch (err) {
-            console.error('Firestore username check error:', err);
-            taken = cache.users.some(u => u.username.toLowerCase() === username.toLowerCase());
-          }
-        } else {
-          taken = cache.users.some(u => u.username.toLowerCase() === username.toLowerCase());
-        }
+        const taken = cache.users.some(u => u.username.toLowerCase() === username.toLowerCase());
         responseData = { available: !taken };
       }
     }
@@ -452,22 +374,7 @@ exports.handler = async (event, context) => {
         statusCode = 400;
         responseData = { message: "Email required" };
       } else {
-        // Check Firestore for cross-instance consistency
-        let taken = false;
-        if (db && firebaseInitialized) {
-          try {
-            const snapshot = await db.collection('users')
-              .where('email', '==', email)
-              .limit(1)
-              .get();
-            taken = !snapshot.empty;
-          } catch (err) {
-            console.error('Firestore email check error:', err);
-            taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-          }
-        } else {
-          taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-        }
+        const taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
         responseData = { available: !taken };
       }
     }
@@ -561,26 +468,11 @@ exports.handler = async (event, context) => {
         statusCode = 401;
         responseData = { message: "Unauthorized" };
       } else {
-        // Try Firestore first for consistency across instances
-        let user = null;
-        if (db && firebaseInitialized) {
-          try {
-            const doc = await db.collection('users').doc(decoded.id).get();
-            if (doc.exists) {
-              user = doc.data();
-              console.log('Profile - fetched from Firestore for user', decoded.id);
-            }
-          } catch (err) {
-            console.error('Firestore read error (profile):', err);
-          }
-        }
-        // Fallback to cache if not found in Firestore or Firestore unavailable
-        if (!user) {
-          user = cache.users.find(u => u.id === decoded.id);
-          console.log('Profile - fetched from cache for user', decoded.id);
-        }
+        const user = cache.users.find(u => u.id === decoded.id);
         if (user) {
           const { password, ...userWithoutPassword } = user;
+          // Also check if there's a separately stored avatar in localStorage-style storage
+          // For now, the avatar should be in the user object itself
           responseData = userWithoutPassword;
         } else {
           statusCode = 404;
@@ -616,29 +508,17 @@ exports.handler = async (event, context) => {
     }
 
     else if (path.includes('/api/products') && method === 'GET') {
-      console.log('Serving products endpoint');
-      let products = [];
-      if (db && firebaseInitialized) {
-        try {
-          const snapshot = await db.collection('products').get();
-          products = snapshot.docs.map(d => d.data());
-          console.log('Fetched products from Firestore:', products.length, 'items');
-        } catch (err) {
-          console.error('Firestore read error (products):', err);
-          products = cache.products || [];
-        }
-      } else {
-        products = cache.products || [];
-      }
-      if (products.length > 0) {
-        console.log('Sample products:', products.slice(0, 3).map(p => ({ id: p.id, name: p.name, category: p.category })));
-        const categoryCount = products.reduce((acc, p) => {
+      console.log('Serving products:', cache.products?.length || 0, 'items');
+      if (cache.products && cache.products.length > 0) {
+        console.log('Sample products:', cache.products.slice(0, 3).map(p => ({ id: p.id, name: p.name, category: p.category })));
+        // Count products by category
+        const categoryCount = cache.products.reduce((acc, p) => {
           acc[p.category] = (acc[p.category] || 0) + 1;
           return acc;
         }, {});
         console.log('Products by category:', categoryCount);
       }
-      responseData = products;
+      responseData = cache.products || [];
     }
 
     else if (path.includes('/api/products') && method === 'POST') {
@@ -682,21 +562,7 @@ exports.handler = async (event, context) => {
         statusCode = 401;
         responseData = { error: "Authentication required" };
       } else {
-        // Always fetch fresh from Firestore to ensure consistency across serverless instances
-        let allOrders = [];
-        if (db && firebaseInitialized) {
-          try {
-            const snapshot = await db.collection('orders').get();
-            allOrders = snapshot.docs.map(d => d.data());
-            console.log('Serverless Debug - Fetched orders from Firestore:', allOrders.length);
-          } catch (err) {
-            console.error('Firestore read error:', err);
-            allOrders = cache.orders || [];
-          }
-        } else {
-          allOrders = cache.orders || [];
-        }
-        
+        const allOrders = cache.orders || [];
         // Admin/seller users can see all orders, regular users only see their own
         let ordersToReturn;
         if (decoded.role === 'admin' || decoded.role === 'seller') {
@@ -843,42 +709,19 @@ exports.handler = async (event, context) => {
       }
     }
 
-     else if (path.includes('/api/orders/latest') && method === 'GET') {
-       let orders = [];
-       if (db && firebaseInitialized) {
-         try {
-           const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').get();
-           orders = snapshot.docs.map(d => d.data());
-         } catch (err) {
-           console.error('Firestore read error (latest):', err);
-           orders = cache.orders || [];
-         }
-       } else {
-         orders = cache.orders || [];
-       }
-       if (!orders.length) {
-         responseData = { latestOrderId: null, latestTimestamp: null };
-       } else {
-         const latest = orders[0]; // first after sorting desc
-         responseData = { latestOrderId: latest.id, latestTimestamp: latest.createdAt };
-       }
-     }
+    else if (path.includes('/api/orders/latest') && method === 'GET') {
+      const orders = cache.orders || [];
+      if (!orders.length) {
+        responseData = { latestOrderId: null, latestTimestamp: null };
+      } else {
+        const latest = orders[orders.length - 1];
+        responseData = { latestOrderId: latest.id, latestTimestamp: latest.createdAt };
+      }
+    }
 
-     else if (path.includes('/api/orders/count') && method === 'GET') {
-       let count = 0;
-       if (db && firebaseInitialized) {
-         try {
-           const snapshot = await db.collection('orders').count().get();
-           count = snapshot.data().count;
-         } catch (err) {
-           console.error('Firestore count error:', err);
-           count = cache.orders ? cache.orders.length : 0;
-         }
-       } else {
-         count = cache.orders ? cache.orders.length : 0;
-       }
-       responseData = { count };
-     }
+    else if (path.includes('/api/orders/count') && method === 'GET') {
+      responseData = { count: cache.orders ? cache.orders.length : 0 };
+    }
 
     else if (path.includes('/api/cart') && method === 'GET') {
       const decoded = decodeToken(authHeader);
