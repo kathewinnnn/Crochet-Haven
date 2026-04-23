@@ -648,14 +648,15 @@ const validateInfoWithStatus = (resolvedUsernameStatus, resolvedEmailStatus) => 
     fontFamily: "'Segoe UI',sans-serif", color: '#1f2937',
   });
 
-  const fc = (name) => ({
-    onFocus: () => setFocused(name),
-    onBlur:  () => {
-      setFocused('');
-      setTouched(p => ({ ...p, [name]: true }));
-      if (name === 'username') runUsernameCheck();
-    },
-  });
+const fc = (name) => ({
+  onFocus: () => setFocused(name),
+  onBlur:  () => {
+    setFocused('');
+    setTouched(p => ({ ...p, [name]: true }));
+    if (name === 'username') runUsernameCheck();
+    if (name === 'email') runEmailCheck();
+  },
+});
 
   const ch = (field) => (e) => {
     let newVal = e.target.value;

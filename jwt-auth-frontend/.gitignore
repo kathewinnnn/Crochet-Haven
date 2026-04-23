@@ -30,4 +30,5 @@ yarn-error.log*
 
 # Firebase service account (IMPORTANT - never commit this!)
 service-account.json
-*.json (except package.json)
+*.json
+!package.json
