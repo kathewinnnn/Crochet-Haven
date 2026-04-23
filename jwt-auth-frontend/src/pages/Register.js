@@ -19,6 +19,14 @@ const U = {
   ERROR:     'error',
 };
 
+const E = {
+  IDLE:      'idle',
+  CHECKING:  'checking',
+  TAKEN:     'taken',
+  AVAILABLE: 'available',
+  ERROR:     'error',
+};
+
 /* ═══════════════════════════════════════════════════
    FLOATING EMOJIS (matches Login page)
 ═══════════════════════════════════════════════════ */
@@ -359,6 +367,55 @@ const Register = () => {
 
   const usernameRef = useRef(form.username);
   usernameRef.current = form.username;
+  const emailRef = useRef(form.email);
+  emailRef.current = form.email;
+
+  const [eStatus, setEStatus] = useState(E.IDLE);
+  const eTimer = useRef(null);
+
+  const fireEmailCheck = useCallback(async (e) => {
+    setEStatus(E.CHECKING);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(e)}`
+      );
+      if (emailRef.current.trim() === e) {
+        setEStatus(res.data?.available === true ? E.AVAILABLE : E.TAKEN);
+      }
+    } catch {
+      if (emailRef.current.trim() === e) setEStatus(E.IDLE);
+    }
+  }, []);
+
+  useEffect(() => {
+    clearTimeout(eTimer.current);
+    const e = form.email.trim();
+    if (e.length < 5) { setEStatus(E.IDLE); return; }
+    setEStatus(E.CHECKING);
+    eTimer.current = setTimeout(() => fireEmailCheck(e), 600);
+    return () => clearTimeout(eTimer.current);
+  }, [form.email, fireEmailCheck]);
+
+  const runEmailCheck = useCallback(() => {
+    const e = emailRef.current.trim();
+    if (e.length < 5) return;
+    clearTimeout(eTimer.current);
+    fireEmailCheck(e);
+  }, [fireEmailCheck]);
+
+  const eIndicator = { [E.IDLE]: '', [E.CHECKING]: '⏳', [E.AVAILABLE]: '✅', [E.TAKEN]: '❌', [E.ERROR]: '' }[eStatus];
+
+  const renderEmailMsg = () => {
+    const len = form.email.trim().length;
+    if (len === 0) return null;
+    if (len < 5)   return <div className="ferr">⚠ Must be at least 5 characters ({len}/5)</div>;
+    switch (eStatus) {
+      case E.CHECKING:  return <div className="fnfo">⏳ Checking availability…</div>;
+      case E.AVAILABLE: return <div className="fok">✓ Email is available!</div>;
+      case E.TAKEN:     return <div className="ferr">❌ This email is already registered. Please choose another.</div>;
+      default:          return null;
+    }
+  };
 
   const fireUsernameCheck = useCallback(async (u) => {
     setUStatus(U.CHECKING);
@@ -405,60 +462,98 @@ const Register = () => {
   };
 
   /* ─── STEP 1 VALIDATION ─── */
-  const validateInfoWithStatus = (resolvedStatus) => {
-    const errs = {};
-    const u = form.username.trim();
-    if (!u)                errs.username = 'Username is required.';
-    else if (u.length < 5) errs.username = 'Username must be at least 5 characters.';
-    else if (resolvedStatus === U.CHECKING) errs.username = 'Please wait — still checking username availability.';
-    else if (resolvedStatus === U.TAKEN)    errs.username = 'This username is already taken. Please choose another.';
+const validateInfoWithStatus = (resolvedUsernameStatus, resolvedEmailStatus) => {
+  const errs = {};
+  const u = form.username.trim();
+  if (!u)                errs.username = 'Username is required.';
+  else if (u.length < 5) errs.username = 'Username must be at least 5 characters.';
+  else if (resolvedUsernameStatus === U.CHECKING) errs.username = 'Please wait — still checking username availability.';
+  else if (resolvedUsernameStatus === U.TAKEN)    errs.username = 'This username is already taken. Please choose another.';
 
-    if (!form.fullName.trim()) errs.fullName = 'Full name is required.';
+  if (!form.fullName.trim()) errs.fullName = 'Full name is required.';
 
-    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!form.email.trim())             errs.email = 'Email is required.';
-    else if (!emailRx.test(form.email)) errs.email = 'Enter a valid email address.';
+  const e = form.email.trim();
+  if (!e)                     errs.email = 'Email is required.';
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) errs.email = 'Enter a valid email address.';
+  else if (resolvedEmailStatus === E.CHECKING) errs.email = 'Please wait — still checking email availability.';
+  else if (resolvedEmailStatus === E.TAKEN)    errs.email = 'This email is already registered. Please choose another.';
 
-    const phoneDigits = form.phone.replace(/\D/g, '');
-    if (!form.phone.trim())                 errs.phone = 'Phone number is required.';
-    else if (phoneDigits.length > 11)       errs.phone = 'Phone number must not exceed 11 digits.';
-    else if (phoneDigits.length !== 11)     errs.phone = 'Phone number must be 11 digits (e.g., 09XXXXXXXXX).';
-    else if (!phoneDigits.startsWith('09')) errs.phone = 'Phone number must start with 09.';
+  const phoneDigits = form.phone.replace(/\D/g, '');
+  if (!form.phone.trim())                 errs.phone = 'Phone number is required.';
+  else if (phoneDigits.length > 11)       errs.phone = 'Phone number must not exceed 11 digits.';
+  else if (phoneDigits.length !== 11)     errs.phone = 'Phone number must be 11 digits (e.g., 09XXXXXXXXX).';
+  else if (!phoneDigits.startsWith('09')) errs.phone = 'Phone number must start with 09.';
 
-    if (!form.address.trim()) errs.address = 'Address is required.';
-    if (form.password.length < 6) errs.password = 'Password must be at least 6 characters.';
-    if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match.';
-    return errs;
-  };
+  if (!form.address.trim()) errs.address = 'Address is required.';
+  if (form.password.length < 6) errs.password = 'Password must be at least 6 characters.';
+  if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match.';
+  return errs;
+};
 
-  const goToAvatar = async () => {
-    setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
+   const goToAvatar = async () => {
+     setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
 
-    const u = form.username.trim();
-    if (u.length >= 5 && (uStatus === U.IDLE || uStatus === U.CHECKING || uStatus === U.ERROR)) {
-      clearTimeout(uTimer.current);
-      setUStatus(U.CHECKING);
-      try {
-        const res = await axios.get(
-          `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
-        );
-        const resolved = res.data?.available === true ? U.AVAILABLE : U.TAKEN;
-        setUStatus(resolved);
-        const errs = validateInfoWithStatus(resolved);
-        setFieldErrors(errs);
-        if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
-      } catch {
-        setUStatus(U.IDLE);
-        const errs = validateInfoWithStatus(U.IDLE);
-        setFieldErrors(errs);
-        if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
-      }
-      return;
-    }
-    const errs = validateInfoWithStatus(uStatus);
-    setFieldErrors(errs);
-    if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
-  };
+     const u = form.username.trim();
+     const e = form.email.trim();
+     
+     // Check if we need to validate username
+     const needsUsernameCheck = u.length >= 5 && (uStatus === U.IDLE || uStatus === U.CHECKING || uStatus === U.ERROR);
+     
+     // Check if we need to validate email
+     const needsEmailCheck = e.length >= 5 && (eStatus === E.IDLE || eStatus === E.CHECKING || eStatus === E.ERROR);
+     
+     if (needsUsernameCheck || needsEmailCheck) {
+       if (needsUsernameCheck) {
+         clearTimeout(uTimer.current);
+         setUStatus(U.CHECKING);
+       }
+       
+       if (needsEmailCheck) {
+         clearTimeout(eTimer.current);
+         setEStatus(E.CHECKING);
+       }
+       
+       try {
+         // Check username if needed
+         let usernameResolved = uStatus;
+         if (needsUsernameCheck) {
+           const res = await axios.get(
+             `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
+           );
+           usernameResolved = res.data?.available === true ? U.AVAILABLE : U.TAKEN;
+           setUStatus(usernameResolved);
+         }
+         
+         // Check email if needed
+         let emailResolved = eStatus;
+         if (needsEmailCheck) {
+           const res = await axios.get(
+             `${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(e)}`
+           );
+           emailResolved = res.data?.available === true ? E.AVAILABLE : E.TAKEN;
+           setEStatus(emailResolved);
+         }
+         
+         const errs = validateInfoWithStatus(usernameResolved, emailResolved);
+         setFieldErrors(errs);
+         if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+       } catch {
+         if (needsUsernameCheck) setUStatus(U.IDLE);
+         if (needsEmailCheck) setEStatus(E.IDLE);
+         const errs = validateInfoWithStatus(
+           needsUsernameCheck ? U.IDLE : uStatus,
+           needsEmailCheck ? E.IDLE : eStatus
+         );
+         setFieldErrors(errs);
+         if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+       }
+       return;
+     }
+     
+     const errs = validateInfoWithStatus(uStatus, eStatus);
+     setFieldErrors(errs);
+     if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+   };
 
   /* ─── SUBMIT ─── */
   const handleSubmit = async () => {
@@ -678,23 +773,34 @@ const Register = () => {
                     : null}
               </div>
 
-              {/* Email */}
-              <div style={st.fg}>
-                <label style={st.label}>✉️ Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={ch('email')}
-                  placeholder="Enter your email"
-                  style={inp('email', !!fieldErrors.email || (touched.email && !form.email.trim()))}
-                  {...fc('email')}
-                />
-                {fieldErrors.email
-                  ? <div className="ferr">⚠ {fieldErrors.email}</div>
-                  : touched.email && !form.email.trim()
-                    ? <div className="ferr">⚠ Email is required.</div>
-                    : null}
-              </div>
+               {/* Email */}
+               <div style={st.fg}>
+                 <label style={st.label}>✉️ Email</label>
+                 <div style={{ position: 'relative' }}>
+                   <input
+                     type="email"
+                     value={form.email}
+                     onChange={ch('email')}
+                     placeholder="Enter your email"
+                     style={{
+                       ...inp('email', eStatus === E.TAKEN || (!!fieldErrors.email && form.email.trim().length < 5) || (touched.email && !form.email.trim())),
+                       paddingRight: '40px',
+                     }}
+                     {...fc('email')}
+                   />
+                   {eIndicator && (
+                     <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1, pointerEvents: 'none' }}>
+                       {eIndicator}
+                     </span>
+                   )}
+                 </div>
+                 {touched.email && !form.email.trim()
+                   ? <div className="ferr">⚠ Email is required.</div>
+                   : renderEmailMsg() ?? (fieldErrors.email && eStatus !== E.TAKEN
+                       ? <div className="ferr">⚠ {fieldErrors.email}</div>
+                       : null
+                     )}
+               </div>
 
               {/* Phone */}
               <div style={st.fg}>
