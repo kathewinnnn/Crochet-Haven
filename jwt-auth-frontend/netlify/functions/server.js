@@ -16,78 +16,32 @@ let cache = {
 
 const initializeFirebase = async () => {
   try {
-    // First, always load from local db.json as the source of truth
-    const localLoaded = loadFromLocal();
-    if (!localLoaded) {
-      console.warn('Failed to load local db.json, using minimal defaults');
-      cache = {
-        users: [{ id: "1", username: "admin", email: "admin@admin.com", role: "admin", createdAt: new Date().toISOString() }],
-        products: [
-          { id: "1", name: "Crochet Keychain", description: "Handmade crochet keychain", price: "50", category: "Accessories & Bouquet", images: ["/img/keychain/1.jpg"] },
-          { id: "2", name: "Crochet Tote Bags", description: "Stylish crochet tote bag", price: "200", category: "Bags", images: ["/img/bag/1.jpg"] },
-          { id: "3", name: "Crochet Scarf", description: "Warm and cozy crochet scarf", price: "150", category: "Clothing", images: ["/img/scarf/1.jpg"] },
-          { id: "4", name: "Crochet Coasters", description: "Set of 4 decorative crochet coasters", price: "200", category: "Home Decor", images: ["/img/coaster/1.jpg"] },
-          { id: "5", name: "Crochet Headband & Bandana", description: "Lightweight crochet headbands", price: "50", category: "Accessories & Bouquet", images: ["/img/headband/1.jpg"] },
-          { id: "6", name: "Crochet Bouquet", description: "A handmade crochet bouquet", price: "200", category: "Accessories & Bouquet", images: ["/img/flower/1.jpg"] }
-        ],
-        orders: [], carts: {}, addresses: {}
-      };
-    }
-    
-    // Now try to initialize Firebase for real-time features
     admin = require('firebase-admin');
     
     if (admin.apps.length > 0) {
       db = admin.firestore();
       firebaseInitialized = true;
-      console.log('Firebase already initialized');
-    } else {
-      const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-      if (serviceAccountJson) {
-        const serviceAccount = JSON.parse(serviceAccountJson);
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
-        db = admin.firestore();
-        firebaseInitialized = true;
-        console.log('Firebase initialized with service account');
-      } else {
-        console.log('Firebase service account not configured, using local storage only');
-        return true;
-      }
+      await loadFromFirestore();
+      return true;
     }
     
-    // If Firebase is ready, sync local data to Firestore to ensure consistency
-    if (firebaseInitialized && db) {
-      console.log('Syncing complete local data to Firestore...');
-      try {
-        await syncToFirestore(cache);
-        console.log('Firestore sync completed successfully');
-      } catch (err) {
-        console.warn('Firestore sync failed (non-critical):', err.message);
-      }
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (serviceAccountJson) {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      db = admin.firestore();
+      firebaseInitialized = true;
+      await loadFromFirestore();
+      return true;
     }
     
-    return true;
+    console.log('Firebase not configured, using local data');
+    return loadFromLocal();
   } catch (error) {
     console.warn('Firebase initialization failed:', error.message);
-    console.warn('Stack trace:', error.stack);
-    // Ensure we have at least minimal data
-    if (!cache.products || cache.products.length === 0) {
-      cache = {
-        users: [{ id: "1", username: "admin", email: "admin@admin.com", role: "admin", createdAt: new Date().toISOString() }],
-        products: [
-          { id: "1", name: "Crochet Keychain", description: "Handmade crochet keychain", price: "50", category: "Accessories & Bouquet", images: ["/img/keychain/1.jpg"] },
-          { id: "2", name: "Crochet Tote Bags", description: "Stylish crochet tote bag", price: "200", category: "Bags", images: ["/img/bag/1.jpg"] },
-          { id: "3", name: "Crochet Scarf", description: "Warm and cozy crochet scarf", price: "150", category: "Clothing", images: ["/img/scarf/1.jpg"] },
-          { id: "4", name: "Crochet Coasters", description: "Set of 4 decorative crochet coasters", price: "200", category: "Home Decor", images: ["/img/coaster/1.jpg"] },
-          { id: "5", name: "Crochet Headband & Bandana", description: "Lightweight crochet headbands", price: "50", category: "Accessories & Bouquet", images: ["/img/headband/1.jpg"] },
-          { id: "6", name: "Crochet Bouquet", description: "A handmade crochet bouquet", price: "200", category: "Accessories & Bouquet", images: ["/img/flower/1.jpg"] }
-        ],
-        orders: [], carts: {}, addresses: {}
-      };
-    }
-    return true;
+    return loadFromLocal();
   }
 };
 
@@ -95,153 +49,71 @@ const loadFromLocal = () => {
   try {
     const fs = require('fs');
     const path = require('path');
+    // db.json is copied to netlify/functions/ during build
     const localPath = path.join(__dirname, 'db.json');
     console.log('Loading db.json from:', localPath);
     if (fs.existsSync(localPath)) {
       const raw = fs.readFileSync(localPath, 'utf8');
-      const localData = JSON.parse(raw);
-      // Ensure all required fields exist
-      if (!localData.products) localData.products = [];
-      if (!localData.users) localData.users = [];
-      if (!localData.orders) localData.orders = [];
-      if (!localData.carts) localData.carts = {};
-      if (!localData.addresses) localData.addresses = {};
-      
-      // Migration: ensure confirmed field exists on all orders
-      let migrated = false;
-      localData.orders = localData.orders.map(order => {
-        if (order.confirmed === undefined) {
-          migrated = true;
-          return { ...order, confirmed: false };
-        }
-        return order;
-      });
-      if (migrated) {
-        console.log('Migrated orders: added confirmed=false to existing orders');
-        // Save the migrated data back
-        try {
-          fs.writeFileSync(localPath, JSON.stringify(localData, null, 2));
-          console.log('Saved migrated db.json');
-        } catch (e) {
-          console.warn('Failed to save migrated db.json:', e.message);
-        }
-      }
-      
-      cache = localData;
-      console.log(`Loaded complete local data: ${cache.products.length} products, ${cache.users.length} users, ${cache.orders.length} orders`);
-      
-      if (db && firebaseInitialized) {
-        console.log('Syncing complete local data to Firestore...');
-        try {
-          await syncToFirestore(cache);
-          console.log('Firestore sync completed successfully');
-        } catch (err) {
-          console.warn('Firestore sync failed (non-critical):', err.message);
-        }
-      }
-      return true;
+      cache = JSON.parse(raw);
+      // Ensure carts and addresses objects exist
+      if (!cache.carts) cache.carts = {};
+      if (!cache.addresses) cache.addresses = {};
+      console.log(`Loaded local data: ${cache.products?.length || 0} products, ${cache.users?.length || 0} users, ${cache.orders?.length || 0} orders, ${Object.keys(cache.carts).length} carts, ${Object.keys(cache.addresses).length} users with addresses`);
     } else {
       console.warn('db.json not found at:', localPath);
-      cache = getDefaultData();
-    }
-  } catch (e) {
-    console.warn('Failed to load local file:', e.message);
-    cache = getDefaultData();
-  }
-  return true;
-};
-
-const getDefaultData = () => ({
-  users: [
-    {
-      id: "1",
-      username: "admin",
-      email: "admin@admin.com",
-      password: "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
-      role: "admin",
-      createdAt: "2024-01-01T00:00:00.000Z",
-      name: "Admin",
-      phone: "0912-345-6789",
-      bio: "Store owner",
-      storeName: "Crochet Haven",
-      location: "Manila"
-    }
-  ],
-  products: [
-    {
-      id: "1",
-      name: "Crochet Keychain",
-      description: "Handmade crochet keychain with cute design",
-      price: "50",
-      category: "Accessories & Bouquet",
-      images: ["/img/keychain/1.jpg", "/img/keychain/2.jpg", "/img/keychain/3.jpg", "/img/keychain/4.jpg", "/img/keychain/5.jpg", "/img/keychain/6.jpg", "/img/keychain/7.jpg", "/img/keychain/8.jpg", "/img/keychain/9.jpg", "/img/keychain/10.jpg", "/img/keychain/11.jpg", "/img/keychain/12.jpg"]
-    },
-    {
-      id: "2",
-      name: "Crochet Tote Bags",
-      description: "Stylish crochet tote bag for everyday use",
-      price: "200",
-      category: "Bags",
-      images: ["/img/bag/1.jpg", "/img/bag/2.jpg", "/img/bag/3.jpg", "/img/bag/4.jpg", "/img/bag/5.jpg", "/img/bag/6.jpg"]
-    },
-    {
-      id: "3",
-      name: "Crochet Scarf",
-      description: "Warm and cozy crochet scarf",
-      price: "150",
-      category: "Clothing",
-      images: ["/img/scarf/1.jpg", "/img/scarf/2.jpg", "/img/scarf/3.jpg", "/img/scarf/4.jpg", "/img/scarf/5.jpg"]
-    },
-    {
-      id: "4",
-      name: "Crochet Coasters",
-      description: "Set of 4 decorative crochet coasters",
-      price: "200",
-      category: "Home Decor",
-      images: ["/img/coaster/1.jpg", "/img/coaster/2.jpg", "/img/coaster/3.jpg", "/img/coaster/4.jpg", "/img/coaster/5.jpg", "/img/coaster/6.jpg"]
-    },
-    {
-      id: "5",
-      name: "Crochet Headband & Bandana",
-      description: "Lightweight crochet headbands designed for comfort and a cute, casual look",
-      price: "50",
-      category: "Accessories & Bouquet",
-      images: ["/img/headband/1.jpg", "/img/headband/2.jpg", "/img/headband/3.jpg", "/img/headband/4.jpg", "/img/headband/5.jpg", "/img/headband/6.jpg", "/img/headband/7.jpg", "/img/headband/8.jpg", "/img/headband/9.jpg"]
-    },
-    {
-      id: "6",
-      name: "Crochet Bouquet",
-      description: "A handmade crochet bouquet that lasts forever—beautiful, meaningful, and perfect for any occasion",
-      price: "200",
-      category: "Accessories & Bouquet",
-      images: ["/img/flower/1.jpg", "/img/flower/2.jpg", "/img/flower/3.jpg", "/img/flower/4.jpg", "/img/flower/5.jpg", "/img/flower/6.jpg", "/img/flower/7.jpg", "/img/flower/8.jpg", "/img/flower/9.jpg", "/img/flower/10.jpg", "/img/flower/11.jpg"]
-    }
-  ],
-  orders: [],
-  carts: {},
-  addresses: {}
-});
-      console.log('Using default complete data with 6 products');
-    }
-  } catch (e) {
-    console.warn('Failed to load local file:', e.message);
-    // Return complete default data
-    cache = {
-      users: [{ id: "1", username: "admin", email: "admin@admin.com", role: "admin", createdAt: new Date().toISOString() }],
-      products: [
-        { id: "1", name: "Crochet Keychain", description: "Handmade crochet keychain", price: "50", category: "Accessories & Bouquet", images: Array(12).fill("/img/keychain/1.jpg") },
-        { id: "2", name: "Crochet Tote Bags", description: "Stylish crochet tote bag", price: "200", category: "Bags", images: Array(6).fill("/img/bag/1.jpg") },
-        { id: "3", name: "Crochet Scarf", description: "Warm and cozy crochet scarf", price: "150", category: "Clothing", images: Array(5).fill("/img/scarf/1.jpg") },
-        { id: "4", name: "Crochet Coasters", description: "Set of 4 decorative crochet coasters", price: "200", category: "Home Decor", images: Array(6).fill("/img/coaster/1.jpg") },
-        { id: "5", name: "Crochet Headband & Bandana", description: "Lightweight crochet headbands", price: "50", category: "Accessories & Bouquet", images: Array(9).fill("/img/headband/1.jpg") },
-        { id: "6", name: "Crochet Bouquet", description: "A handmade crochet bouquet", price: "200", category: "Accessories & Bouquet", images: Array(11).fill("/img/flower/1.jpg") }
-      ],
-      orders: [],
-      carts: {}
-    };
-  }
-  return true;
-};
+      // Provide default data structure with sample products
+      cache = {
+        users: [
+          {
+            id: "1",
+            username: "admin",
+            email: "admin@admin.com",
+            password: "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
+            role: "admin",
+            createdAt: "2024-01-01T00:00:00.000Z",
+            name: "Admin",
+            phone: "0912-345-6789",
+            bio: "Store owner",
+            storeName: "Crochet Haven",
+            location: "Manila"
+          }
+        ],
+        products: [
+          {
+            id: "1",
+            name: "Crochet Keychain",
+            description: "Handmade crochet keychain with cute design",
+            price: "50",
+            category: "Accessories & Bouquet",
+            images: ["/img/keychain/1.jpg", "/img/keychain/2.jpg", "/img/keychain/3.jpg"]
+          },
+          {
+            id: "2",
+            name: "Crochet Tote Bags",
+            description: "Stylish crochet tote bag for everyday use",
+            price: "200",
+            category: "Bags",
+            images: ["/img/bag/1.jpg", "/img/bag/2.jpg", "/img/bag/3.jpg"]
+          },
+          {
+            id: "3",
+            name: "Crochet Scarf",
+            description: "Warm and cozy crochet scarf",
+            price: "150",
+            category: "Clothing",
+            images: ["/img/scarf/1.jpg", "/img/scarf/2.jpg", "/img/scarf/3.jpg"]
+          },
+          {
+            id: "4",
+            name: "Crochet Coasters",
+            description: "Set of 4 decorative crochet coasters",
+            price: "200",
+            category: "Home Decor",
+            images: ["/img/coaster/1.jpg", "/img/coaster/2.jpg", "/img/coaster/3.jpg"]
+          }
+        ],
+        orders: []
+      };
     }
   } catch (e) {
     console.warn('Failed to load local file:', e.message);
@@ -307,31 +179,20 @@ const loadFromFirestore = async () => {
   if (!db) return false;
   
   try {
-    console.log('Firestore: Attempting to load data from Firestore collections...');
     const data = { users: [], products: [], orders: [], carts: {}, addresses: {} };
     
     const usersSnap = await db.collection('users').get();
     usersSnap.docs.forEach(d => data.users.push(d.data()));
-    console.log('Firestore: Loaded', data.users.length, 'users');
     
     const productsSnap = await db.collection('products').get();
     productsSnap.docs.forEach(d => data.products.push(d.data()));
-    console.log('Firestore: Loaded', data.products.length, 'products');
     
     const ordersSnap = await db.collection('orders').get();
     ordersSnap.docs.forEach(d => data.orders.push(d.data()));
-    console.log('Firestore: Loaded', data.orders.length, 'orders');
     
-    // Only use Firestore data if it has actual content
-    if (data.users.length > 0 && data.products.length > 0) {
-      cache = data;
-      firebaseInitialized = true;
-      console.log('Firestore data loaded successfully');
-      return true;
-    } else {
-      console.log('Firestore collections are empty, falling back to local db.json');
-      return loadFromLocal();
-    }
+    cache = data;
+    console.log(`Loaded from Firestore: ${data.users.length} users, ${data.products.length} products`);
+    return true;
   } catch (error) {
     console.warn('Failed to load from Firestore:', error.message);
     return loadFromLocal();
@@ -342,11 +203,6 @@ const saveToAll = async (data) => {
   cache = data;
 
   console.log('Serverless Debug - Saving data, Firestore initialized:', firebaseInitialized);
-  console.log('Serverless Debug - Data to save:', {
-    users: data.users?.length || 0,
-    products: data.products?.length || 0,
-    orders: data.orders?.length || 0
-  });
 
   try {
     const fs = require('fs');
@@ -367,7 +223,7 @@ const saveToAll = async (data) => {
       console.warn('Firestore sync failed:', err.message);
     }
   } else {
-    console.log('Firestore not available, data only saved locally');
+    console.log('Firestore not available, data only saved locally (will not persist)');
   }
 };
 
@@ -422,13 +278,8 @@ const decodeToken = (authHeader) => {
 exports.handler = async (event, context) => {
   console.log('Serverless Debug - Function called with path:', event.path, 'method:', event.httpMethod);
 
-  // Initialize on first request - load complete data from local db.json
   if (!admin) {
-    const initialized = await initializeFirebase();
-    console.log('Server initialization complete. Firebase enabled:', firebaseInitialized);
-    console.log('Current cache state - Products:', cache.products?.length || 0, 
-                'Users:', cache.users?.length || 0, 
-                'Orders:', cache.orders?.length || 0);
+    await initializeFirebase();
   }
 
   const corsHeaders = {
@@ -660,9 +511,9 @@ exports.handler = async (event, context) => {
     }
 
     else if (path.includes('/api/products') && method === 'GET') {
-      console.log('Serving products from cache:', cache.products?.length || 0, 'items');
+      console.log('Serving products:', cache.products?.length || 0, 'items');
       if (cache.products && cache.products.length > 0) {
-        console.log('Products list:', cache.products.map(p => `[${p.id}] ${p.name} (${p.category})`).join(', '));
+        console.log('Sample products:', cache.products.slice(0, 3).map(p => ({ id: p.id, name: p.name, category: p.category })));
         // Count products by category
         const categoryCount = cache.products.reduce((acc, p) => {
           acc[p.category] = (acc[p.category] || 0) + 1;
@@ -775,9 +626,7 @@ exports.handler = async (event, context) => {
         statusCode = 404;
         responseData = { error: "Order not found" };
       } else {
-        const { status, confirmed } = body;
-        if (status !== undefined) cache.orders[index].status = status;
-        if (confirmed !== undefined) cache.orders[index].confirmed = confirmed;
+        cache.orders[index] = { ...cache.orders[index], ...body };
         await saveToAll(cache);
         responseData = cache.orders[index];
       }

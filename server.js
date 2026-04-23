@@ -273,14 +273,8 @@ app.put('/api/auth/change-password', async (req, res) => {
 
 // ─── Products routes ──────────────────────────────────────────────────────────
 app.get('/api/products', (req, res) => {
-  try {
-    const db = readDb();
-    console.log(`API: Serving ${db.products?.length || 0} products: ${db.products?.map(p => p.name).join(', ')}`);
-    res.json(db.products || []);
-  } catch (err) {
-    console.error('API Error fetching products:', err);
-    res.status(500).json({ error: "Failed to read products" });
-  }
+  try { res.json(readDb().products); }
+  catch { res.status(500).json({ error: "Failed to read products" }); }
 });
 
 app.post('/api/products', (req, res) => {
@@ -387,12 +381,7 @@ app.put('/api/orders/:id', (req, res) => {
     const db    = readDb();
     const index = db.orders.findIndex(o => o.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: "Order not found" });
-
-    // Update allowed fields (status and confirmed)
-    const { status, confirmed } = req.body;
-    if (status) db.orders[index].status = status;
-    if (confirmed !== undefined) db.orders[index].confirmed = confirmed;
-
+    db.orders[index] = { ...db.orders[index], status: req.body.status };
     writeDb(db);
     res.json(db.orders[index]);
   } catch { res.status(500).json({ error: "Failed to update order" }); }
