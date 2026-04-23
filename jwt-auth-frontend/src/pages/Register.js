@@ -19,6 +19,14 @@ const U = {
   ERROR:     'error',
 };
 
+const E = {
+  IDLE:      'idle',
+  CHECKING:  'checking',
+  TAKEN:     'taken',
+  AVAILABLE: 'available',
+  ERROR:     'error',
+};
+
 /* ═══════════════════════════════════════════════════
    FLOATING EMOJIS (matches Login page)
 ═══════════════════════════════════════════════════ */
@@ -314,16 +322,26 @@ We may update these terms from time to time. Continued use of the platform const
 9. GOVERNING LAW
 These terms are governed by the laws of the Republic of the Philippines.
 
-By clicking "I Agree & Create Account" you confirm you have read and accept these Terms & Conditions.`;
+ By clicking "I Agree & Create Account" you confirm you have read and accept these Terms & Conditions.`;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ═══════════════════════════════════════════════════
-   HELPERS — detect server username-taken error
-═══════════════════════════════════════════════════ */
+   HELPERS — detect server username/email taken errors
+══════════════════════════════════════════════════════ */
 const isUsernameTakenError = (msg = '') => {
   const lower = msg.toLowerCase();
   return (
     lower.includes('username') &&
     (lower.includes('taken') || lower.includes('already') || lower.includes('exist') || lower.includes('unavailable'))
+  );
+};
+
+const isEmailTakenError = (msg = '') => {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('email') &&
+    (lower.includes('taken') || lower.includes('already') || lower.includes('exist') || lower.includes('registered') || lower.includes('unavailable'))
   );
 };
 
@@ -334,16 +352,18 @@ const Register = () => {
   const navigate = useNavigate();
   const fileRef  = useRef(null);
   const termsRef = useRef(null);
-  const uTimer   = useRef(null);
+   const uTimer   = useRef(null);
+   const eTimer   = useRef(null);
 
   const [step, setStep] = useState(STEP_INFO);
   const [form, setForm] = useState({
     username: '', fullName: '', email: '', phone: '', address: '', password: '', confirmPassword: '',
   });
 
-  const [uStatus,      setUStatus]      = useState(U.IDLE);
-  const [fieldErrors,  setFieldErrors]  = useState({});
-  const [touched,      setTouched]      = useState({});
+   const [uStatus,      setUStatus]      = useState(U.IDLE);
+   const [eStatus,      setEStatus]      = useState(E.IDLE);
+   const [fieldErrors,  setFieldErrors]  = useState({});
+   const [touched,      setTouched]      = useState({});
 
   const [globalError,  setGlobalError]  = useState('');
   const [isLoading,    setIsLoading]    = useState(false);
@@ -357,10 +377,13 @@ const Register = () => {
   const [showDisagree, setShowDisagree] = useState(false);
   const [focused,      setFocused]      = useState('');
 
-  const usernameRef = useRef(form.username);
-  usernameRef.current = form.username;
+   const usernameRef = useRef(form.username);
+   usernameRef.current = form.username;
 
-  const fireUsernameCheck = useCallback(async (u) => {
+   const emailRef = useRef(form.email);
+   emailRef.current = form.email;
+
+   const fireUsernameCheck = useCallback(async (u) => {
     setUStatus(U.CHECKING);
     try {
       const res = await axios.get(
@@ -374,6 +397,21 @@ const Register = () => {
     }
   }, []);
 
+  const fireEmailCheck = useCallback(async (e) => {
+    setEStatus(E.CHECKING);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(e)}`
+      );
+      if (emailRef.current.trim() === e) {
+        setEStatus(res.data?.available === true ? E.AVAILABLE : E.TAKEN);
+      }
+    } catch {
+      if (emailRef.current.trim() === e) setEStatus(E.IDLE);
+    }
+  }, []);
+
+  // Username availability check
   useEffect(() => {
     clearTimeout(uTimer.current);
     const u = form.username.trim();
@@ -381,16 +419,40 @@ const Register = () => {
     setUStatus(U.CHECKING);
     uTimer.current = setTimeout(() => fireUsernameCheck(u), 600);
     return () => clearTimeout(uTimer.current);
-  }, [form.username, fireUsernameCheck]);
+   }, [form.username, fireUsernameCheck]);
+
+  // Email availability check
+  useEffect(() => {
+    clearTimeout(eTimer.current);
+    const em = form.email.trim();
+    if (!EMAIL_REGEX.test(em)) { setEStatus(E.IDLE); return; }
+    setEStatus(E.CHECKING);
+    eTimer.current = setTimeout(() => fireEmailCheck(em), 600);
+    return () => clearTimeout(eTimer.current);
+  }, [form.email, fireEmailCheck]);
 
   const runUsernameCheck = useCallback(() => {
     const u = usernameRef.current.trim();
     if (u.length < 5) return;
     clearTimeout(uTimer.current);
     fireUsernameCheck(u);
-  }, [fireUsernameCheck]);
+   }, [fireUsernameCheck]);
 
   const uIndicator = { [U.IDLE]: '', [U.CHECKING]: '⏳', [U.AVAILABLE]: '✅', [U.TAKEN]: '❌', [U.ERROR]: '' }[uStatus];
+
+  const eIndicator = { [E.IDLE]: '', [E.CHECKING]: '⏳', [E.AVAILABLE]: '✅', [E.TAKEN]: '❌', [E.ERROR]: '' }[eStatus];
+
+   const renderEmailMsg = () => {
+     const len = form.email.trim().length;
+     if (len === 0) return null;
+     if (!EMAIL_REGEX.test(form.email)) return <div className="ferr">⚠ Enter a valid email address.</div>;
+     switch (eStatus) {
+       case E.CHECKING:  return <div className="fnfo">⏳ Checking availability…</div>;
+       case E.AVAILABLE: return <div className="fok">✓ Email is available!</div>;
+       case E.TAKEN:     return <div className="ferr">❌ This email is already registered. Please use another.</div>;
+       default:          return null;
+     }
+   };
 
   const renderUsernameMsg = () => {
     const len = form.username.trim().length;
@@ -404,20 +466,23 @@ const Register = () => {
     }
   };
 
-  /* ─── STEP 1 VALIDATION ─── */
-  const validateInfoWithStatus = (resolvedStatus) => {
+  const validateInfoWithStatus = (resolvedStatus, emailStatus) => {
     const errs = {};
     const u = form.username.trim();
     if (!u)                errs.username = 'Username is required.';
     else if (u.length < 5) errs.username = 'Username must be at least 5 characters.';
     else if (resolvedStatus === U.CHECKING) errs.username = 'Please wait — still checking username availability.';
     else if (resolvedStatus === U.TAKEN)    errs.username = 'This username is already taken. Please choose another.';
+    else if (resolvedStatus === U.IDLE && u.length >= 5) {
+      errs.username = 'Please wait — checking username availability.';
+    }
 
     if (!form.fullName.trim()) errs.fullName = 'Full name is required.';
 
-    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.email.trim())             errs.email = 'Email is required.';
-    else if (!emailRx.test(form.email)) errs.email = 'Enter a valid email address.';
+    else if (!EMAIL_REGEX.test(form.email)) errs.email = 'Enter a valid email address.';
+    else if (emailStatus === E.CHECKING) errs.email = 'Please wait — checking email availability.';
+    else if (emailStatus === E.TAKEN)    errs.email = 'This email is already registered. Please use another.';
 
     const phoneDigits = form.phone.replace(/\D/g, '');
     if (!form.phone.trim())                 errs.phone = 'Phone number is required.';
@@ -432,32 +497,63 @@ const Register = () => {
   };
 
   const goToAvatar = async () => {
-    setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
-
-    const u = form.username.trim();
-    if (u.length >= 5 && (uStatus === U.IDLE || uStatus === U.CHECKING || uStatus === U.ERROR)) {
-      clearTimeout(uTimer.current);
-      setUStatus(U.CHECKING);
-      try {
-        const res = await axios.get(
-          `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
-        );
-        const resolved = res.data?.available === true ? U.AVAILABLE : U.TAKEN;
-        setUStatus(resolved);
-        const errs = validateInfoWithStatus(resolved);
-        setFieldErrors(errs);
-        if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
-      } catch {
-        setUStatus(U.IDLE);
-        const errs = validateInfoWithStatus(U.IDLE);
-        setFieldErrors(errs);
-        if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
-      }
+    // Block immediately if known invalid states
+    if (uStatus === U.TAKEN) {
+      setFieldErrors({ username: 'This username is already taken. Please choose another.' });
       return;
     }
-    const errs = validateInfoWithStatus(uStatus);
-    setFieldErrors(errs);
-    if (Object.keys(errs).length === 0) setStep(STEP_AVATAR);
+    if (uStatus === U.CHECKING) {
+      setFieldErrors({ username: 'Still checking username availability. Please wait.' });
+      return;
+    }
+    if (uStatus === U.ERROR) {
+      setFieldErrors({ username: 'Could not verify username. Please try again.' });
+      return;
+    }
+    if (eStatus === E.TAKEN) {
+      setFieldErrors({ email: 'This email is already registered. Please use another.' });
+      return;
+    }
+    if (eStatus === E.CHECKING) {
+      setFieldErrors({ email: 'Still checking email availability. Please wait.' });
+      return;
+    }
+    if (eStatus === E.ERROR) {
+      setFieldErrors({ email: 'Could not verify email. Please try again.' });
+      return;
+    }
+
+    const u = form.username.trim();
+
+    // Basic length validation first
+    if (u.length < 5) {
+      setFieldErrors(validateInfoWithStatus(uStatus, eStatus));
+      return;
+    }
+
+    // Perform a definitive check with server
+    clearTimeout(uTimer.current);
+    setUStatus(U.CHECKING);
+    setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
+      );
+      const available = res.data?.available === true;
+      const newStatus = available ? U.AVAILABLE : U.TAKEN;
+      setUStatus(newStatus);
+      const errs = validateInfoWithStatus(newStatus, eStatus);
+      setFieldErrors(errs);
+      if (Object.keys(errs).length === 0) {
+        setStep(STEP_AVATAR);
+      }
+     } catch (err) {
+       console.error('Username check failed:', err);
+       setUStatus(U.ERROR);
+       const errs = validateInfoWithStatus(U.ERROR, eStatus);
+       setFieldErrors(errs);
+     }
   };
 
   /* ─── SUBMIT ─── */
@@ -465,7 +561,7 @@ const Register = () => {
     setIsLoading(true);
     setGlobalError('');
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
+      const payload = {
         username: form.username,
         email:    form.email,
         password: form.password,
@@ -473,10 +569,18 @@ const Register = () => {
         phone:    form.phone,
         address:  form.address,
         avatar:   avatar || null,
-      });
+      };
+      console.log('Register - Submitting payload:', { ...payload, avatar: avatar ? '(image data present)' : null });
+
+      const res = await axios.post(`${API_BASE_URL}/api/auth/register`, payload);
+
+      console.log('Register - Response received:', res.status, res.data);
 
       const token = res.data?.token || res.data?.accessToken || null;
-      if (token) saveToken(token);
+      if (token) {
+        saveToken(token);
+        console.log('Register - Token saved');
+      }
 
       const userData = {
         id:        res.data?.id        || Date.now().toString(),
@@ -490,8 +594,12 @@ const Register = () => {
         createdAt: res.data?.createdAt || new Date().toISOString(),
       };
 
+      console.log('Register - User data prepared:', userData);
+
       localStorage.setItem('ch_user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('userId', userData.id);
+      console.log('Register - User data saved to localStorage');
 
       saveUserProfile({
         username:  userData.username,
@@ -503,23 +611,30 @@ const Register = () => {
         createdAt: userData.createdAt,
         avatar:    userData.avatar,
       });
-      saveAvatar(avatar || null);
+      console.log('Register - User profile saved via saveUserProfile');
+
+      if (avatar) {
+        saveAvatar(avatar);
+        console.log('Register - Avatar saved separately');
+      }
 
       setShowSuccess(true);
       setTimeout(() => navigate('/'), 2300);
 
     } catch (err) {
+      console.error('Register - Error during registration:', err);
       setIsLoading(false);
       const serverMsg = err.response?.data?.message || '';
 
       if (err.response && isUsernameTakenError(serverMsg)) {
         setUStatus(U.TAKEN);
-        setFieldErrors({ username: 'This username is already taken. Please choose another.' });
+        setFieldErrors(validateInfoWithStatus(U.TAKEN, eStatus));
         setStep(STEP_INFO);
         return;
       }
-      if (err.response && serverMsg.toLowerCase().includes('email')) {
-        setFieldErrors({ email: serverMsg || 'This email is already registered.' });
+      if (err.response && isEmailTakenError(serverMsg)) {
+        setEStatus(E.TAKEN);
+        setFieldErrors(validateInfoWithStatus(uStatus, E.TAKEN));
         setStep(STEP_INFO);
         return;
       }
@@ -678,23 +793,35 @@ const Register = () => {
                     : null}
               </div>
 
-              {/* Email */}
-              <div style={st.fg}>
-                <label style={st.label}>✉️ Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={ch('email')}
-                  placeholder="Enter your email"
-                  style={inp('email', !!fieldErrors.email || (touched.email && !form.email.trim()))}
-                  {...fc('email')}
-                />
-                {fieldErrors.email
-                  ? <div className="ferr">⚠ {fieldErrors.email}</div>
-                  : touched.email && !form.email.trim()
-                    ? <div className="ferr">⚠ Email is required.</div>
-                    : null}
-              </div>
+               {/* Email */}
+               <div style={st.fg}>
+                 <label style={st.label}>✉️ Email</label>
+                 <div style={{ position: 'relative' }}>
+                   <input
+                     type="email"
+                     value={form.email}
+                     onChange={ch('email')}
+                     placeholder="Enter your email"
+                     style={{
+                       ...inp('email', !!fieldErrors.email || (touched.email && !form.email.trim())),
+                       paddingRight: '40px',
+                     }}
+                     {...fc('email')}
+                   />
+                   {eIndicator && (
+                     <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1, pointerEvents: 'none' }}>
+                       {eIndicator}
+                     </span>
+                   )}
+                 </div>
+                 {touched.email && !form.email.trim()
+                   ? <div className="ferr">⚠ Email is required.</div>
+                   : renderEmailMsg() ?? (fieldErrors.email && eStatus !== E.TAKEN
+                       ? <div className="ferr">⚠ {fieldErrors.email}</div>
+                       : null
+                     )
+                 }
+               </div>
 
               {/* Phone */}
               <div style={st.fg}>
