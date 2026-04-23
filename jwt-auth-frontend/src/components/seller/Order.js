@@ -264,15 +264,28 @@ const Order = () => {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-    const poll = setInterval(fetchOrders, 10000); // refresh every 10s
-    const onUpdate = () => fetchOrders();
-    const onStorage = e => { if (e.key === "ordersUpdatedAt") fetchOrders(); };
-    window.addEventListener("ordersUpdated", onUpdate);
-    window.addEventListener("storage", onStorage);
-    return () => { clearInterval(poll); window.removeEventListener("ordersUpdated", onUpdate); window.removeEventListener("storage", onStorage); };
-  }, [fetchOrders]);
+   useEffect(() => {
+     fetchOrders();
+     const poll = setInterval(fetchOrders, 10000); // refresh every 10s
+     const onUpdate = () => fetchOrders();
+     const onStorage = e => { if (e.key === "ordersUpdatedAt") fetchOrders(); };
+     window.addEventListener("ordersUpdated", onUpdate);
+     window.addEventListener("storage", onStorage);
+     return () => { clearInterval(poll); window.removeEventListener("ordersUpdated", onUpdate); window.removeEventListener("storage", onStorage); };
+   }, [fetchOrders]);
+
+   // Refresh orders when tab/window becomes visible or focused
+   useEffect(() => {
+     const handleRefresh = () => {
+       fetchOrders();
+     };
+     window.addEventListener('focus', handleRefresh);
+     document.addEventListener('visibilitychange', handleRefresh);
+     return () => {
+       window.removeEventListener('focus', handleRefresh);
+       document.removeEventListener('visibilitychange', handleRefresh);
+     };
+   }, [fetchOrders]);
 
    const updateStatus = async (id, status) => {
      if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }

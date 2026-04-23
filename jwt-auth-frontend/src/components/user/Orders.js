@@ -491,21 +491,34 @@ const Orders = () => {
     } catch { /* non-critical */ }
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-    fetchProductsMap();
-    // Auto-refresh orders every 10 seconds
-    const autoRefresh = setInterval(fetchOrders, 10000);
-    const onUpdate = () => fetchOrders();
-    const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
-    window.addEventListener('ordersUpdated', onUpdate);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      clearInterval(autoRefresh);
-      window.removeEventListener('ordersUpdated', onUpdate);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, [fetchOrders, fetchProductsMap]);
+   useEffect(() => {
+     fetchOrders();
+     fetchProductsMap();
+     // Auto-refresh orders every 10 seconds
+     const autoRefresh = setInterval(fetchOrders, 10000);
+     const onUpdate = () => fetchOrders();
+     const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
+     window.addEventListener('ordersUpdated', onUpdate);
+     window.addEventListener('storage', onStorage);
+     return () => {
+       clearInterval(autoRefresh);
+       window.removeEventListener('ordersUpdated', onUpdate);
+       window.removeEventListener('storage', onStorage);
+     };
+   }, [fetchOrders, fetchProductsMap]);
+
+   // Refresh orders when tab/window becomes visible or focused
+   useEffect(() => {
+     const handleRefresh = () => {
+       fetchOrders();
+     };
+     window.addEventListener('focus', handleRefresh);
+     document.addEventListener('visibilitychange', handleRefresh);
+     return () => {
+       window.removeEventListener('focus', handleRefresh);
+       document.removeEventListener('visibilitychange', handleRefresh);
+     };
+   }, [fetchOrders]);
 
 
   const mapStatus = (s) => ({ Processing: 'to_ship', Shipped: 'to_receive', Delivered: 'completed', Cancelled: 'cancelled' }[s] || 'to_ship');
