@@ -1162,14 +1162,21 @@ const Products = () => {
   useEffect(() => { fetchProducts(); }, []);
 
   const fetchProducts = async () => {
+    console.log('Products Debug - Starting fetchProducts...');
     try {
+      console.log('Products Debug - Calling getProductsWithCache...');
       const fetchedProducts = await getProductsWithCache();
+      console.log('Products Debug - Raw response:', fetchedProducts);
       // Ensure fetchedProducts is an array
       const productsArray = Array.isArray(fetchedProducts) ? fetchedProducts : [];
-      console.log('Products Debug - Fetched products:', productsArray.length);
+      console.log('Products Debug - Processed products array:', productsArray.length, 'items');
+      if (productsArray.length > 0) {
+        console.log('Products Debug - Sample product:', productsArray[0]);
+      }
       setProducts(productsArray);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Products Debug - Error fetching products:", error);
+      console.error("Products Debug - Error details:", error.message, error.response?.status, error.response?.data);
       setProducts([]);
     } finally {
       setLoading(false);

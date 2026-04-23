@@ -20,26 +20,29 @@ export const API_BASE_URL = getApiUrl();
 
 export const getProductsWithCache = async () => {
   const online = isOnline();
-  
+
   try {
-    const response = await axios.get(`${API_BASE_URL}/products`, {
+    console.log('API Debug - Fetching products from:', `${API_BASE_URL}/api/products`);
+    const response = await axios.get(`${API_BASE_URL}/api/products`, {
       timeout: online ? 10000 : 3000
     });
-    
+
+    console.log('API Debug - Products response:', response.data);
     if (response.data && response.data.length > 0) {
       await cacheProducts(response.data);
     }
-    
+
     return response.data;
   } catch (error) {
-    console.warn('Failed to fetch products, trying cache:', error.message);
-    
+    console.warn('API Debug - Failed to fetch products from API:', error.message);
+    console.warn('API Debug - Error details:', error.response?.status, error.response?.data);
+
     const cached = await getCachedProducts();
     if (cached.length > 0) {
-      console.log('Using cached products:', cached.length);
+      console.log('API Debug - Using cached products:', cached.length);
       return cached;
     }
-    
+
     return [];
   }
 };

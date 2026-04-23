@@ -87,36 +87,80 @@ const dashStyles = `
 `;
 
 const Dashboard = () => {
+  console.log('Dashboard Debug - Component rendering');
+
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    console.log('Dashboard Debug - useEffect triggered');
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
+    console.log('Dashboard Debug - Starting fetchData');
     try {
       const [pr, or] = await Promise.allSettled([
         getProductsWithCache(),
         getOrdersWithCache(null),
       ]);
-      if (pr.status === "fulfilled") setProducts(pr.value || []);
-      if (or.status === "fulfilled") setOrders(or.value || []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      console.log('Dashboard Debug - Products result:', pr);
+      console.log('Dashboard Debug - Orders result:', or);
+
+      if (pr.status === "fulfilled") {
+        const productsData = pr.value || [];
+        console.log('Dashboard Debug - Setting products:', productsData.length, 'items');
+        setProducts(productsData);
+      } else {
+        console.error('Dashboard Debug - Products fetch failed:', pr.reason);
+      }
+
+      if (or.status === "fulfilled") {
+        const ordersData = or.value || [];
+        console.log('Dashboard Debug - Setting orders:', ordersData.length, 'items');
+        setOrders(ordersData);
+      } else {
+        console.error('Dashboard Debug - Orders fetch failed:', or.reason);
+      }
+    } catch (e) {
+      console.error('Dashboard Debug - Error in fetchData:', e);
+    }
+    finally {
+      console.log('Dashboard Debug - Setting loading to false');
+      setLoading(false);
+    }
   };
 
-  const totalProducts   = products.length;
-  const totalCategories = new Set(products.map(p => p.category)).size;
-  const totalValue      = products.reduce((s, p) => s + parseFloat(p.price || 0), 0);
-  const totalOrders     = orders.filter(o => o.status === "Processing" || o.status === "Shipped").length;
-  const grouped = products.reduce((a, p) => { a[p.category] = (a[p.category] || 0) + 1; return a; }, {});
+  try {
+    console.log('Dashboard Debug - Calculating stats from products:', products.length, 'orders:', orders.length);
+    var totalProducts   = products.length;
+    var totalCategories = new Set(products.map(p => p.category)).size;
+    var totalValue      = products.reduce((s, p) => s + parseFloat(p.price || 0), 0);
+    var totalOrders     = orders.filter(o => o.status === "Processing" || o.status === "Shipped").length;
+    var grouped = products.reduce((a, p) => { a[p.category] = (a[p.category] || 0) + 1; return a; }, {});
+    console.log('Dashboard Debug - Stats calculated:', { totalProducts, totalCategories, totalValue, totalOrders });
+  } catch (error) {
+    console.error('Dashboard Debug - Error calculating stats:', error);
+    var totalProducts = 0;
+    var totalCategories = 0;
+    var totalValue = 0;
+    var totalOrders = 0;
+    var grouped = {};
+  }
 
-  if (loading) return (
-    <><style>{dashStyles}</style>
-      <div className="ch-dash-loading"><div className="ch-dash-loader" /><span>Loading dashboard…</span></div>
-    </>
-  );
+  console.log('Dashboard Debug - Render check - loading:', loading);
 
+  if (loading) {
+    console.log('Dashboard Debug - Showing loading state');
+    return (
+      <><style>{dashStyles}</style>
+        <div className="ch-dash-loading"><div className="ch-dash-loader" /><span>Loading dashboard…</span></div>
+      </>
+    );
+  }
+
+  console.log('Dashboard Debug - Rendering main dashboard');
   return (
     <>
       <style>{dashStyles}</style>

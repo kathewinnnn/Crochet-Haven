@@ -474,11 +474,12 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/products') && method === 'GET') {
-      responseData = cache.products;
+    else if (path.includes('/api/products') && method === 'GET') {
+      console.log('Serving products:', cache.products?.length || 0, 'items');
+      responseData = cache.products || [];
     }
 
-    else if (path.includes('/products') && method === 'POST') {
+    else if (path.includes('/api/products') && method === 'POST') {
       const newProduct = { ...body };
       cache.products.push(newProduct);
       await saveToAll(cache);
@@ -486,8 +487,8 @@ exports.handler = async (event, context) => {
       responseData = newProduct;
     }
 
-    else if (path.includes('/products/') && method === 'PUT') {
-      const id = path.split('/products/')[1].split('?')[0];
+    else if (path.includes('/api/products/') && method === 'PUT') {
+      const id = path.split('/api/products/')[1].split('?')[0];
       const index = cache.products.findIndex(p => p.id === id);
       if (index === -1) {
         statusCode = 404;
@@ -499,8 +500,8 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/products/') && method === 'DELETE') {
-      const id = path.split('/products/')[1].split('?')[0];
+    else if (path.includes('/api/products/') && method === 'DELETE') {
+      const id = path.split('/api/products/')[1].split('?')[0];
       const filtered = cache.products.filter(p => p.id !== id);
       if (filtered.length === cache.products.length) {
         statusCode = 404;
@@ -512,11 +513,12 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/orders') && method === 'GET') {
+    else if (path.includes('/api/orders') && method === 'GET') {
+      console.log('Serving orders:', cache.orders?.length || 0, 'items');
       responseData = cache.orders || [];
     }
 
-    else if (path.includes('/orders') && method === 'POST') {
+    else if (path.includes('/api/orders') && method === 'POST') {
       const decoded = decodeToken(authHeader);
       const order = {
         id: Date.now().toString(),
@@ -533,8 +535,8 @@ exports.handler = async (event, context) => {
       responseData = order;
     }
 
-    else if (path.includes('/orders/') && path.includes('/cancel') && method === 'POST') {
-      const id = path.split('/orders/')[1].split('/cancel')[0];
+    else if (path.includes('/api/orders/') && path.includes('/cancel') && method === 'POST') {
+      const id = path.split('/api/orders/')[1].split('/cancel')[0];
       const index = cache.orders.findIndex(o => o.id === id);
       if (index === -1) {
         statusCode = 404;
@@ -546,8 +548,8 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/orders/') && method === 'PUT') {
-      const id = path.split('/orders/')[1].split('?')[0];
+    else if (path.includes('/api/orders/') && method === 'PUT') {
+      const id = path.split('/api/orders/')[1].split('?')[0];
       const index = cache.orders.findIndex(o => o.id === id);
       if (index === -1) {
         statusCode = 404;
@@ -559,8 +561,8 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/orders/') && method === 'DELETE') {
-      const id = path.split('/orders/')[1].split('?')[0];
+    else if (path.includes('/api/orders/') && method === 'DELETE') {
+      const id = path.split('/api/orders/')[1].split('?')[0];
       const index = cache.orders.findIndex(o => o.id === id);
       if (index === -1) {
         statusCode = 404;
@@ -572,7 +574,7 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/orders/latest') && method === 'GET') {
+    else if (path.includes('/api/orders/latest') && method === 'GET') {
       const orders = cache.orders || [];
       if (!orders.length) {
         responseData = { latestOrderId: null, latestTimestamp: null };
@@ -582,7 +584,7 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/orders/count') && method === 'GET') {
+    else if (path.includes('/api/orders/count') && method === 'GET') {
       responseData = { count: cache.orders ? cache.orders.length : 0 };
     }
 
