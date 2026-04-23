@@ -341,21 +341,20 @@ app.post('/api/orders', (req, res) => {
   try {
     const decoded = decodeToken(req.headers.authorization);
     const db      = readDb();
+    // Build order: client data first, then override critical fields from token/server
     const order = {
-      id:        Date.now().toString(),
-      userId:    decoded?.id       || null,
-      username:  decoded?.username || null,
       ...req.body,
+      id: Date.now().toString(),
+      userId: decoded?.id || null,
+      username: decoded?.username || null,
       createdAt: new Date().toISOString(),
-      status:    "Processing",
+      status: "Processing"
     };
     if (!db.orders) db.orders = [];
     db.orders.push(order);
     writeDb(db);
     res.status(201).json(order);
-  } catch {
-    res.status(500).json({ error: "Failed to create order" });
-  }
+  } catch { res.status(500).json({ error: "Failed to create order" }); }
 });
 
 app.get('/api/orders/latest', (req, res) => {
@@ -378,10 +377,25 @@ app.get('/api/orders/count', (req, res) => {
 
 app.put('/api/orders/:id', (req, res) => {
   try {
-    const db    = readDb();
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    if (!decoded) return res.status(401).json({ error: "Unauthorized" });
+
+    const db = readDb();
     const index = db.orders.findIndex(o => o.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: "Order not found" });
-    db.orders[index] = { ...db.orders[index], status: req.body.status };
+
+    const order = db.orders[index];
+    const isAdmin = decoded.role === 'admin' || decoded.role === 'seller';
+    const isOwner = order.userId === decoded.id;
+    if (!isAdmin && !isOwner) return res.status(403).json({ error: "You can only update your own orders" });
+
+    const terminalStatuses = ['Delivered', 'Completed', 'Cancelled'];
+    if (req.body.status && order.status !== req.body.status && terminalStatuses.includes(order.status)) {
+      return res.status(400).json({ error: `Cannot change status of a ${order.status} order` });
+    }
+
+    db.orders[index] = { ...db.orders[index], ...req.body };
     writeDb(db);
     res.json(db.orders[index]);
   } catch { res.status(500).json({ error: "Failed to update order" }); }
@@ -389,9 +403,24 @@ app.put('/api/orders/:id', (req, res) => {
 
 app.post('/api/orders/:id/cancel', (req, res) => {
   try {
-    const db    = readDb();
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    if (!decoded) return res.status(401).json({ error: "Unauthorized" });
+
+    const db = readDb();
     const index = db.orders.findIndex(o => o.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: "Order not found" });
+
+    const order = db.orders[index];
+    const isAdmin = decoded.role === 'admin' || decoded.role === 'seller';
+    const isOwner = order.userId === decoded.id;
+    if (!isAdmin && !isOwner) return res.status(403).json({ error: "You can only cancel your own orders" });
+
+    const terminalStatuses = ['Delivered', 'Completed', 'Cancelled'];
+    if (terminalStatuses.includes(order.status)) {
+      return res.status(400).json({ error: `Cannot cancel a ${order.status} order` });
+    }
+
     db.orders[index] = { ...db.orders[index], status: "Cancelled" };
     writeDb(db);
     res.json(db.orders[index]);
@@ -401,12 +430,26 @@ app.post('/api/orders/:id/cancel', (req, res) => {
 app.delete('/api/orders/:id', (req, res) => {
   console.log('DELETE /api/orders/:id called with params:', req.params);
   try {
-    const db    = readDb();
-    const orderIdParam = String(req.params.id); // Ensure string comparison
+    const authHeader = req.headers.authorization;
+    const decoded = decodeToken(authHeader);
+    if (!decoded) return res.status(401).json({ error: "Unauthorized" });
+
+    // Only admin/seller can delete
+    const isAdmin = decoded.role === 'admin' || decoded.role === 'seller';
+    if (!isAdmin) return res.status(403).json({ error: "Only admin/seller can delete orders" });
+
+    const db = readDb();
+    const orderIdParam = String(req.params.id);
     console.log('Looking for order with ID:', orderIdParam);
     console.log('Available orders:', db.orders.map(o => o.id));
     const index = db.orders.findIndex(o => String(o.id) === orderIdParam);
     if (index === -1) return res.status(404).json({ error: "Order not found" });
+
+    const order = db.orders[index];
+    if (order.status !== 'Cancelled') {
+      return res.status(403).json({ error: "Only cancelled orders can be deleted" });
+    }
+
     db.orders.splice(index, 1);
     writeDb(db);
     res.json({ success: true, message: "Order deleted successfully" });

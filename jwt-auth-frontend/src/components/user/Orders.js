@@ -528,7 +528,7 @@ const Orders = () => {
   };
 
   const confirmCancel = async () => {
-    const { displayId, backendId } = cancelModal;
+    const { backendId } = cancelModal;
     setCancelModal({ show: false, displayId: null, backendId: null });
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('ch_token');

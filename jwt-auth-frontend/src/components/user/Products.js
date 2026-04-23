@@ -1296,7 +1296,7 @@ const Products = () => {
     "Accessories & Bouquet": "🌸",
     "Bags": "👜",
     "Clothing": "🧣",
-    "Home Decor": "🏠"
+    "Home Decor": "🏠",
   };
 
   const groupedProducts = (products || []).reduce((acc, product) => {

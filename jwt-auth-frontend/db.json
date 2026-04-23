@@ -379,5 +379,7 @@
       "createdAt": "2026-04-20T10:26:30.496Z",
       "status": "Processing"
     }
-  ]
+  ],
+  "carts": {},
+  "addresses": {}
 }

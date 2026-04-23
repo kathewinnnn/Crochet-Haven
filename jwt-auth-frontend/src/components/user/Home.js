@@ -639,6 +639,7 @@ export default function Home() {
               { emoji: '🧣', name: 'Clothing', desc: 'Cozy hats, scarves, and layers made to keep you warm.', to: '/user/products' },
               { emoji: '🏠', name: 'Home Decor', desc: 'Charming pieces to brighten your space.', to: '/user/products' },
               { emoji: '🎁', name: 'Gift Sets', desc: 'Curated bundles wrapped with warmth.', to: '/user/products' },
+              { emoji: '💍', name: 'Jewelry', desc: 'Delicate crochet accessories to adorn yourself.', to: '/user/products' },
             ].map((cat) => (
               <Link key={cat.name} to={cat.to} className="ch-cat-card">
                 <div className="ch-cat-card-inner">
