@@ -405,18 +405,6 @@ const Register = () => {
 
   const eIndicator = { [E.IDLE]: '', [E.CHECKING]: '⏳', [E.AVAILABLE]: '✅', [E.TAKEN]: '❌', [E.ERROR]: '' }[eStatus];
 
-  const renderEmailMsg = () => {
-    const len = form.email.trim().length;
-    if (len === 0) return null;
-    if (len < 5)   return <div className="ferr">⚠ Must be at least 5 characters ({len}/5)</div>;
-    switch (eStatus) {
-      case E.CHECKING:  return <div className="fnfo">⏳ Checking availability…</div>;
-      case E.AVAILABLE: return <div className="fok">✓ Email is available!</div>;
-      case E.TAKEN:     return <div className="ferr">❌ This email is already registered. Please choose another.</div>;
-      default:          return null;
-    }
-  };
-
   const fireUsernameCheck = useCallback(async (u) => {
     setUStatus(U.CHECKING);
     try {
@@ -448,18 +436,6 @@ const Register = () => {
   }, [fireUsernameCheck]);
 
   const uIndicator = { [U.IDLE]: '', [U.CHECKING]: '⏳', [U.AVAILABLE]: '✅', [U.TAKEN]: '❌', [U.ERROR]: '' }[uStatus];
-
-  const renderUsernameMsg = () => {
-    const len = form.username.trim().length;
-    if (len === 0) return null;
-    if (len < 5)   return <div className="ferr">⚠ Must be at least 5 characters ({len}/5)</div>;
-    switch (uStatus) {
-      case U.CHECKING:  return <div className="fnfo">⏳ Checking availability…</div>;
-      case U.AVAILABLE: return <div className="fok">✓ Username is available!</div>;
-      case U.TAKEN:     return <div className="ferr">❌ This username is already taken. Please choose another.</div>;
-      default:          return null;
-    }
-  };
 
   /* ─── STEP 1 VALIDATION ─── */
 const validateInfoWithStatus = (resolvedUsernameStatus, resolvedEmailStatus) => {
