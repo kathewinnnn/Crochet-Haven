@@ -1,5 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
+// ─── Import the consistent user ID resolver ──────────────────────────────────
+import { resolveUserId } from '../pages/userStorage';
+
 const CartContext = createContext();
 
 export const useCart = () => {
@@ -9,41 +12,12 @@ export const useCart = () => {
 };
 
 // ─── Derive a per-user storage key ───────────────────────────────────────────
-// Reads from 'token' / 'user' — the same keys Login.js actually writes.
+// Uses the same user ID resolution logic as Orders.js, Profile.js, etc.
+// This ensures cart data persists across devices when logged in with same credentials.
 const getUserKey = () => {
-  try {
-    // 1. ch_user (written by Register via userStorage)
-    const chRaw = localStorage.getItem('ch_user');
-    if (chRaw) {
-      const p = JSON.parse(chRaw);
-      const id = p?.id || p?.username || p?.email;
-      if (id) return `cart_${id}`;
-    }
-  } catch { /* ignore */ }
-
-  try {
-    // 2. user (written by Login.js)
-    const uRaw = localStorage.getItem('user');
-    if (uRaw) {
-      const p = JSON.parse(uRaw);
-      const id = p?.id || p?.username || p?.email;
-      if (id) return `cart_${id}`;
-    }
-  } catch { /* ignore */ }
-
-  try {
-    // 3. Decode whichever JWT token key exists
-    const token =
-      localStorage.getItem('ch_token') ||
-      localStorage.getItem('token');
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const id = payload?.id || payload?.username || payload?.email;
-      if (id) return `cart_${id}`;
-    }
-  } catch { /* ignore */ }
-
-  return 'cart_guest';
+  const userId = resolveUserId();
+  console.log('Cart Debug - Resolved user ID for cart key:', userId);
+  return userId ? `cart_${userId}` : 'cart_guest';
 };
 
 const safeRead = (key, fallback) => {
@@ -60,28 +34,72 @@ const safeRead = (key, fallback) => {
 // ─── Provider ────────────────────────────────────────────────────────────────
 export const CartProvider = ({ children }) => {
   const [userKey,       setUserKey]       = useState(getUserKey);
-  const [cart,          setCart]          = useState(() => safeRead(getUserKey(), []));
-  const [selectedItems, setSelectedItems] = useState(() => safeRead(`${getUserKey()}_selected`, []));
+  const [cart,          setCart]          = useState(() => {
+    const initialKey = getUserKey();
+    const initialCart = safeRead(initialKey, []);
+    console.log('Cart Debug - Initial load:', { key: initialKey, items: initialCart.length });
+    return initialCart;
+  });
+  const [selectedItems, setSelectedItems] = useState(() => {
+    const initialKey = getUserKey();
+    return safeRead(`${initialKey}_selected`, []);
+  });
 
-  // Re-sync whenever login / logout fires 'userAuthChanged'
+  // Re-sync whenever login / logout fires 'userAuthChanged' or storage changes
   useEffect(() => {
     const refresh = () => {
+      const oldKey = userKey;
       const newKey = getUserKey();
-      setUserKey(newKey);
-      setCart(safeRead(newKey, []));
-      setSelectedItems(safeRead(`${newKey}_selected`, []));
+
+      if (oldKey !== newKey) {
+        console.log('Cart Debug - User key changed:', { from: oldKey, to: newKey });
+
+        // Save current cart to old key before switching (in case user logs out and back in)
+        if (oldKey !== 'cart_guest' && cart.length > 0) {
+          localStorage.setItem(oldKey, JSON.stringify(cart));
+          localStorage.setItem(`${oldKey}_selected`, JSON.stringify(selectedItems));
+          console.log('Cart Debug - Saved cart to old key before switching');
+        }
+
+        // Load cart from new key
+        const newCart = safeRead(newKey, []);
+        const newSelected = safeRead(`${newKey}_selected`, []);
+
+        setUserKey(newKey);
+        setCart(newCart);
+        setSelectedItems(newSelected);
+
+        console.log('Cart Debug - Loaded cart from new key:', {
+          key: newKey,
+          cartItems: newCart.length,
+          selectedItems: newSelected.length
+        });
+      }
     };
+
     window.addEventListener('userAuthChanged', refresh);
     window.addEventListener('storage',         refresh);
+
     return () => {
       window.removeEventListener('userAuthChanged', refresh);
       window.removeEventListener('storage',         refresh);
     };
-  }, []);
+  }, [userKey, cart, selectedItems]);
 
-  // Persist
-  useEffect(() => { localStorage.setItem(userKey, JSON.stringify(cart)); },          [cart,          userKey]);
-  useEffect(() => { localStorage.setItem(`${userKey}_selected`, JSON.stringify(selectedItems)); }, [selectedItems, userKey]);
+  // Persist cart data whenever it changes
+  useEffect(() => {
+    if (userKey) {
+      localStorage.setItem(userKey, JSON.stringify(cart));
+      console.log('Cart Debug - Persisted cart:', { key: userKey, items: cart.length });
+    }
+  }, [cart, userKey]);
+
+  useEffect(() => {
+    if (userKey) {
+      localStorage.setItem(`${userKey}_selected`, JSON.stringify(selectedItems));
+      console.log('Cart Debug - Persisted selected items:', { key: userKey, selected: selectedItems.length });
+    }
+  }, [selectedItems, userKey]);
 
   // ── Cart operations ──────────────────────────────────────────────────────
 
