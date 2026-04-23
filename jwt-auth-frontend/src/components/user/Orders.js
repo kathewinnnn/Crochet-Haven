@@ -588,7 +588,7 @@ const Orders = () => {
       const token = localStorage.getItem('token') || localStorage.getItem('ch_token');
       let ok = false;
       if (backendId) {
-        const res = await fetch(`${API_BASE_URL}/orders/${backendId}/cancel`, {
+        const res = await fetch(`${API_BASE_URL}/api/orders/${backendId}/cancel`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
         }).catch(() => {});

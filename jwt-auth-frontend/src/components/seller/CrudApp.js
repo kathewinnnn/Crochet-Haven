@@ -245,7 +245,7 @@ const CrudApp = () => {
           <div key={category} className="ch-cat-group">
             <div className="ch-cat-group-head">
               <span className="ch-cat-group-name">{category}</span>
-              <span className="ch-cat-group-count">{groupedProducts[category].length} items</span>
+              <span className="ch-cat-group-count">{groupedProducts[category].length} {groupedProducts[category].length === 1 ? 'item' : 'items'}</span>
             </div>
             <div className="ch-product-cards">
               {groupedProducts[category].map(product => (

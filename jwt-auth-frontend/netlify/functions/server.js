@@ -10,7 +10,8 @@ let firebaseInitialized = false;
 let cache = {
   users: [],
   products: [],
-  orders: []
+  orders: [],
+  carts: {}
 };
 
 const initializeFirebase = async () => {
@@ -54,7 +55,10 @@ const loadFromLocal = () => {
     if (fs.existsSync(localPath)) {
       const raw = fs.readFileSync(localPath, 'utf8');
       cache = JSON.parse(raw);
-      console.log(`Loaded local data: ${cache.products?.length || 0} products, ${cache.users?.length || 0} users, ${cache.orders?.length || 0} orders`);
+      // Ensure carts and addresses objects exist
+      if (!cache.carts) cache.carts = {};
+      if (!cache.addresses) cache.addresses = {};
+      console.log(`Loaded local data: ${cache.products?.length || 0} products, ${cache.users?.length || 0} users, ${cache.orders?.length || 0} orders, ${Object.keys(cache.carts).length} carts, ${Object.keys(cache.addresses).length} users with addresses`);
     } else {
       console.warn('db.json not found at:', localPath);
       // Provide default data structure with sample products
@@ -164,7 +168,8 @@ const loadFromLocal = () => {
           images: ["/img/coaster/1.jpg", "/img/coaster/2.jpg", "/img/coaster/3.jpg"]
         }
       ],
-      orders: []
+      orders: [],
+      carts: {}
     };
   }
   return true;
@@ -174,7 +179,7 @@ const loadFromFirestore = async () => {
   if (!db) return false;
   
   try {
-    const data = { users: [], products: [], orders: [] };
+    const data = { users: [], products: [], orders: [], carts: {}, addresses: {} };
     
     const usersSnap = await db.collection('users').get();
     usersSnap.docs.forEach(d => data.users.push(d.data()));
@@ -262,10 +267,12 @@ const decodeToken = (authHeader) => {
 };
 
 exports.handler = async (event, context) => {
+  console.log('Serverless Debug - Function called with path:', event.path, 'method:', event.httpMethod);
+
   if (!admin) {
     await initializeFirebase();
   }
-  
+
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -273,6 +280,7 @@ exports.handler = async (event, context) => {
   };
 
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Serverless Debug - Handling OPTIONS request');
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: 'OK' }) };
   }
 
@@ -283,6 +291,9 @@ exports.handler = async (event, context) => {
 
   const path = event.path || event.rawUrl || '';
   const method = event.httpMethod;
+  console.log('Serverless Debug - Processing request:', method, path);
+  console.log('Serverless Debug - Full event.path:', event.path);
+  console.log('Serverless Debug - Full event.rawUrl:', event.rawUrl);
   const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
 
   let responseData = null;
@@ -476,6 +487,15 @@ exports.handler = async (event, context) => {
 
     else if (path.includes('/api/products') && method === 'GET') {
       console.log('Serving products:', cache.products?.length || 0, 'items');
+      if (cache.products && cache.products.length > 0) {
+        console.log('Sample products:', cache.products.slice(0, 3).map(p => ({ id: p.id, name: p.name, category: p.category })));
+        // Count products by category
+        const categoryCount = cache.products.reduce((acc, p) => {
+          acc[p.category] = (acc[p.category] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('Products by category:', categoryCount);
+      }
       responseData = cache.products || [];
     }
 
@@ -513,13 +533,19 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/api/orders') && method === 'GET') {
-      console.log('Serving orders:', cache.orders?.length || 0, 'items');
+    else if (path.includes('/orders') && method === 'GET' && !path.includes('/latest') && !path.includes('/count') && !path.includes('/cancel')) {
+      console.log('Serverless Debug - Serving orders endpoint, path:', path, 'found:', cache.orders?.length || 0, 'items');
       responseData = cache.orders || [];
+      console.log('Serverless Debug - Returning orders data:', responseData);
     }
 
     else if (path.includes('/api/orders') && method === 'POST') {
+      console.log('Serverless Debug - Processing order POST request');
+      console.log('Serverless Debug - Auth header present:', !!authHeader);
       const decoded = decodeToken(authHeader);
+      console.log('Serverless Debug - Decoded token:', decoded ? { id: decoded.id, username: decoded.username } : 'No token');
+      console.log('Serverless Debug - Request body:', body);
+
       const order = {
         id: Date.now().toString(),
         userId: decoded?.id || null,
@@ -528,11 +554,15 @@ exports.handler = async (event, context) => {
         createdAt: new Date().toISOString(),
         status: "Processing"
       };
+
+      console.log('Serverless Debug - Created order:', { id: order.id, userId: order.userId, total: order.total });
+
       if (!cache.orders) cache.orders = [];
       cache.orders.push(order);
       await saveToAll(cache);
       statusCode = 201;
       responseData = order;
+      console.log('Serverless Debug - Order saved successfully');
     }
 
     else if (path.includes('/api/orders/') && path.includes('/cancel') && method === 'POST') {
@@ -586,6 +616,64 @@ exports.handler = async (event, context) => {
 
     else if (path.includes('/api/orders/count') && method === 'GET') {
       responseData = { count: cache.orders ? cache.orders.length : 0 };
+    }
+
+    else if (path.includes('/api/cart') && method === 'GET') {
+      const decoded = decodeToken(authHeader);
+      if (!decoded) {
+        statusCode = 401;
+        responseData = { message: "Unauthorized" };
+      } else {
+        // Get user's cart from cache (we'll store carts in cache.carts)
+        if (!cache.carts) cache.carts = {};
+        const userCart = cache.carts[decoded.id] || [];
+        console.log('Serving cart for user', decoded.id, ':', userCart.length, 'items');
+        responseData = userCart;
+      }
+    }
+
+    else if (path.includes('/api/cart') && method === 'POST') {
+      const decoded = decodeToken(authHeader);
+      if (!decoded) {
+        statusCode = 401;
+        responseData = { message: "Unauthorized" };
+      } else {
+        // Save user's cart to cache
+        if (!cache.carts) cache.carts = {};
+        cache.carts[decoded.id] = body;
+        await saveToAll(cache);
+        console.log('Saved cart for user', decoded.id, ':', body.length, 'items');
+        responseData = { message: "Cart saved successfully" };
+      }
+    }
+
+    else if (path.includes('/api/addresses') && method === 'GET') {
+      const decoded = decodeToken(authHeader);
+      if (!decoded) {
+        statusCode = 401;
+        responseData = { message: "Unauthorized" };
+      } else {
+        // Get user's addresses from cache
+        if (!cache.addresses) cache.addresses = {};
+        const userAddresses = cache.addresses[decoded.id] || [];
+        console.log('Serving addresses for user', decoded.id, ':', userAddresses.length, 'addresses');
+        responseData = userAddresses;
+      }
+    }
+
+    else if (path.includes('/api/addresses') && method === 'POST') {
+      const decoded = decodeToken(authHeader);
+      if (!decoded) {
+        statusCode = 401;
+        responseData = { message: "Unauthorized" };
+      } else {
+        // Save user's addresses to cache
+        if (!cache.addresses) cache.addresses = {};
+        cache.addresses[decoded.id] = body;
+        await saveToAll(cache);
+        console.log('Saved addresses for user', decoded.id, ':', body.length, 'addresses');
+        responseData = { message: "Addresses saved successfully" };
+      }
     }
 
     else {

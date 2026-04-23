@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import API_BASE_URL from '../../apiConfig';
+import API_BASE_URL, { saveAddressesToServer, loadAddressesFromServer } from '../../apiConfig';
 
 const checkoutStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -1194,15 +1194,48 @@ const getAddressKey = () => {
   return uid ? `ch_saved_addresses_${uid}` : 'ch_saved_addresses_guest';
 };
 
-const loadSavedAddresses = () => {
+const loadSavedAddresses = async () => {
+  try {
+    // Try to load from server first
+    const serverAddresses = await loadAddressesFromServer();
+    if (serverAddresses && Array.isArray(serverAddresses)) {
+      console.log('Addresses loaded from server:', serverAddresses.length);
+      // Also save to localStorage as backup
+      localStorage.setItem(getAddressKey(), JSON.stringify(serverAddresses));
+      return serverAddresses;
+    }
+  } catch (error) {
+    console.warn('Failed to load addresses from server, trying localStorage:', error.message);
+  }
+
+  // Fallback to localStorage
   try {
     const raw = localStorage.getItem(getAddressKey());
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (e) {
+    console.warn('Failed to load addresses from localStorage:', e);
+  }
+  return [];
 };
 
-const persistAddresses = (list) => {
-  try { localStorage.setItem(getAddressKey(), JSON.stringify(list)); } catch {}
+const persistAddresses = async (list) => {
+  // Save to localStorage immediately
+  try {
+    localStorage.setItem(getAddressKey(), JSON.stringify(list));
+  } catch (e) {
+    console.warn('Failed to save addresses to localStorage:', e);
+  }
+
+  // Also save to server if user is logged in
+  try {
+    await saveAddressesToServer(list);
+    console.log('Addresses saved to server');
+  } catch (error) {
+    console.warn('Failed to save addresses to server:', error.message);
+  }
 };
 
 const getInitials = (name) => {
@@ -1423,7 +1456,11 @@ const Checkout = () => {
   }, [navigate]);
 
   useEffect(() => {
-    setSavedAddresses(loadSavedAddresses());
+    const loadAddresses = async () => {
+      const addresses = await loadSavedAddresses();
+      setSavedAddresses(addresses);
+    };
+    loadAddresses();
   }, []);
 
   // ── Determine cart to display:
@@ -1633,7 +1670,11 @@ const Checkout = () => {
         createdAt: new Date().toISOString()
       };
 
-      const response = await fetch(`${API_BASE_URL}/orders`, {
+      console.log('Checkout Debug - Submitting order to:', `${API_BASE_URL}/api/orders`);
+      console.log('Checkout Debug - Order data:', orderData);
+      console.log('Checkout Debug - Token present:', !!token);
+
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1641,6 +1682,9 @@ const Checkout = () => {
         },
         body: JSON.stringify(orderData),
       });
+
+      console.log('Checkout Debug - Response status:', response.status);
+      console.log('Checkout Debug - Response ok:', response.ok);
 
       if (response.ok) {
         setIsSubmitted(true);

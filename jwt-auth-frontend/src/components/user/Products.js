@@ -1191,10 +1191,25 @@ const Products = () => {
   };
 
   const groupedProducts = (products || []).reduce((acc, product) => {
-    if (!acc[product.category]) acc[product.category] = [];
+    console.log('Products Debug - Processing product:', product.id, product.name, 'Category:', `"${product.category}"`);
+    if (!acc[product.category]) {
+      acc[product.category] = [];
+      console.log('Products Debug - Created new category group:', product.category);
+    }
     acc[product.category].push(product);
+    console.log('Products Debug - Added to category', product.category, '- now has', acc[product.category].length, 'items');
     return acc;
   }, {});
+
+  console.log('Products Debug - Final grouped products:', Object.keys(groupedProducts));
+  Object.keys(groupedProducts).forEach(cat => {
+    console.log(`Products Debug - Category "${cat}": ${groupedProducts[cat].length} items`);
+    groupedProducts[cat].forEach(p => console.log(`  - ${p.name} (${p.id})`));
+  });
+
+  // Temporary debug display
+  console.log('Products Debug - Total products received:', products?.length || 0);
+  console.log('Products Debug - Sample product data:', products?.[0]);
 
   const closeImageModal = () => {
     setShowImageModal(false);
@@ -1332,7 +1347,7 @@ const Products = () => {
               <div className="ch-section-label">
                 <span className="ch-section-icon">{categoryEmojis[category] || "🧶"}</span>
                 <h3 className="ch-section-title">{category}</h3>
-                <span className="ch-section-count">{groupedProducts[category].length} items</span>
+                <span className="ch-section-count">{groupedProducts[category].length} {groupedProducts[category].length === 1 ? 'item' : 'items'}</span>
                 <div className="ch-section-line" />
               </div>
 

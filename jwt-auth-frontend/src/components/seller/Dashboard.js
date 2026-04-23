@@ -101,30 +101,26 @@ const Dashboard = () => {
   const fetchData = async () => {
     console.log('Dashboard Debug - Starting fetchData');
     try {
-      const [pr, or] = await Promise.allSettled([
-        getProductsWithCache(),
-        getOrdersWithCache(null),
-      ]);
-      console.log('Dashboard Debug - Products result:', pr);
-      console.log('Dashboard Debug - Orders result:', or);
+      // First try to get products
+      console.log('Dashboard Debug - Fetching products...');
+      const productsResult = await getProductsWithCache();
+      console.log('Dashboard Debug - Products received:', productsResult?.length || 0, 'items');
+      setProducts(productsResult || []);
 
-      if (pr.status === "fulfilled") {
-        const productsData = pr.value || [];
-        console.log('Dashboard Debug - Setting products:', productsData.length, 'items');
-        setProducts(productsData);
-      } else {
-        console.error('Dashboard Debug - Products fetch failed:', pr.reason);
-      }
-
-      if (or.status === "fulfilled") {
-        const ordersData = or.value || [];
-        console.log('Dashboard Debug - Setting orders:', ordersData.length, 'items');
-        setOrders(ordersData);
-      } else {
-        console.error('Dashboard Debug - Orders fetch failed:', or.reason);
+      // Then try to get orders (with error handling)
+      console.log('Dashboard Debug - Fetching orders...');
+      try {
+        const ordersResult = await getOrdersWithCache(null);
+        console.log('Dashboard Debug - Orders received:', ordersResult?.length || 0, 'items');
+        setOrders(ordersResult || []);
+      } catch (ordersError) {
+        console.error('Dashboard Debug - Orders fetch failed, using empty array:', ordersError.message);
+        setOrders([]); // Use empty array as fallback
       }
     } catch (e) {
       console.error('Dashboard Debug - Error in fetchData:', e);
+      setProducts([]);
+      setOrders([]);
     }
     finally {
       console.log('Dashboard Debug - Setting loading to false');
@@ -141,10 +137,16 @@ const Dashboard = () => {
 
   try {
     console.log('Dashboard Debug - Calculating stats from products:', products.length, 'orders:', orders.length);
+    console.log('Dashboard Debug - All orders:', orders.map(o => ({ id: o.id, status: o.status })));
+
     totalProducts   = products.length;
     totalCategories = new Set(products.map(p => p.category)).size;
     totalValue      = products.reduce((s, p) => s + parseFloat(p.price || 0), 0);
-    totalOrders     = orders.filter(o => o.status === "Processing" || o.status === "Shipped").length;
+
+    const activeOrders = orders.filter(o => o.status === "Processing" || o.status === "Shipped");
+    totalOrders = activeOrders.length;
+    console.log('Dashboard Debug - Active orders (Processing/Shipped):', activeOrders.map(o => ({ id: o.id, status: o.status })));
+
     grouped = products.reduce((a, p) => { a[p.category] = (a[p.category] || 0) + 1; return a; }, {});
     console.log('Dashboard Debug - Stats calculated:', { totalProducts, totalCategories, totalValue, totalOrders });
   } catch (error) {
@@ -167,6 +169,7 @@ const Dashboard = () => {
   return (
     <>
       <style>{dashStyles}</style>
+
       <p className="ch-dash-eyebrow">Overview</p>
       <h1 className="ch-dash-title">Seller <em>Dashboard</em></h1>
       <p className="ch-dash-subtitle">Everything at a glance — your shop, your numbers.</p>

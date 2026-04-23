@@ -1,7 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
-// ─── Import the consistent user ID resolver ──────────────────────────────────
+// ─── Import the consistent user ID resolver and cart API ───────────────────
 import { resolveUserId } from '../pages/userStorage';
+import { saveCartToServer, loadCartFromServer } from '../apiConfig';
 
 const CartContext = createContext();
 
@@ -47,29 +48,62 @@ export const CartProvider = ({ children }) => {
 
   // Re-sync whenever login / logout fires 'userAuthChanged' or storage changes
   useEffect(() => {
-    const refresh = () => {
+    const refresh = async () => {
       const oldKey = userKey;
       const newKey = getUserKey();
 
       if (oldKey !== newKey) {
         console.log('Cart Debug - User key changed:', { from: oldKey, to: newKey });
 
-        // Save current cart to old key before switching (in case user logs out and back in)
+        // Save current cart to old key and server before switching
         if (oldKey !== 'cart_guest' && cart.length > 0) {
           localStorage.setItem(oldKey, JSON.stringify(cart));
           localStorage.setItem(`${oldKey}_selected`, JSON.stringify(selectedItems));
-          console.log('Cart Debug - Saved cart to old key before switching');
+          console.log('Cart Debug - Saved cart to localStorage');
+
+          // Try to save to server if user was logged in
+          if (oldKey.startsWith('cart_')) {
+            try {
+              await saveCartToServer(cart);
+              console.log('Cart Debug - Saved cart to server');
+            } catch (error) {
+              console.warn('Cart Debug - Failed to save cart to server:', error);
+            }
+          }
         }
 
-        // Load cart from new key
-        const newCart = safeRead(newKey, []);
-        const newSelected = safeRead(`${newKey}_selected`, []);
+        // Load cart from new key or server
+        let newCart = [];
+        let newSelected = [];
+
+        if (newKey !== 'cart_guest') {
+          // Try to load from server first
+          try {
+            const serverCart = await loadCartFromServer();
+            if (serverCart && Array.isArray(serverCart)) {
+              newCart = serverCart;
+              console.log('Cart Debug - Loaded cart from server:', newCart.length, 'items');
+            } else {
+              // Fall back to localStorage
+              newCart = safeRead(newKey, []);
+              console.log('Cart Debug - Loaded cart from localStorage:', newCart.length, 'items');
+            }
+          } catch (error) {
+            console.warn('Cart Debug - Failed to load from server, using localStorage');
+            newCart = safeRead(newKey, []);
+          }
+        } else {
+          // Guest user - just use localStorage
+          newCart = safeRead(newKey, []);
+        }
+
+        newSelected = safeRead(`${newKey}_selected`, []);
 
         setUserKey(newKey);
         setCart(newCart);
         setSelectedItems(newSelected);
 
-        console.log('Cart Debug - Loaded cart from new key:', {
+        console.log('Cart Debug - Final cart loaded:', {
           key: newKey,
           cartItems: newCart.length,
           selectedItems: newSelected.length
@@ -90,7 +124,14 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     if (userKey) {
       localStorage.setItem(userKey, JSON.stringify(cart));
-      console.log('Cart Debug - Persisted cart:', { key: userKey, items: cart.length });
+      console.log('Cart Debug - Persisted cart to localStorage:', { key: userKey, items: cart.length });
+
+      // Also save to server if user is logged in
+      if (userKey !== 'cart_guest' && cart.length >= 0) {
+        saveCartToServer(cart).catch(error => {
+          console.warn('Cart Debug - Failed to save cart to server:', error);
+        });
+      }
     }
   }, [cart, userKey]);
 

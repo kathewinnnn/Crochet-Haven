@@ -185,7 +185,7 @@ const Order = () => {
     try {
       setError(null);
       const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
-      const url = `${API_BASE_URL}/orders`;
+      const url = `${API_BASE_URL}/api/orders`;
 
       const res = await fetch(url, {
         headers: {
@@ -239,7 +239,7 @@ const Order = () => {
     if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
     try {
       const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/orders/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -263,7 +263,7 @@ const Order = () => {
     setCancelModal({ show: false, orderId: null });
     const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
