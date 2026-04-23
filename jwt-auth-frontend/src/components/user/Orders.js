@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { getOrdersWithCache, getProductsWithCache, API_BASE_URL } from '../../apiConfig';
+import { resolveUserId } from '../../pages/userStorage';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -248,64 +249,7 @@ const styles = `
   }
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// resolveCurrentUserId — checks every localStorage key your app might use,
-// mirroring the same priority order as CartContext.getUserKey().
-// ─────────────────────────────────────────────────────────────────────────────
-const resolveCurrentUserId = () => {
-  console.log('resolveCurrentUserId Debug - Starting resolution');
 
-  // 1. Explicit 'userId' key (written by Checkout.jsx + Login)
-  const direct = localStorage.getItem('userId');
-  console.log('resolveCurrentUserId Debug - Direct userId:', direct);
-  if (direct) return String(direct);
-
-  // 2. 'user' JSON object (written by Login.js)
-  try {
-    const raw = localStorage.getItem('user');
-    console.log('resolveCurrentUserId Debug - Raw user:', raw);
-    if (raw) {
-      const p = JSON.parse(raw);
-      const id = p?.id || p?.userId;
-      console.log('resolveCurrentUserId Debug - Parsed user id:', id);
-      if (id) return String(id);
-    }
-  } catch (e) {
-    console.log('resolveCurrentUserId Debug - Error parsing user:', e);
-  }
-
-  // 3. 'ch_user' JSON object (written by Register/CartContext)
-  try {
-    const raw = localStorage.getItem('ch_user');
-    console.log('resolveCurrentUserId Debug - Raw ch_user:', raw);
-    if (raw) {
-      const p = JSON.parse(raw);
-      const id = p?.id || p?.userId;
-      console.log('resolveCurrentUserId Debug - Parsed ch_user id:', id);
-      if (id) return String(id);
-    }
-  } catch (e) {
-    console.log('resolveCurrentUserId Debug - Error parsing ch_user:', e);
-  }
-
-  // 4. JWT decode — try both token key names CartContext checks
-  try {
-    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
-    console.log('resolveCurrentUserId Debug - Token available:', !!token);
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('resolveCurrentUserId Debug - JWT payload:', payload);
-      const id = payload?.id || payload?.userId || payload?.sub;
-      console.log('resolveCurrentUserId Debug - JWT id:', id);
-      if (id) return String(id);
-    }
-  } catch (e) {
-    console.log('resolveCurrentUserId Debug - Error decoding JWT:', e);
-  }
-
-  console.log('resolveCurrentUserId Debug - No user ID found');
-  return null;
-};
 
 // ─── BuyAgain Modal ───────────────────────────────────────────────────────────
 const BuyAgainModal = ({ order, onClose, onAddedToCart, navigate, addToCart, productsMap }) => {
@@ -476,7 +420,7 @@ const Orders = () => {
         } catch (e) { /* ignore */ }
       }
 
-      const currentUserId = resolveCurrentUserId();
+      const currentUserId = resolveUserId();
       console.log('Orders Debug - Current User ID:', currentUserId);
       console.log('Orders Debug - LocalStorage userId:', localStorage.getItem('userId'));
       console.log('Orders Debug - LocalStorage user:', localStorage.getItem('user'));
@@ -655,7 +599,7 @@ const Orders = () => {
           <div className="ch-orders-list">
             {filtered.length === 0 ? (
               (() => {
-                const currentUserId = resolveCurrentUserId();
+      const currentUserId = resolveUserId();
                 if (!currentUserId) {
                   return (
                     <div className="ch-orders-empty">

@@ -201,20 +201,29 @@ const loadFromFirestore = async () => {
 
 const saveToAll = async (data) => {
   cache = data;
-  
+
+  console.log('Serverless Debug - Saving data, Firestore initialized:', firebaseInitialized);
+
   try {
     const fs = require('fs');
     const path = require('path');
-    const localPath = path.join(__dirname, '..', 'db.json');
+    // Save to the same location that loadFromLocal loads from
+    const localPath = path.join(__dirname, 'db.json');
     fs.writeFileSync(localPath, JSON.stringify(data, null, 2));
+    console.log('Data saved to local file:', localPath);
   } catch (e) {
     console.warn('Failed to save local file:', e.message);
   }
-  
+
   if (db && firebaseInitialized) {
-    await syncToFirestore(data).catch(err => 
-      console.warn('Firestore sync failed:', err.message)
-    );
+    try {
+      await syncToFirestore(data);
+      console.log('Data synced to Firestore successfully');
+    } catch (err) {
+      console.warn('Firestore sync failed:', err.message);
+    }
+  } else {
+    console.log('Firestore not available, data only saved locally (will not persist)');
   }
 };
 
@@ -312,12 +321,12 @@ exports.handler = async (event, context) => {
         );
         if (!user) {
           statusCode = 401;
-          responseData = { message: "Invalid credentials" };
+          responseData = { message: "Invalid username/email or password" };
         } else {
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
             statusCode = 401;
-            responseData = { message: "Invalid credentials" };
+            responseData = { message: "Invalid username/email or password" };
           } else {
             const token = jwt.sign(
               { id: user.id, username: user.username, email: user.email, role: user.role },
@@ -379,32 +388,48 @@ exports.handler = async (event, context) => {
     }
 
     else if (path.includes('/api/auth/delete-account') && method === 'POST') {
-      const { username, password, email } = body;
-      if (!password) {
-        statusCode = 400;
-        responseData = { message: "Password is required" };
+      console.log('Serverless Debug - Delete account endpoint called');
+      const decoded = decodeToken(authHeader);
+      console.log('Serverless Debug - Token decoded:', decoded ? { id: decoded.id, username: decoded.username } : 'No token');
+      if (!decoded) {
+        statusCode = 401;
+        responseData = { message: "Unauthorized" };
       } else {
-        let idx = -1;
-        if (username) {
-          idx = cache.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
-        }
-        if (idx === -1 && email) {
-          idx = cache.users.findIndex(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-        }
-        if (idx === -1) {
-          statusCode = 404;
-          responseData = { message: "Account not found" };
+        const { username, password } = body;
+        console.log('Serverless Debug - Delete request for username:', username);
+        if (!username || !password) {
+          statusCode = 400;
+          responseData = { message: "Username and password are required" };
         } else {
-          const user = cache.users[idx];
-          const isMatch = await bcrypt.compare(password, user.password);
-          if (!isMatch) {
-            statusCode = 401;
-            responseData = { message: "Incorrect password" };
+          const idx = cache.users.findIndex(
+            u => u.username.trim().toLowerCase() === username.trim().toLowerCase()
+          );
+          console.log('Serverless Debug - User found at index:', idx);
+          if (idx === -1) {
+            statusCode = 404;
+            responseData = { message: "Account not found" };
           } else {
-            cache.users.splice(idx, 1);
-            cache.orders = cache.orders.filter(o => o.userId !== user.id);
-            await saveToAll(cache);
-            responseData = { message: "Account deleted successfully" };
+            const user = cache.users[idx];
+            console.log('Serverless Debug - User to delete:', { id: user.id, username: user.username });
+            // Verify the user is deleting their own account
+            if (user.id !== decoded.id) {
+              statusCode = 403;
+              responseData = { message: "You can only delete your own account" };
+            } else {
+              const isMatch = await bcrypt.compare(password, user.password);
+              console.log('Serverless Debug - Password match:', isMatch);
+              if (!isMatch) {
+                statusCode = 401;
+                responseData = { message: "Incorrect password. Please try again." };
+              } else {
+                console.log('Serverless Debug - Deleting user and their orders');
+                cache.users.splice(idx, 1);
+                cache.orders = cache.orders.filter(o => o.userId !== user.id);
+                await saveToAll(cache);
+                console.log('Serverless Debug - User deleted successfully');
+                responseData = { message: "Account deleted successfully" };
+              }
+            }
           }
         }
       }
@@ -534,8 +559,24 @@ exports.handler = async (event, context) => {
     }
 
     else if (path.includes('/orders') && method === 'GET' && !path.includes('/latest') && !path.includes('/count') && !path.includes('/cancel')) {
-      console.log('Serverless Debug - Serving orders endpoint, path:', path, 'found:', cache.orders?.length || 0, 'items');
-      responseData = cache.orders || [];
+      console.log('Serverless Debug - Serving orders endpoint, path:', path, 'auth header:', !!authHeader);
+      const decoded = decodeToken(authHeader);
+      if (!decoded || !decoded.id) {
+        statusCode = 401;
+        responseData = { error: "Authentication required" };
+      } else {
+        const allOrders = cache.orders || [];
+        // Admin/seller users can see all orders, regular users only see their own
+        let ordersToReturn;
+        if (decoded.role === 'admin' || decoded.role === 'seller') {
+          ordersToReturn = allOrders; // Return all orders for admin/seller
+          console.log(`Serverless Debug - Returning ${ordersToReturn.length} orders for admin/seller user ${decoded.id}`);
+        } else {
+          ordersToReturn = allOrders.filter(order => order.userId === decoded.id); // Regular users only see their orders
+          console.log(`Serverless Debug - Returning ${ordersToReturn.length} orders for regular user ${decoded.id}`);
+        }
+        responseData = ordersToReturn;
+      }
       console.log('Serverless Debug - Returning orders data:', responseData);
     }
 

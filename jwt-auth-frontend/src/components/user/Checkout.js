@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import API_BASE_URL, { saveAddressesToServer, loadAddressesFromServer } from '../../apiConfig';
+import { resolveUserId } from '../../pages/userStorage';
 
 const checkoutStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -1167,30 +1168,10 @@ const isMobileNumberValid = (value) => {
   return false;
 };
 
-const resolveCurrentUserId = () => {
-  const direct = localStorage.getItem('userId');
-  if (direct) return String(direct);
-  try {
-    const raw = localStorage.getItem('user');
-    if (raw) { const p = JSON.parse(raw); const id = p?.id || p?.userId; if (id) return String(id); }
-  } catch {}
-  try {
-    const raw = localStorage.getItem('ch_user');
-    if (raw) { const p = JSON.parse(raw); const id = p?.id || p?.userId; if (id) return String(id); }
-  } catch {}
-  try {
-    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const id = payload?.id || payload?.userId || payload?.sub;
-      if (id) return String(id);
-    }
-  } catch {}
-  return null;
-};
+
 
 const getAddressKey = () => {
-  const uid = resolveCurrentUserId();
+  const uid = resolveUserId();
   return uid ? `ch_saved_addresses_${uid}` : 'ch_saved_addresses_guest';
 };
 
@@ -1451,7 +1432,7 @@ const Checkout = () => {
   const [shippingErrors, setShippingErrors] = useState({});
 
   useEffect(() => {
-    const uid = resolveCurrentUserId();
+    const uid = resolveUserId();
     if (!uid) { navigate('/login', { state: { from: '/user/checkout' } }); }
   }, [navigate]);
 

@@ -17,7 +17,6 @@ export const useCart = () => {
 // This ensures cart data persists across devices when logged in with same credentials.
 const getUserKey = () => {
   const userId = resolveUserId();
-  console.log('Cart Debug - Resolved user ID for cart key:', userId);
   return userId ? `cart_${userId}` : 'cart_guest';
 };
 
@@ -38,7 +37,6 @@ export const CartProvider = ({ children }) => {
   const [cart,          setCart]          = useState(() => {
     const initialKey = getUserKey();
     const initialCart = safeRead(initialKey, []);
-    console.log('Cart Debug - Initial load:', { key: initialKey, items: initialCart.length });
     return initialCart;
   });
   const [selectedItems, setSelectedItems] = useState(() => {
@@ -53,21 +51,18 @@ export const CartProvider = ({ children }) => {
       const newKey = getUserKey();
 
       if (oldKey !== newKey) {
-        console.log('Cart Debug - User key changed:', { from: oldKey, to: newKey });
 
         // Save current cart to old key and server before switching
         if (oldKey !== 'cart_guest' && cart.length > 0) {
           localStorage.setItem(oldKey, JSON.stringify(cart));
           localStorage.setItem(`${oldKey}_selected`, JSON.stringify(selectedItems));
-          console.log('Cart Debug - Saved cart to localStorage');
 
           // Try to save to server if user was logged in
           if (oldKey.startsWith('cart_')) {
             try {
               await saveCartToServer(cart);
-              console.log('Cart Debug - Saved cart to server');
             } catch (error) {
-              console.warn('Cart Debug - Failed to save cart to server:', error);
+              console.warn('Failed to save cart to server:', error);
             }
           }
         }
@@ -82,14 +77,12 @@ export const CartProvider = ({ children }) => {
             const serverCart = await loadCartFromServer();
             if (serverCart && Array.isArray(serverCart)) {
               newCart = serverCart;
-              console.log('Cart Debug - Loaded cart from server:', newCart.length, 'items');
             } else {
               // Fall back to localStorage
               newCart = safeRead(newKey, []);
-              console.log('Cart Debug - Loaded cart from localStorage:', newCart.length, 'items');
             }
           } catch (error) {
-            console.warn('Cart Debug - Failed to load from server, using localStorage');
+            console.warn('Failed to load from server, using localStorage');
             newCart = safeRead(newKey, []);
           }
         } else {
@@ -102,12 +95,6 @@ export const CartProvider = ({ children }) => {
         setUserKey(newKey);
         setCart(newCart);
         setSelectedItems(newSelected);
-
-        console.log('Cart Debug - Final cart loaded:', {
-          key: newKey,
-          cartItems: newCart.length,
-          selectedItems: newSelected.length
-        });
       }
     };
 
@@ -118,18 +105,17 @@ export const CartProvider = ({ children }) => {
       window.removeEventListener('userAuthChanged', refresh);
       window.removeEventListener('storage',         refresh);
     };
-  }, [userKey, cart, selectedItems]);
+  }, []); // Only run once on mount
 
   // Persist cart data whenever it changes
   useEffect(() => {
     if (userKey) {
       localStorage.setItem(userKey, JSON.stringify(cart));
-      console.log('Cart Debug - Persisted cart to localStorage:', { key: userKey, items: cart.length });
 
       // Also save to server if user is logged in
       if (userKey !== 'cart_guest' && cart.length >= 0) {
         saveCartToServer(cart).catch(error => {
-          console.warn('Cart Debug - Failed to save cart to server:', error);
+          console.warn('Failed to save cart to server:', error);
         });
       }
     }
@@ -138,7 +124,6 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     if (userKey) {
       localStorage.setItem(`${userKey}_selected`, JSON.stringify(selectedItems));
-      console.log('Cart Debug - Persisted selected items:', { key: userKey, selected: selectedItems.length });
     }
   }, [selectedItems, userKey]);
 

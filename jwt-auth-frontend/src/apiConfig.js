@@ -6,14 +6,14 @@ const getApiUrl = () => {
   if (envUrl) {
     return envUrl;
   }
-  
+
   // Use relative paths for production (works with Netlify redirects)
   if (process.env.NODE_ENV === 'production') {
     return '';
   }
-  
+
   // Use localhost for development
-  return '';
+  return 'http://localhost:5000';
 };
 
 export const API_BASE_URL = getApiUrl();

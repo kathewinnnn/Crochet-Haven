@@ -296,12 +296,12 @@ app.get('/api/auth/profile', (req, res) => {
 });
 
 // ─── Products routes ──────────────────────────────────────────────────────────
-app.get('/products', (req, res) => {
+app.get('/api/products', (req, res) => {
   try { res.json(readDb().products); }
   catch { res.status(500).json({ error: "Failed to read products" }); }
 });
 
-app.post('/products', (req, res) => {
+app.post('/api/products', (req, res) => {
   try {
     const db = readDb();
     const newProduct = { ...req.body };
@@ -311,7 +311,7 @@ app.post('/products', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to add product" }); }
 });
 
-app.put('/products/:id', (req, res) => {
+app.put('/api/products/:id', (req, res) => {
   try {
     const db    = readDb();
     const index = db.products.findIndex(p => p.id === req.params.id);
@@ -322,7 +322,7 @@ app.put('/products/:id', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to update product" }); }
 });
 
-app.delete('/products/:id', (req, res) => {
+app.delete('/api/products/:id', (req, res) => {
   try {
     const db       = readDb();
     const filtered = db.products.filter(p => p.id !== req.params.id);
@@ -335,7 +335,7 @@ app.delete('/products/:id', (req, res) => {
 });
 
 // ─── Orders routes ────────────────────────────────────────────────────────────
-app.get('/orders', (req, res) => {
+app.get('/api/orders', (req, res) => {
   try {
     const decoded = decodeToken(req.headers.authorization);
     const db      = readDb();
@@ -347,7 +347,7 @@ app.get('/orders', (req, res) => {
   }
 });
 
-app.post('/orders', (req, res) => {
+app.post('/api/orders', (req, res) => {
   try {
     const decoded = decodeToken(req.headers.authorization);
     const db      = readDb();
@@ -368,7 +368,7 @@ app.post('/orders', (req, res) => {
   }
 });
 
-app.get('/orders/latest', (req, res) => {
+app.get('/api/orders/latest', (req, res) => {
   try {
     const db     = readDb();
     const orders = db.orders || [];
@@ -379,14 +379,14 @@ app.get('/orders/latest', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to get latest order" }); }
 });
 
-app.get('/orders/count', (req, res) => {
+app.get('/api/orders/count', (req, res) => {
   try {
     const db = readDb();
     res.json({ count: db.orders ? db.orders.length : 0 });
   } catch { res.status(500).json({ error: "Failed to get order count" }); }
 });
 
-app.put('/orders/:id', (req, res) => {
+app.put('/api/orders/:id', (req, res) => {
   try {
     const db    = readDb();
     const index = db.orders.findIndex(o => o.id === req.params.id);
@@ -397,7 +397,7 @@ app.put('/orders/:id', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to update order" }); }
 });
 
-app.post('/orders/:id/cancel', (req, res) => {
+app.post('/api/orders/:id/cancel', (req, res) => {
   try {
     const db    = readDb();
     const index = db.orders.findIndex(o => o.id === req.params.id);
@@ -408,8 +408,8 @@ app.post('/orders/:id/cancel', (req, res) => {
   } catch { res.status(500).json({ error: "Failed to cancel order" }); }
 });
 
-app.delete('/orders/:id', (req, res) => {
-  console.log('DELETE /orders/:id called with params:', req.params);
+app.delete('/api/orders/:id', (req, res) => {
+  console.log('DELETE /api/orders/:id called with params:', req.params);
   try {
     const db    = readDb();
     const orderIdParam = String(req.params.id); // Ensure string comparison
@@ -420,9 +420,9 @@ app.delete('/orders/:id', (req, res) => {
     db.orders.splice(index, 1);
     writeDb(db);
     res.json({ success: true, message: "Order deleted successfully" });
-  } catch (err) { 
+  } catch (err) {
     console.error('Delete error:', err);
-    res.status(500).json({ error: "Failed to delete order" }); 
+    res.status(500).json({ error: "Failed to delete order" });
   }
 });
 
@@ -610,44 +610,44 @@ exports.handler = async (event, context) => {
     }
 
     // ── Products ──────────────────────────────────────────────────────────────
-    else if (p === '/products' && method === 'GET') {
+    else if (p === '/api/products' && method === 'GET') {
       responseData = readDb().products;
     }
-    else if (p === '/products' && method === 'POST') {
+    else if (p === '/api/products' && method === 'POST') {
       const db = readDb(); const np = { ...body }; db.products.push(np); writeDb(db); statusCode = 201; responseData = np;
     }
-    else if (p.startsWith('/products/') && method === 'PUT') {
-      const id = p.split('/products/')[1]; const db = readDb();
+    else if (p.startsWith('/api/products/') && method === 'PUT') {
+      const id = p.split('/api/products/')[1]; const db = readDb();
       const i  = db.products.findIndex(p => p.id === id);
       if (i === -1) { statusCode = 404; responseData = { error: "Product not found" }; }
       else { db.products[i] = { ...body }; writeDb(db); responseData = db.products[i]; }
     }
-    else if (p.startsWith('/products/') && method === 'DELETE') {
-      const id = p.split('/products/')[1]; const db = readDb();
+    else if (p.startsWith('/api/products/') && method === 'DELETE') {
+      const id = p.split('/api/products/')[1]; const db = readDb();
       const f  = db.products.filter(p => p.id !== id);
       if (f.length === db.products.length) { statusCode = 404; responseData = { error: "Product not found" }; }
       else { db.products = f; writeDb(db); responseData = { message: "Product deleted" }; }
     }
 
     // ── Orders ────────────────────────────────────────────────────────────────
-    else if (p === '/orders/latest' && method === 'GET') {
+    else if (p === '/api/orders/latest' && method === 'GET') {
       const db = readDb(); const orders = db.orders || [];
       if (!orders.length) responseData = { latestOrderId: null, latestTimestamp: null };
       else { const l = orders[orders.length - 1]; responseData = { latestOrderId: l.id, latestTimestamp: l.createdAt }; }
     }
 
-    else if (p === '/orders/count' && method === 'GET') {
+    else if (p === '/api/orders/count' && method === 'GET') {
       const db = readDb(); responseData = { count: db.orders ? db.orders.length : 0 };
     }
 
-    else if (p === '/orders' && method === 'GET') {
+    else if (p === '/api/orders' && method === 'GET') {
       const db  = readDb();
       const all = db.orders || [];
       // Return all orders - frontend will filter by userId for security
       responseData = all;
     }
 
-    else if (p === '/orders' && method === 'POST') {
+    else if (p === '/api/orders' && method === 'POST') {
       const db    = readDb();
       const order = {
         id:       Date.now().toString(),
@@ -662,22 +662,22 @@ exports.handler = async (event, context) => {
       statusCode = 201; responseData = order;
     }
 
-    else if (p.startsWith('/orders/') && p.includes('/cancel') && method === 'POST') {
-      const id = p.split('/orders/')[1].split('/cancel')[0];
+    else if (p.startsWith('/api/orders/') && p.includes('/cancel') && method === 'POST') {
+      const id = p.split('/api/orders/')[1].split('/cancel')[0];
       const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
       if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
       else { db.orders[i] = { ...db.orders[i], status: "Cancelled" }; writeDb(db); responseData = db.orders[i]; }
     }
 
-    else if (p.startsWith('/orders/') && method === 'PUT') {
-      const id = p.split('/orders/')[1];
+    else if (p.startsWith('/api/orders/') && method === 'PUT') {
+      const id = p.split('/api/orders/')[1];
       const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
       if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
       else { db.orders[i] = { ...db.orders[i], status: body.status }; writeDb(db); responseData = db.orders[i]; }
     }
 
-    else if (p.startsWith('/orders/') && method === 'DELETE') {
-      const id = p.split('/orders/')[1];
+    else if (p.startsWith('/api/orders/') && method === 'DELETE') {
+      const id = p.split('/api/orders/')[1];
       const db = readDb(); const i = db.orders.findIndex(o => o.id === id);
       if (i === -1) { statusCode = 404; responseData = { error: "Order not found" }; }
       else { db.orders.splice(i, 1); writeDb(db); responseData = { success: true, message: "Order deleted successfully" }; }

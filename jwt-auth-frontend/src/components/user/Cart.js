@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { resolveUserId } from '../../pages/userStorage';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
@@ -183,40 +184,7 @@ const styles = `
 }
 `;
 
-const resolveCurrentUserId = () => {
-  // Same as Orders.js/Checkout.js
-  const direct = localStorage.getItem('userId');
-  if (direct) return String(direct);
 
-  try {
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      const p = JSON.parse(raw);
-      const id = p?.id || p?.userId;
-      if (id) return String(id);
-    }
-  } catch {}
-
-  try {
-    const raw = localStorage.getItem('ch_user');
-    if (raw) {
-      const p = JSON.parse(raw);
-      const id = p?.id || p?.userId;
-      if (id) return String(id);
-    }
-  } catch {}
-
-  try {
-    const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const id = payload?.id || payload?.userId || payload?.sub;
-      if (id) return String(id);
-    }
-  } catch {}
-
-  return null;
-};
 
 const Cart = () => {
   const { cart, removeFromCart, incrementQuantity, decrementQuantity, selectedItems, toggleSelected, selectAll, deselectAll, getSelectedItems } = useCart();
@@ -240,7 +208,7 @@ const Cart = () => {
   const fmt = (p) => (isNaN(parseFloat(p)) ? '0.00' : parseFloat(p).toFixed(2));
 
   const handleCheckout = () => {
-    const currentUserId = resolveCurrentUserId();
+    const currentUserId = resolveUserId();
     if (!currentUserId) {
       setError('Please log in to proceed to checkout.');
       return;

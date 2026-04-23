@@ -1060,6 +1060,115 @@ const sharedStyles = `
   }
 `;
 
+/* ─── ProductImageCarousel ─── */
+const ProductImageCarousel = ({ images, productId }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const totalImages = images.length;
+
+  if (!images || images.length === 0) {
+    return <span>🧶</span>;
+  }
+
+  const goPrev = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + totalImages) % totalImages);
+  };
+
+  const goNext = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % totalImages);
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <img
+        src={images[currentImageIndex]}
+        alt={`Product ${productId} - Image ${currentImageIndex + 1}`}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          borderRadius: '4px'
+        }}
+        onError={(e) => {
+          e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='66'%3E%3Crect fill='%23f7e8d8' width='66' height='66'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='22'%3E🧶%3C/text%3E%3C/svg%3E";
+        }}
+      />
+      {totalImages > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            style={{
+              position: 'absolute',
+              left: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'rgba(255,255,255,0.9)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '14px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              color: 'var(--rose)'
+            }}
+          >
+            ‹
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'rgba(255,255,255,0.9)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '14px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              color: 'var(--rose)'
+            }}
+          >
+            ›
+          </button>
+          <div style={{
+            position: 'absolute',
+            bottom: '8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '4px'
+          }}>
+            {images.map((_, idx) => (
+              <div
+                key={idx}
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: idx === currentImageIndex ? 'var(--rose)' : 'rgba(255,255,255,0.7)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 /* ─── CategoryCarousel ─── */
 const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onAddClick }) => {
   const rowRef = useRef(null);
@@ -1098,7 +1207,7 @@ const CategoryCarousel = ({ products, categoryEmojis, category, onQuickView, onA
         {products.map(product => (
           <div key={product.id} className="ch-product-card">
             <div className="ch-product-image-wrap">
-              <span>{categoryEmojis[category] || "🧶"}</span>
+              <ProductImageCarousel images={product.images} productId={product.id} />
               <div className="ch-product-overlay">
                 <button className="ch-quick-view-btn" onClick={() => onQuickView(product)}>
                   Quick View

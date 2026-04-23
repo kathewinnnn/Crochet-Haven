@@ -71,7 +71,7 @@ export const Reports = () => {
   const fetchReports = async () => {
     try {
       const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/orders`, {
+      const res = await fetch(`${API_BASE_URL}/api/orders`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})

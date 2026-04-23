@@ -318,6 +318,7 @@ const Login = () => {
         console.log('Could not fetch profile after login:', profileErr.message);
       }
 
+      setIsLoading(false);
       window.dispatchEvent(new Event('userAuthChanged'));
       setLoggedInUser(apiUser.username || username);
       setLoginSuccess(true);
@@ -326,7 +327,7 @@ const Login = () => {
         navigate(decoded.role === 'admin' ? '/seller' : '/user');
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid username or password');
+      setError(err.response?.data?.message || 'Invalid username/email or password');
       setIsLoading(false);
     }
   };
@@ -358,19 +359,19 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleLogin}>
+            <form onSubmit={handleLogin}>
             <div className="login__form-group">
-              <label className="login__label">👤 Username</label>
-              <div className="login__input-wrapper">
-                <input
-                  type="text" value={username} required
-                  onChange={e => setUsername(e.target.value)}
-                  placeholder="Enter your username"
-                  className={`login__input${isUsernameFocused ? ' login__input--focused' : ''}`}
-                  onFocus={() => setIsUsernameFocused(true)}
-                  onBlur={() => setIsUsernameFocused(false)}
-                />
-              </div>
+              <label className="login__label">👤 Username or Email</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`login__input${isUsernameFocused ? ' login__input--focused' : ''}`}
+                placeholder="Enter your username or email"
+                onFocus={() => setIsUsernameFocused(true)}
+                onBlur={() => setIsUsernameFocused(false)}
+                required
+              />
             </div>
 
             <div className="login__form-group">
@@ -401,6 +402,10 @@ const Login = () => {
               <div className="login__demo-item">
                 <span className="login__demo-label">Username</span>
                 <span className="login__demo-value">admin</span>
+              </div>
+              <div className="login__demo-item">
+                <span className="login__demo-label">Email</span>
+                <span className="login__demo-value">admin@admin.com</span>
               </div>
               <div className="login__demo-item">
                 <span className="login__demo-label">Password</span>

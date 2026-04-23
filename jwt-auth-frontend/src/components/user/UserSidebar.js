@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from '../../context/CartContext';
+import { clearAuthData } from '../../pages/userStorage';
 
 const sidebarStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800&family=Lato:wght@300;400;700&display=swap');
@@ -231,10 +232,13 @@ const UserSidebar = () => {
   const handleLogout = () => {
     setIsLoggingOut(true);
     setTimeout(() => {
-      // ── Clear every auth / cart key ──────────────────────────────────
-      ['token', 'ch_token', 'user', 'ch_user', 'ch_avatar',
-       'profileActiveSection', 'ch_notifications', 'ch_privacy'
-      ].forEach(k => localStorage.removeItem(k));
+      // ── Clear all auth data ──────────────────────────────────
+      clearAuthData();
+
+      // Also clear additional keys that might remain
+      ['ch_avatar', 'profileActiveSection', 'ch_notifications', 'ch_privacy'].forEach(k =>
+        localStorage.removeItem(k)
+      );
 
       // Tell CartContext to reset to guest cart immediately
       window.dispatchEvent(new Event('userAuthChanged'));

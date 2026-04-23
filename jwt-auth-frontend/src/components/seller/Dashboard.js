@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getProductsWithCache, getOrdersWithCache } from '../../apiConfig';
+import { jwtDecode } from "jwt-decode";
 
 const dashStyles = `
   :root {
@@ -87,16 +89,44 @@ const dashStyles = `
 `;
 
 const Dashboard = () => {
-  console.log('Dashboard Debug - Component rendering');
-
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Check if user is admin/seller
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('ch_token');
+      if (!token) {
+        console.log('Dashboard Debug - No token found, redirecting to login');
+        navigate('/login');
+        return;
+      }
+
+      const decoded = jwtDecode(token);
+      if (decoded.role !== 'admin' && decoded.role !== 'seller') {
+        console.log('Dashboard Debug - User is not admin/seller, redirecting to user home');
+        navigate('/user/home');
+        return;
+      }
+
+      console.log('Dashboard Debug - User authorized as', decoded.role);
+      setIsAuthorized(true);
+    } catch (error) {
+      console.error('Dashboard Debug - Error checking user role:', error);
+      navigate('/login');
+      return;
+    }
+  }, [navigate]);
 
   useEffect(() => {
-    console.log('Dashboard Debug - useEffect triggered');
-    fetchData();
-  }, []);
+    if (isAuthorized) {
+      console.log('Dashboard Debug - User authorized, fetching data');
+      fetchData();
+    }
+  }, [isAuthorized]);
 
   const fetchData = async () => {
     console.log('Dashboard Debug - Starting fetchData');
@@ -110,7 +140,9 @@ const Dashboard = () => {
       // Then try to get orders (with error handling)
       console.log('Dashboard Debug - Fetching orders...');
       try {
-        const ordersResult = await getOrdersWithCache(null);
+        // Get token for admin access to all orders
+        const token = localStorage.getItem('token') || localStorage.getItem('ch_token');
+        const ordersResult = await getOrdersWithCache(token);
         console.log('Dashboard Debug - Orders received:', ordersResult?.length || 0, 'items');
         setOrders(ordersResult || []);
       } catch (ordersError) {
