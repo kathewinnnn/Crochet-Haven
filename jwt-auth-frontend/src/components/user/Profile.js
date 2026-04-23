@@ -727,15 +727,21 @@ const Profile = () => {
       let decoded = {};
       if (token) { try { decoded = jwtDecode(token); } catch { /* expired */ } }
 
+      console.log('Profile Debug - Loading user data');
+      console.log('Profile Debug - Token available:', !!token);
+      console.log('Profile Debug - Decoded JWT:', decoded);
+
       // First load from localStorage for immediate display
       let storedUser = {};
       try {
         const raw = localStorage.getItem('ch_user');
+        console.log('Profile Debug - Raw ch_user from localStorage:', raw);
         if (raw) storedUser = JSON.parse(raw);
       } catch { /* ignore */ }
 
       // Merge with decoded token data
       const merged = loadFullUser(decoded);
+      console.log('Profile Debug - Merged data from loadFullUser:', merged);
 
       const combined = {
         ...(merged || {}),
@@ -750,26 +756,35 @@ const Profile = () => {
         createdAt: storedUser.createdAt || decoded.createdAt || merged?.createdAt || "",
       };
 
+      console.log('Profile Debug - Combined user data:', combined);
+      console.log('Profile Debug - createdAt value:', combined.createdAt);
+
       if (combined && (combined.username || combined.email)) {
         const avatar = loadAvatar();
+        console.log('Profile Debug - Loaded avatar:', avatar ? 'present' : 'null');
         combined.avatar = avatar || combined.avatar || null;
         setUser(combined);
         setEditForm({
           fullName: combined.fullName || combined.username || "",
-          email:    combined.email    || "",
-          phone:    combined.phone    || "",
-          address:  combined.address  || "",
+          email:    combined.email    || combined.email    || "",
+          phone:    combined.phone    || combined.phone    || "",
+          address:  combined.address  || combined.address  || "",
         });
       }
 
       // Then, try to fetch the latest profile from the API
       if (token) {
         try {
+          console.log('Profile Debug - Fetching profile from API');
           const profileRes = await fetch(`${API_URL}/profile`, {
             headers: { Authorization: `Bearer ${token}` }
           });
+          console.log('Profile Debug - API response status:', profileRes.status);
           if (profileRes.ok) {
             const apiData = await profileRes.json();
+            console.log('Profile Debug - API response data:', apiData);
+            console.log('Profile Debug - API createdAt:', apiData.createdAt);
+            console.log('Profile Debug - API avatar:', apiData.avatar);
             // Save API data to localStorage for future use
             if (apiData) {
               const userId = decoded.id || apiData.id;
@@ -779,9 +794,11 @@ const Profile = () => {
                 localStorage.setItem(`ch_profile_${userId}`, JSON.stringify(apiData));
               }
               if (apiData.avatar) saveAvatar(apiData.avatar);
-              
+
               // Update state with latest API data
               const updatedUser = { ...combined, ...apiData };
+              console.log('Profile Debug - Updated user with API data:', updatedUser);
+              console.log('Profile Debug - Final createdAt:', updatedUser.createdAt);
               setUser(updatedUser);
               setEditForm({
                 fullName: apiData.fullName || combined.username || "",
@@ -790,12 +807,19 @@ const Profile = () => {
                 address:  apiData.address  || combined.address  || "",
               });
             }
+          } else {
+            console.log('Profile Debug - API request failed with status:', profileRes.status);
           }
         } catch (apiErr) {
-          console.log('Could not fetch profile from API, using stored data');
+          console.log('Profile Debug - Could not fetch profile from API:', apiErr);
         }
+      } else {
+        console.log('Profile Debug - No token available, skipping API fetch');
       }
-    } catch { addToast("error", "Failed to load user data."); }
+    } catch (err) {
+      console.log('Profile Debug - Error in loadUser:', err);
+      addToast("error", "Failed to load user data.");
+    }
     finally  { setLoading(false); }
   };
 

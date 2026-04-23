@@ -253,40 +253,57 @@ const styles = `
 // mirroring the same priority order as CartContext.getUserKey().
 // ─────────────────────────────────────────────────────────────────────────────
 const resolveCurrentUserId = () => {
+  console.log('resolveCurrentUserId Debug - Starting resolution');
+
   // 1. Explicit 'userId' key (written by Checkout.jsx + Login)
   const direct = localStorage.getItem('userId');
+  console.log('resolveCurrentUserId Debug - Direct userId:', direct);
   if (direct) return String(direct);
 
   // 2. 'user' JSON object (written by Login.js)
   try {
     const raw = localStorage.getItem('user');
+    console.log('resolveCurrentUserId Debug - Raw user:', raw);
     if (raw) {
       const p = JSON.parse(raw);
       const id = p?.id || p?.userId;
+      console.log('resolveCurrentUserId Debug - Parsed user id:', id);
       if (id) return String(id);
     }
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.log('resolveCurrentUserId Debug - Error parsing user:', e);
+  }
 
   // 3. 'ch_user' JSON object (written by Register/CartContext)
   try {
     const raw = localStorage.getItem('ch_user');
+    console.log('resolveCurrentUserId Debug - Raw ch_user:', raw);
     if (raw) {
       const p = JSON.parse(raw);
       const id = p?.id || p?.userId;
+      console.log('resolveCurrentUserId Debug - Parsed ch_user id:', id);
       if (id) return String(id);
     }
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.log('resolveCurrentUserId Debug - Error parsing ch_user:', e);
+  }
 
   // 4. JWT decode — try both token key names CartContext checks
   try {
     const token = localStorage.getItem('ch_token') || localStorage.getItem('token');
+    console.log('resolveCurrentUserId Debug - Token available:', !!token);
     if (token) {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('resolveCurrentUserId Debug - JWT payload:', payload);
       const id = payload?.id || payload?.userId || payload?.sub;
+      console.log('resolveCurrentUserId Debug - JWT id:', id);
       if (id) return String(id);
     }
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.log('resolveCurrentUserId Debug - Error decoding JWT:', e);
+  }
 
+  console.log('resolveCurrentUserId Debug - No user ID found');
   return null;
 };
 
@@ -448,7 +465,7 @@ const Orders = () => {
     setError(null);
     try {
       let token = localStorage.getItem('token') || localStorage.getItem('ch_token');
-      
+
       if (!token) {
         try {
           const storedUser = localStorage.getItem('user') || localStorage.getItem('ch_user');
@@ -460,20 +477,30 @@ const Orders = () => {
       }
 
       const currentUserId = resolveCurrentUserId();
+      console.log('Orders Debug - Current User ID:', currentUserId);
+      console.log('Orders Debug - LocalStorage userId:', localStorage.getItem('userId'));
+      console.log('Orders Debug - LocalStorage user:', localStorage.getItem('user'));
+      console.log('Orders Debug - LocalStorage ch_user:', localStorage.getItem('ch_user'));
 
       if (currentUserId) localStorage.setItem('userId', currentUserId);
 
       if (!currentUserId) {
+        console.log('Orders Debug - No currentUserId, returning empty orders');
         setOrders([]);
         setLoading(false);
         return;
       }
 
       const data = await getOrdersWithCache(token);
+      console.log('Orders Debug - All orders from API:', data);
 
       const mapped = data
         // ── Show ONLY orders belonging to the currently logged-in user ───────
-        .filter(order => order.userId && currentUserId && String(order.userId) === String(currentUserId))
+        .filter(order => {
+          const matches = order.userId && currentUserId && String(order.userId) === String(currentUserId);
+          console.log('Orders Debug - Order:', order.id, 'userId:', order.userId, 'matches:', matches);
+          return matches;
+        })
         .map(order => {
           const uiStatus = order.tracking?.status === 'out_for_delivery'
             ? 'out_for_delivery'
