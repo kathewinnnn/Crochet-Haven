@@ -38,80 +38,14 @@ const initializeFirebase = async () => {
     }
     
     console.log('Firebase not configured, using local data');
-    // Provide default data structure with sample products (6 items, full images)
-    cache = {
-      users: [
-        {
-          id: "1",
-          username: "admin",
-          email: "admin@admin.com",
-          password: "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
-          role: "admin",
-          createdAt: "2024-01-01T00:00:00.000Z",
-          name: "Admin",
-          phone: "0912-345-6789",
-          bio: "Store owner",
-          storeName: "Crochet Haven",
-          location: "Manila"
-        }
-      ],
-      products: [
-        {
-          id: "1",
-          name: "Crochet Keychain",
-          description: "Handmade crochet keychain with cute design",
-          price: "50",
-          category: "Accessories & Bouquet",
-          images: [
-            "/img/keychain/1.jpg","/img/keychain/2.jpg","/img/keychain/3.jpg","/img/keychain/4.jpg",
-            "/img/keychain/5.jpg","/img/keychain/6.jpg","/img/keychain/7.jpg","/img/keychain/8.jpg",
-            "/img/keychain/9.jpg","/img/keychain/10.jpg","/img/keychain/11.jpg","/img/keychain/12.jpg"
-          ]
-        },
-        {
-          id: "2", "name": "Crochet Tote Bags", "description": "Stylish crochet tote bag for everyday use", "price": "200", "category": "Bags",
-          "images": ["/img/bag/1.jpg","/img/bag/2.jpg","/img/bag/3.jpg","/img/bag/4.jpg","/img/bag/5.jpg","/img/bag/6.jpg"]
-        },
-        {
-          id: "3", "name": "Crochet Scarf", "description": "Warm and cozy crochet scarf", "price": "150", "category": "Clothing",
-          "images": ["/img/scarf/1.jpg","/img/scarf/2.jpg","/img/scarf/3.jpg","/img/scarf/4.jpg","/img/scarf/5.jpg"]
-        },
-        {
-          id: "4", "name": "Crochet Coasters", "description": "Set of 4 decorative crochet coasters", "price": "200", "category": "Home Decor",
-          "images": ["/img/coaster/1.jpg","/img/coaster/2.jpg","/img/coaster/3.jpg","/img/coaster/4.jpg","/img/coaster/5.jpg","/img/coaster/6.jpg"]
-        },
-        {
-          id: "5", "name": "Crochet Headband & Bandana", "description": "Lightweight crochet headbands designed for comfort and a cute, casual look", "price": "50", "category": "Accessories & Bouquet",
-          "images": ["/img/headband/1.jpg","/img/headband/2.jpg","/img/headband/3.jpg","/img/headband/4.jpg","/img/headband/5.jpg","/img/headband/6.jpg","/img/headband/7.jpg","/img/headband/8.jpg","/img/headband/9.jpg"]
-        },
-        {
-          id: "6", "name": "Crochet Bouquet", "description": "A handmade crochet bouquet that lasts forever—beautiful, meaningful, and perfect for any occasion", "price": "200", "category": "Accessories & Bouquet",
-          "images": ["/img/flower/1.jpg","/img/flower/2.jpg","/img/flower/3.jpg","/img/flower/4.jpg","/img/flower/5.jpg","/img/flower/6.jpg","/img/flower/7.jpg","/img/flower/8.jpg","/img/flower/9.jpg","/img/flower/10.jpg","/img/flower/11.jpg"]
-        }
-      ],
-      orders: [],
-      carts: {},
-      addresses: {}
-    };
-    return true;
-  } catch (e) {
-    console.warn('Failed to load local file:', e.message);
-    cache = {
-      users: [ { id: "1", username: "admin", email: "admin@admin.com", password: "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i", role: "admin", createdAt: "2024-01-01T00:00:00.000Z", name: "Admin", phone: "0912-345-6789", bio: "Store owner", storeName: "Crochet Haven", location: "Manila" } ],
-      products: [
-        { id: "1", name: "Crochet Keychain", description: "Handmade crochet keychain with cute design", price: "50", category: "Accessories & Bouquet", images: ["/img/keychain/1.jpg","/img/keychain/2.jpg","/img/keychain/3.jpg","/img/keychain/4.jpg","/img/keychain/5.jpg","/img/keychain/6.jpg","/img/keychain/7.jpg","/img/keychain/8.jpg","/img/keychain/9.jpg","/img/keychain/10.jpg","/img/keychain/11.jpg","/img/keychain/12.jpg"] },
-        { id: "2", name: "Crochet Tote Bags", description: "Stylish crochet tote bag for everyday use", price: "200", category: "Bags", images: ["/img/bag/1.jpg","/img/bag/2.jpg","/img/bag/3.jpg","/img/bag/4.jpg","/img/bag/5.jpg","/img/bag/6.jpg"] },
-        { id: "3", name: "Crochet Scarf", description: "Warm and cozy crochet scarf", price: "150", category: "Clothing", images: ["/img/scarf/1.jpg","/img/scarf/2.jpg","/img/scarf/3.jpg","/img/scarf/4.jpg","/img/scarf/5.jpg"] },
-        { id: "4", name: "Crochet Coasters", description: "Set of 4 decorative crochet coasters", price: "200", category: "Home Decor", images: ["/img/coaster/1.jpg","/img/coaster/2.jpg","/img/coaster/3.jpg","/img/coaster/4.jpg","/img/coaster/5.jpg","/img/coaster/6.jpg"] },
-        { id: "5", name: "Crochet Headband & Bandana", description: "Lightweight crochet headbands designed for comfort and a cute, casual look", price: "50", category: "Accessories & Bouquet", images: ["/img/headband/1.jpg","/img/headband/2.jpg","/img/headband/3.jpg","/img/headband/4.jpg","/img/headband/5.jpg","/img/headband/6.jpg","/img/headband/7.jpg","/img/headband/8.jpg","/img/headband/9.jpg"] },
-        { id: "6", name: "Crochet Bouquet", description: "A handmade crochet bouquet that lasts forever—beautiful, meaningful, and perfect for any occasion", price: "200", category: "Accessories & Bouquet", images: ["/img/flower/1.jpg","/img/flower/2.jpg","/img/flower/3.jpg","/img/flower/4.jpg","/img/flower/5.jpg","/img/flower/6.jpg","/img/flower/7.jpg","/img/flower/8.jpg","/img/flower/9.jpg","/img/flower/10.jpg","/img/flower/11.jpg"] }
-      ],
-      orders: [],
-      carts: {},
-      addresses: {}
-    };
+    return loadFromLocal();
+   } catch (error) {
+     console.warn('Firebase initialization failed:', error.message);
+     return loadFromLocal();
+   }
+ };
 
-const loadFromLocal = () => {
+ const loadFromLocal = () => {
   try {
     const fs = require('fs');
     const path = require('path');
@@ -684,9 +618,8 @@ exports.handler = async (event, context) => {
              }
            }
          }
-       }
-     }
-    }
+        }
+      }
 
     else if (path.includes('/api/orders/') && method === 'PUT') {
       const id = path.split('/api/orders/')[1].split('?')[0];
@@ -753,28 +686,6 @@ exports.handler = async (event, context) => {
               responseData = { success: true, message: "Order deleted" };
             }
           }
-        }
-      }
-    }
-      }
-    }
-
-    else if (path.includes('/api/orders/') && method === 'DELETE') {
-      const id = path.split('/api/orders/')[1].split('?')[0];
-      const index = cache.orders.findIndex(o => o.id === id);
-      if (index === -1) {
-        statusCode = 404;
-        responseData = { error: "Order not found" };
-      } else {
-        const order = cache.orders[index];
-        // Only allow deletion of cancelled orders
-        if (order.status !== 'Cancelled') {
-          statusCode = 403;
-          responseData = { error: "Only cancelled orders can be deleted" };
-        } else {
-          cache.orders.splice(index, 1);
-          await saveToAll(cache);
-          responseData = { success: true, message: "Order deleted" };
         }
       }
     }
