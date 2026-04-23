@@ -730,30 +730,35 @@ const fc = (name) => ({
               <div style={st.fg}>
                 <label style={st.label}>👤 Username</label>
                 <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={form.username}
-                    onChange={ch('username')}
-                    placeholder="Choose a unique username (min. 5 characters)"
-                    style={{
-                      ...inp('username', uStatus === U.TAKEN || (!!fieldErrors.username && form.username.trim().length < 5) || (touched.username && !form.username.trim())),
-                      paddingRight: '40px',
-                    }}
-                    {...fc('username')}
-                  />
+                    <input
+                      type="text"
+                      value={form.username}
+                      onChange={ch('username')}
+                      placeholder="Choose a unique username (min. 5 characters)"
+                      style={{
+                        ...inp('username', uStatus === U.TAKEN || uStatus === U.ERROR || (!!fieldErrors.username && uStatus !== U.CHECKING) || (touched.username && !form.username.trim())),
+                        paddingRight: '40px',
+                      }}
+                      {...fc('username')}
+                    />
                   {uIndicator && (
                     <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1, pointerEvents: 'none' }}>
                       {uIndicator}
                     </span>
                   )}
                 </div>
-                {touched.username && !form.username.trim()
-                  ? <div className="ferr">⚠ Username is required.</div>
-                  : renderUsernameMsg() ?? (fieldErrors.username && uStatus !== U.TAKEN
-                      ? <div className="ferr">⚠ {fieldErrors.username}</div>
-                      : null
-                    )
-                }
+                 {touched.username && !form.username.trim()
+                   ? <div className="ferr">⚠ Username is required.</div>
+                   : uStatus === U.CHECKING
+                     ? <div className="fnfo">⏳ Checking availability…</div>
+                     : uStatus === U.AVAILABLE
+                       ? <div className="fok">✓ Username is available!</div>
+                       : uStatus === U.TAKEN
+                         ? <div className="ferr">❌ This username is already taken. Please choose another.</div>
+                         : fieldErrors.username
+                           ? <div className="ferr">⚠ {fieldErrors.username}</div>
+                           : null
+                 }
               </div>
 
               {/* Full Name */}
@@ -778,29 +783,35 @@ const fc = (name) => ({
                <div style={st.fg}>
                  <label style={st.label}>✉️ Email</label>
                  <div style={{ position: 'relative' }}>
-                   <input
-                     type="email"
-                     value={form.email}
-                     onChange={ch('email')}
-                     placeholder="Enter your email"
-                     style={{
-                       ...inp('email', eStatus === E.TAKEN || (!!fieldErrors.email && form.email.trim().length < 5) || (touched.email && !form.email.trim())),
-                       paddingRight: '40px',
-                     }}
-                     {...fc('email')}
-                   />
+                  <input
+                      type="email"
+                      value={form.email}
+                      onChange={ch('email')}
+                      placeholder="Enter your email"
+                      style={{
+                        ...inp('email', eStatus === E.TAKEN || eStatus === E.ERROR || (!!fieldErrors.email && eStatus !== E.CHECKING) || (touched.email && !form.email.trim())),
+                        paddingRight: '40px',
+                      }}
+                      {...fc('email')}
+                    />
                    {eIndicator && (
                      <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1, pointerEvents: 'none' }}>
                        {eIndicator}
                      </span>
                    )}
                  </div>
-                 {touched.email && !form.email.trim()
-                   ? <div className="ferr">⚠ Email is required.</div>
-                   : renderEmailMsg() ?? (fieldErrors.email && eStatus !== E.TAKEN
-                       ? <div className="ferr">⚠ {fieldErrors.email}</div>
-                       : null
-                     )}
+                  {touched.email && !form.email.trim()
+                    ? <div className="ferr">⚠ Email is required.</div>
+                    : eStatus === E.CHECKING
+                      ? <div className="fnfo">⏳ Checking availability…</div>
+                      : eStatus === E.AVAILABLE
+                        ? <div className="fok">✓ Email is available!</div>
+                        : eStatus === E.TAKEN
+                          ? <div className="ferr">❌ This email is already registered. Please choose another.</div>
+                          : fieldErrors.email
+                            ? <div className="ferr">⚠ {fieldErrors.email}</div>
+                            : null
+                  }
                </div>
 
               {/* Phone */}
