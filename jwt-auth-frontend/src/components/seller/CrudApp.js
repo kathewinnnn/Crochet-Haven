@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getProductsWithCache, API_BASE_URL } from '../../apiConfig';
 
-const API_URL = `${API_BASE_URL}/products`;
+const API_URL = `${API_BASE_URL}/api/products`;
 const categories = ["Accessories & Bouquet", "Bags", "Clothing", "Home Decor"];
 
 const crudStyles = `

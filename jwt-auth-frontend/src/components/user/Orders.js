@@ -494,11 +494,17 @@ const Orders = () => {
   useEffect(() => {
     fetchOrders();
     fetchProductsMap();
+    // Auto-refresh orders every 5 seconds
+    const autoRefresh = setInterval(fetchOrders, 5000);
     const onUpdate = () => fetchOrders();
     const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
     window.addEventListener('ordersUpdated', onUpdate);
     window.addEventListener('storage', onStorage);
-    return () => { window.removeEventListener('ordersUpdated', onUpdate); window.removeEventListener('storage', onStorage); };
+    return () => {
+      clearInterval(autoRefresh);
+      window.removeEventListener('ordersUpdated', onUpdate);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [fetchOrders, fetchProductsMap]);
 
 

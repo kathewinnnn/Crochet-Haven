@@ -184,10 +184,10 @@ const saveToAll = async (data) => {
 
   console.log('Serverless Debug - Saving data, Firestore initialized:', firebaseInitialized);
 
+  // Always save to the local db.json file
   try {
     const fs = require('fs');
     const path = require('path');
-    // Save to the same location that loadFromLocal loads from
     const localPath = path.join(__dirname, 'db.json');
     fs.writeFileSync(localPath, JSON.stringify(data, null, 2));
     console.log('Data saved to local file:', localPath);
@@ -202,8 +202,6 @@ const saveToAll = async (data) => {
     } catch (err) {
       console.warn('Firestore sync failed:', err.message);
     }
-  } else {
-    console.log('Firestore not available, data only saved locally (will not persist)');
   }
 };
 
@@ -261,6 +259,12 @@ exports.handler = async (event, context) => {
   if (!admin) {
     await initializeFirebase();
   }
+
+  // Cache is initialized from Firestore (or local fallback) during startup.
+  // Do NOT reload from db.json here — that would overwrite Firestore data
+  // and cause data loss in ephemeral Netlify function environments.
+
+
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -473,16 +477,19 @@ exports.handler = async (event, context) => {
         statusCode = 401;
         responseData = { message: "Unauthorized" };
       } else {
-        const { fullName, phone, address, avatar } = body;
+        const { fullName, phone, address, avatar, storeName, location, bio } = body;
         const userIndex = cache.users.findIndex(u => u.id === decoded.id);
         if (userIndex === -1) {
           statusCode = 404;
           responseData = { message: "User not found" };
         } else {
-          if (fullName) cache.users[userIndex].fullName = fullName;
-          if (phone) cache.users[userIndex].phone = phone;
-          if (address) cache.users[userIndex].address = address;
+          if (fullName !== undefined) cache.users[userIndex].fullName = fullName;
+          if (phone !== undefined) cache.users[userIndex].phone = phone;
+          if (address !== undefined) cache.users[userIndex].address = address;
           if (avatar !== undefined) cache.users[userIndex].avatar = avatar;
+          if (storeName !== undefined) cache.users[userIndex].storeName = storeName;
+          if (location !== undefined) cache.users[userIndex].location = location;
+          if (bio !== undefined) cache.users[userIndex].bio = bio;
           await saveToAll(cache);
           const { password, ...userWithoutPassword } = cache.users[userIndex];
           responseData = userWithoutPassword;
@@ -560,7 +567,27 @@ exports.handler = async (event, context) => {
       console.log('Serverless Debug - Returning orders data:', responseData);
     }
 
-     else if (path.includes('/api/orders') && method === 'POST') {
+      else if (path.includes('/api/orders') && method === 'GET') {
+        const decoded = decodeToken(authHeader);
+        if (!decoded) {
+          statusCode = 401;
+          responseData = { message: "Unauthorized" };
+        } else {
+          let orders = cache.orders || [];
+          // For non-admin users, filter to only their orders
+          const isAdmin = decoded.role === 'admin' || decoded.role === 'seller';
+          if (isAdmin) {
+            // Admins/sellers see all orders
+            responseData = orders;
+          } else {
+            // Regular users only see their own orders
+            responseData = orders.filter(o => o.userId === decoded.id);
+          }
+          console.log('Serverless Debug - Returning orders:', responseData.length, 'for user:', decoded.id, 'admin:', isAdmin);
+        }
+      }
+
+      else if (path.includes('/api/orders') && method === 'POST') {
        console.log('Serverless Debug - Processing order POST request');
        console.log('Serverless Debug - Auth header present:', !!authHeader);
        const decoded = decodeToken(authHeader);
