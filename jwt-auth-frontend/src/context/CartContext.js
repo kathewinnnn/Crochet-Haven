@@ -105,7 +105,7 @@ export const CartProvider = ({ children }) => {
       window.removeEventListener('userAuthChanged', refresh);
       window.removeEventListener('storage',         refresh);
     };
-  }, []); // Only run once on mount
+   }, [userKey, cart, selectedItems]); // Dependencies added to satisfy exhaustive-deps
 
   // Persist cart data whenever it changes
   useEffect(() => {

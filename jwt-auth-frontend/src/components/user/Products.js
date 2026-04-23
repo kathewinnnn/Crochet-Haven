@@ -1081,7 +1081,7 @@ const ProductImageCarousel = ({ images, productId }) => {
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <img
         src={images[currentImageIndex]}
-        alt={`Product ${productId} - Image ${currentImageIndex + 1}`}
+         alt={productId}
         style={{
           width: '100%',
           height: '100%',
