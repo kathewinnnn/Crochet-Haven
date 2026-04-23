@@ -28,6 +28,7 @@
     "react": "react-scripts start",
     "server": "node server.js",
     "build": "react-scripts build",
+    "postbuild": "node -e \"const fs = require('fs'); fs.copyFileSync('db.json', 'netlify/functions/db.json'); console.log('db.json copied to netlify/functions/');\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "concurrently \"npm run server\" \"npm run react\""

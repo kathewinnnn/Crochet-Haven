@@ -48,14 +48,124 @@ const loadFromLocal = () => {
   try {
     const fs = require('fs');
     const path = require('path');
-    const localPath = path.join(__dirname, '..', 'db.json');
+    // db.json is copied to netlify/functions/ during build
+    const localPath = path.join(__dirname, 'db.json');
+    console.log('Loading db.json from:', localPath);
     if (fs.existsSync(localPath)) {
       const raw = fs.readFileSync(localPath, 'utf8');
       cache = JSON.parse(raw);
+      console.log(`Loaded local data: ${cache.products?.length || 0} products, ${cache.users?.length || 0} users, ${cache.orders?.length || 0} orders`);
+    } else {
+      console.warn('db.json not found at:', localPath);
+      // Provide default data structure with sample products
+      cache = {
+        users: [
+          {
+            id: "1",
+            username: "admin",
+            email: "admin@admin.com",
+            password: "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
+            role: "admin",
+            createdAt: "2024-01-01T00:00:00.000Z",
+            name: "Admin",
+            phone: "0912-345-6789",
+            bio: "Store owner",
+            storeName: "Crochet Haven",
+            location: "Manila"
+          }
+        ],
+        products: [
+          {
+            id: "1",
+            name: "Crochet Keychain",
+            description: "Handmade crochet keychain with cute design",
+            price: "50",
+            category: "Accessories & Bouquet",
+            images: ["/img/keychain/1.jpg", "/img/keychain/2.jpg", "/img/keychain/3.jpg"]
+          },
+          {
+            id: "2",
+            name: "Crochet Tote Bags",
+            description: "Stylish crochet tote bag for everyday use",
+            price: "200",
+            category: "Bags",
+            images: ["/img/bag/1.jpg", "/img/bag/2.jpg", "/img/bag/3.jpg"]
+          },
+          {
+            id: "3",
+            name: "Crochet Scarf",
+            description: "Warm and cozy crochet scarf",
+            price: "150",
+            category: "Clothing",
+            images: ["/img/scarf/1.jpg", "/img/scarf/2.jpg", "/img/scarf/3.jpg"]
+          },
+          {
+            id: "4",
+            name: "Crochet Coasters",
+            description: "Set of 4 decorative crochet coasters",
+            price: "200",
+            category: "Home Decor",
+            images: ["/img/coaster/1.jpg", "/img/coaster/2.jpg", "/img/coaster/3.jpg"]
+          }
+        ],
+        orders: []
+      };
     }
   } catch (e) {
     console.warn('Failed to load local file:', e.message);
-    cache = { users: [], products: [], orders: [] };
+    // Provide default data structure with sample products
+    cache = {
+      users: [
+        {
+          id: "1",
+          username: "admin",
+          email: "admin@admin.com",
+          password: "$2b$10$QQg0KErxtA9nJ4yVCH.HBOEwH.RbroYM3otlARXoHagJcIT/T5A.i",
+          role: "admin",
+          createdAt: "2024-01-01T00:00:00.000Z",
+          name: "Admin",
+          phone: "0912-345-6789",
+          bio: "Store owner",
+          storeName: "Crochet Haven",
+          location: "Manila"
+        }
+      ],
+      products: [
+        {
+          id: "1",
+          name: "Crochet Keychain",
+          description: "Handmade crochet keychain with cute design",
+          price: "50",
+          category: "Accessories & Bouquet",
+          images: ["/img/keychain/1.jpg", "/img/keychain/2.jpg", "/img/keychain/3.jpg"]
+        },
+        {
+          id: "2",
+          name: "Crochet Tote Bags",
+          description: "Stylish crochet tote bag for everyday use",
+          price: "200",
+          category: "Bags",
+          images: ["/img/bag/1.jpg", "/img/bag/2.jpg", "/img/bag/3.jpg"]
+        },
+        {
+          id: "3",
+          name: "Crochet Scarf",
+          description: "Warm and cozy crochet scarf",
+          price: "150",
+          category: "Clothing",
+          images: ["/img/scarf/1.jpg", "/img/scarf/2.jpg", "/img/scarf/3.jpg"]
+        },
+        {
+          id: "4",
+          name: "Crochet Coasters",
+          description: "Set of 4 decorative crochet coasters",
+          price: "200",
+          category: "Home Decor",
+          images: ["/img/coaster/1.jpg", "/img/coaster/2.jpg", "/img/coaster/3.jpg"]
+        }
+      ],
+      orders: []
+    };
   }
   return true;
 };
