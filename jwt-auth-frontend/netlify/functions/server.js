@@ -367,18 +367,6 @@ exports.handler = async (event, context) => {
       }
     }
 
-    else if (path.includes('/api/auth/check-email') && method === 'GET') {
-      const params = event.queryStringParameters || {};
-      const email = params.email;
-      if (!email) {
-        statusCode = 400;
-        responseData = { message: "Email required" };
-      } else {
-        const taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-        responseData = { available: !taken };
-      }
-    }
-
     else if (path.includes('/api/auth/delete-account') && method === 'POST') {
       console.log('Serverless Debug - Delete account endpoint called');
       const decoded = decodeToken(authHeader);
