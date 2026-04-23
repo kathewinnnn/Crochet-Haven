@@ -494,7 +494,11 @@ const Orders = () => {
       const data = await getOrdersWithCache(token);
       console.log('Orders Debug - All orders from API:', data);
 
-      const mapped = data
+      // Ensure data is an array before filtering
+      const ordersArray = Array.isArray(data) ? data : [];
+      console.log('Orders Debug - Orders array length:', ordersArray.length);
+
+      const mapped = ordersArray
         // ── Show ONLY orders belonging to the currently logged-in user ───────
         .filter(order => {
           const matches = order.userId && currentUserId && String(order.userId) === String(currentUserId);

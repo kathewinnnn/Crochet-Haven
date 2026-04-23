@@ -1163,8 +1163,11 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const products = await getProductsWithCache();
-      setProducts(products);
+      const fetchedProducts = await getProductsWithCache();
+      // Ensure fetchedProducts is an array
+      const productsArray = Array.isArray(fetchedProducts) ? fetchedProducts : [];
+      console.log('Products Debug - Fetched products:', productsArray.length);
+      setProducts(productsArray);
     } catch (error) {
       console.error("Error fetching products:", error);
       setProducts([]);
@@ -1180,7 +1183,7 @@ const Products = () => {
     "Home Decor": "🏠"
   };
 
-  const groupedProducts = products.reduce((acc, product) => {
+  const groupedProducts = (products || []).reduce((acc, product) => {
     if (!acc[product.category]) acc[product.category] = [];
     acc[product.category].push(product);
     return acc;
