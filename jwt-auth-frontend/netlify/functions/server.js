@@ -238,7 +238,13 @@ const syncToFirestore = async (data) => {
 };
 
 const readDb = () => cache;
-const writeDb = async (data) => await saveToAll(data);
+
+// Guard against partial/incomplete registrations
+const users = cache.users || [];
+const saveDb = async (data) => {
+  cache = data;
+  await saveToAll(data);
+};
 
 const decodeToken = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -462,18 +468,6 @@ exports.handler = async (event, context) => {
         } else {
           taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
         }
-        responseData = { available: !taken };
-      }
-    }
-
-    else if (path.includes('/api/auth/check-email') && method === 'GET') {
-      const params = event.queryStringParameters || {};
-      const email = params.email;
-      if (!email) {
-        statusCode = 400;
-        responseData = { message: "Email required" };
-      } else {
-        const taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
         responseData = { available: !taken };
       }
     }
