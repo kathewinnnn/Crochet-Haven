@@ -403,6 +403,7 @@ const Orders = () => {
   const [contactModal, setContactModal] = useState({ show: false, order: null });
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
   const [productsMap, setProductsMap] = useState({});
+  const [confirmModal, setConfirmModal] = useState({ show: false, order: null });
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -462,6 +463,7 @@ const Orders = () => {
             date: order.createdAt.split('T')[0],
             createdAt: order.createdAt,
             status: uiStatus,
+            confirmed: order.confirmed || false,
             tracking: order.tracking || null,
             estimatedDelivery: eta,
             paymentMethod: order.paymentMethod,
@@ -544,10 +546,35 @@ const Orders = () => {
         window.dispatchEvent(new CustomEvent('ordersUpdated', { detail: { backendId } }));
         showToast('Order cancelled successfully', 'success');
       } else {
-        setOrders(p => p.map(o => (backendId ? o.backendId === backendId : o.id === displayId) ? { ...o, status: 'cancelled' } : o));
+        setOrders(p => p.map(o => o.backendId === backendId ? { ...o, status: 'cancelled' } : o));
         showToast('Order cancellation queued', 'info');
       }
     } catch { showToast('Failed to cancel order', 'error'); }
+  };
+
+  const confirmDelivery = async () => {
+    const { order } = confirmModal;
+    if (!order) return;
+    setConfirmModal({ show: false, order: null });
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('ch_token');
+      const res = await fetch(`${API_BASE_URL}/api/orders/${order.backendId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ confirmed: true })
+      });
+      if (res.ok) {
+        setOrders(p => p.map(o => o.backendId === order.backendId ? { ...o, confirmed: true } : o));
+        showToast('Delivery confirmed! Thank you for your order! 🎉', 'success');
+        try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
+        window.dispatchEvent(new CustomEvent('ordersUpdated', { detail: { backendId: order.backendId, confirmed: true } }));
+      } else {
+        showToast('Failed to confirm delivery', 'error');
+      }
+    } catch (err) {
+      console.error('Confirm delivery error:', err);
+      showToast('Failed to confirm delivery', 'error');
+    }
   };
 
   const tabs = [
@@ -624,14 +651,16 @@ const Orders = () => {
                     <span className="ch-order-id">{order.id}</span>
                     <span className="ch-order-date">{fmtDate(order.date)}</span>
                   </div>
-                  <div className="ch-order-status-group">
-                    <span className="ch-status-pill" style={{ backgroundColor: statusColor(order.status) }}>{statusLabel(order.status)}</span>
-                    {(order.status === 'to_receive' || order.status === 'out_for_delivery') && order.estimatedDelivery && (
-                      <span className="ch-order-eta">
-                        {order.status === 'out_for_delivery' ? `Out for delivery — ${fmtDate(order.estimatedDelivery)}` : `Est. delivery: ${fmtDate(order.estimatedDelivery)}`}
-                      </span>
-                    )}
-                  </div>
+                   <div className="ch-order-status-group">
+                     <span className="ch-status-pill" style={{ backgroundColor: order.confirmed ? 'var(--sage)' : statusColor(order.status) }}>
+                       {order.confirmed ? 'Confirmed ✓' : statusLabel(order.status)}
+                     </span>
+                     {(order.status === 'to_receive' || order.status === 'out_for_delivery') && order.estimatedDelivery && (
+                       <span className="ch-order-eta">
+                         {order.status === 'out_for_delivery' ? `Out for delivery — ${fmtDate(order.estimatedDelivery)}` : `Est. delivery: ${fmtDate(order.estimatedDelivery)}`}
+                       </span>
+                     )}
+                   </div>
                 </div>
                 <div className="ch-order-items">
                   {order.items.map((item, i) => (
@@ -656,23 +685,33 @@ const Orders = () => {
                       {['gcash', 'paymaya', 'card'].includes(order.paymentMethod) ? 'Paid' : 'COD'}
                     </span>
                   </div>
-                  <div className="ch-order-actions">
-                    {order.status === 'completed' && (
-                      <button className="ch-order-btn primary" onClick={() => setBuyAgainModal({ show: true, order })}>🛒 Buy Again</button>
-                    )}
-                    {(order.status === 'to_ship' || order.status === 'to_receive') && order.tracking && (
-                      <button className="ch-order-btn">Track Order</button>
-                    )}
-                    {(order.status === 'to_ship' || order.status === 'to_receive') && (
-                      <button className="ch-order-btn contact-seller" onClick={() => setContactModal({ show: true, order })}>💬 Contact Seller</button>
-                    )}
-                    {(order.status === 'to_ship' || order.status === 'to_pay') && (
-                      <button className="ch-order-btn danger cancel-order"
-                        onClick={e => { e.stopPropagation(); setCancelModal({ show: true, displayId: order.id, backendId: order.backendId }); }}>
-                        Cancel Order
-                      </button>
-                    )}
-                  </div>
+                   <div className="ch-order-actions">
+                     {order.status === 'completed' && !order.confirmed && (
+                       <button className="ch-order-btn primary" onClick={() => setConfirmModal({ show: true, order })}>
+                         ✓ Confirm Delivery
+                       </button>
+                     )}
+                     {order.status === 'completed' && order.confirmed && (
+                       <span style={{ fontSize: '0.78rem', color: 'var(--sage)', fontWeight: 600 }}>
+                         ✓ Delivery Confirmed
+                       </span>
+                     )}
+                     {order.status === 'completed' && (
+                       <button className="ch-order-btn" onClick={() => setBuyAgainModal({ show: true, order })}>🛒 Buy Again</button>
+                     )}
+                     {(order.status === 'to_ship' || order.status === 'to_receive') && order.tracking && (
+                       <button className="ch-order-btn">Track Order</button>
+                     )}
+                     {(order.status === 'to_ship' || order.status === 'to_receive') && (
+                       <button className="ch-order-btn contact-seller" onClick={() => setContactModal({ show: true, order })}>💬 Contact Seller</button>
+                     )}
+                     {(order.status === 'to_ship' || order.status === 'to_pay') && (
+                       <button className="ch-order-btn danger cancel-order"
+                         onClick={e => { e.stopPropagation(); setCancelModal({ show: true, displayId: order.id, backendId: order.backendId }); }}>
+                         Cancel Order
+                       </button>
+                     )}
+                   </div>
                 </div>
               </div>
             ))}
@@ -705,11 +744,25 @@ const Orders = () => {
             navigate={navigate} addToCart={addToCart} productsMap={productsMap} />
         )}
 
-        {contactModal.show && contactModal.order && (
-          <ContactSellerModal order={contactModal.order} onClose={() => setContactModal({ show: false, order: null })} />
-        )}
+         {contactModal.show && contactModal.order && (
+           <ContactSellerModal order={contactModal.order} onClose={() => setContactModal({ show: false, order: null })} />
+         )}
 
-        {toast.show && <div className={`ch-toast-global ${toast.type}`}>{toast.message}</div>}
+         {confirmModal.show && confirmModal.order && (
+           <div className="ch-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setConfirmModal({ show: false, order: null }); }}>
+             <div className="ch-modal">
+               <span className="ch-modal-icon">📦</span>
+               <div className="ch-modal-title">Confirm Delivery</div>
+               <div className="ch-modal-desc">Have you received your order #{confirmModal.order.id}? Once confirmed, the seller will no longer be able to modify this order's status.</div>
+               <div className="ch-modal-actions">
+                 <button className="ch-modal-cancel" onClick={() => setConfirmModal({ show: false, order: null })}>Not Yet</button>
+                 <button className="ch-modal-confirm" onClick={confirmDelivery}><span>Yes, Confirm</span></button>
+               </div>
+             </div>
+           </div>
+         )}
+
+         {toast.show && <div className={`ch-toast-global ${toast.type}`}>{toast.message}</div>}
       </div>
     </>
   );
