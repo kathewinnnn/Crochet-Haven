@@ -407,7 +407,7 @@ const Register = () => {
         setEStatus(res.data?.available === true ? E.AVAILABLE : E.TAKEN);
       }
     } catch {
-      if (emailRef.current.trim() === e) setEStatus(E.IDLE);
+      if (emailRef.current.trim() === e) setEStatus(E.ERROR);
     }
   }, []);
 
@@ -483,6 +483,10 @@ const Register = () => {
     else if (!EMAIL_REGEX.test(form.email)) errs.email = 'Enter a valid email address.';
     else if (emailStatus === E.CHECKING) errs.email = 'Please wait — checking email availability.';
     else if (emailStatus === E.TAKEN)    errs.email = 'This email is already registered. Please use another.';
+    else if (emailStatus === E.ERROR)     errs.email = 'Could not verify email. Please try again.';
+    else if (emailStatus === E.IDLE && form.email.trim() && EMAIL_REGEX.test(form.email)) {
+      errs.email = 'Please wait — checking email availability.';
+    }
 
     const phoneDigits = form.phone.replace(/\D/g, '');
     if (!form.phone.trim())                 errs.phone = 'Phone number is required.';
@@ -497,63 +501,80 @@ const Register = () => {
   };
 
   const goToAvatar = async () => {
+    // Capture current status values to avoid race conditions
+    const currentUStatus = uStatus;
+    const currentEStatus = eStatus;
+
     // Block immediately if known invalid states
-    if (uStatus === U.TAKEN) {
+    if (currentUStatus === U.TAKEN) {
       setFieldErrors({ username: 'This username is already taken. Please choose another.' });
       return;
     }
-    if (uStatus === U.CHECKING) {
+    if (currentUStatus === U.CHECKING) {
       setFieldErrors({ username: 'Still checking username availability. Please wait.' });
       return;
     }
-    if (uStatus === U.ERROR) {
+    if (currentUStatus === U.ERROR) {
       setFieldErrors({ username: 'Could not verify username. Please try again.' });
       return;
     }
-    if (eStatus === E.TAKEN) {
+    if (currentEStatus === E.TAKEN) {
       setFieldErrors({ email: 'This email is already registered. Please use another.' });
       return;
     }
-    if (eStatus === E.CHECKING) {
+    if (currentEStatus === E.CHECKING) {
       setFieldErrors({ email: 'Still checking email availability. Please wait.' });
       return;
     }
-    if (eStatus === E.ERROR) {
+    if (currentEStatus === E.ERROR) {
       setFieldErrors({ email: 'Could not verify email. Please try again.' });
       return;
     }
 
     const u = form.username.trim();
+    const e = form.email.trim();
 
     // Basic length validation first
     if (u.length < 5) {
-      setFieldErrors(validateInfoWithStatus(uStatus, eStatus));
+      setFieldErrors(validateInfoWithStatus(currentUStatus, currentEStatus));
       return;
     }
 
-    // Perform a definitive check with server
+    // Perform definitive checks with server for both username and email
     clearTimeout(uTimer.current);
+    clearTimeout(eTimer.current);
     setUStatus(U.CHECKING);
+    setEStatus(E.CHECKING);
     setTouched({ username: true, fullName: true, email: true, phone: true, address: true, password: true, confirmPassword: true });
 
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`
-      );
-      const available = res.data?.available === true;
-      const newStatus = available ? U.AVAILABLE : U.TAKEN;
-      setUStatus(newStatus);
-      const errs = validateInfoWithStatus(newStatus, eStatus);
+      // Run both checks in parallel
+      const [usernameRes, emailRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/auth/check-username?username=${encodeURIComponent(u)}`),
+        axios.get(`${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(e)}`)
+      ]);
+
+      const usernameAvailable = usernameRes.data?.available === true;
+      const emailAvailable = emailRes.data?.available === true;
+
+      const newUStatus = usernameAvailable ? U.AVAILABLE : U.TAKEN;
+      const newEStatus = emailAvailable ? E.AVAILABLE : E.TAKEN;
+
+      setUStatus(newUStatus);
+      setEStatus(newEStatus);
+
+      const errs = validateInfoWithStatus(newUStatus, newEStatus);
       setFieldErrors(errs);
       if (Object.keys(errs).length === 0) {
         setStep(STEP_AVATAR);
       }
-     } catch (err) {
-       console.error('Username check failed:', err);
-       setUStatus(U.ERROR);
-       const errs = validateInfoWithStatus(U.ERROR, eStatus);
-       setFieldErrors(errs);
-     }
+    } catch (err) {
+      console.error('Registration check failed:', err);
+      setUStatus(U.ERROR);
+      setEStatus(E.ERROR);
+      const errs = validateInfoWithStatus(U.ERROR, E.ERROR);
+      setFieldErrors(errs);
+    }
   };
 
   /* ─── SUBMIT ─── */

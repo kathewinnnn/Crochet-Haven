@@ -200,6 +200,18 @@ app.get('/api/auth/check-username', (req, res) => {
   }
 });
 
+app.get('/api/auth/check-email', (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    const db = readDb();
+    const taken = db.users.some(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
+    return res.json({ available: !taken });
+  } catch {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ─── DELETE account ───────────────────────────────────────────────────────────
 app.post('/api/auth/delete-account', async (req, res) => {
   try {
@@ -567,15 +579,25 @@ exports.handler = async (event, context) => {
        }
      }
 
-     else if (p.startsWith('/api/auth/check-username') && method === 'GET') {
-       const username = (event.queryStringParameters || {}).username;
-       if (!username) { statusCode = 400; responseData = { message: "Username required" }; }
-       else {
-         const db    = readDb();
-         const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
-         responseData = { available: !taken };
-       }
-     }
+      else if (p.startsWith('/api/auth/check-username') && method === 'GET') {
+        const username = (event.queryStringParameters || {}).username;
+        if (!username) { statusCode = 400; responseData = { message: "Username required" }; }
+        else {
+          const db    = readDb();
+          const taken = db.users.some(u => u.username.trim().toLowerCase() === username.trim().toLowerCase());
+          responseData = { available: !taken };
+        }
+      }
+
+      else if (p.startsWith('/api/auth/check-email') && method === 'GET') {
+        const email = (event.queryStringParameters || {}).email;
+        if (!email) { statusCode = 400; responseData = { message: "Email required" }; }
+        else {
+          const db    = readDb();
+          const taken = db.users.some(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
+          responseData = { available: !taken };
+        }
+      }
 
      // ── GET PROFILE ─────────────────────────────────────────────────────────────
      else if (p === '/api/auth/profile' && method === 'GET') {
