@@ -51,8 +51,9 @@ const orderStyles = `
   .ch-status-pending { background: rgba(232,164,90,.15); color: var(--amber); }
   .ch-status-processing { background: rgba(138,171,142,.15); color: var(--sage); }
   .ch-status-shipped { background: rgba(100,120,200,.13); color: #5b6fa8; }
-  .ch-status-delivered { background: rgba(138,171,142,.2); color: #4a8a50; }
-  .ch-status-cancelled { background: rgba(192,57,43,.1); color: #c0392b; }
+   .ch-status-delivered { background: rgba(138,171,142,.2); color: #4a8a50; }
+   .ch-status-confirmed { background: rgba(138,171,142,.35); color: #2d6a30; border: 1px solid rgba(138,171,142,.5); }
+   .ch-status-cancelled { background: rgba(192,57,43,.1); color: #c0392b; }
   .ch-payment-badge { display: inline-block; padding: 3px 7px; border-radius: 2px; font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
   .ch-payment-paid { background: rgba(16,185,129,.15); color: #10b981; }
   .ch-payment-unpaid { background: rgba(245,158,11,.15); color: #f59e0b; }
@@ -210,7 +211,7 @@ const orderStyles = `
 const statusClass = s => ({
   processing: "ch-status-processing",
   shipped: "ch-status-shipped",
-  delivered: "ch-status-delivered",
+  delivered: s?.confirmed ? "ch-status-confirmed" : "ch-status-delivered",
   cancelled: "ch-status-cancelled"
 })[(s || "").toLowerCase()] || "ch-status-processing";
 
@@ -273,13 +274,20 @@ const Order = () => {
     return () => { clearInterval(poll); window.removeEventListener("ordersUpdated", onUpdate); window.removeEventListener("storage", onStorage); };
   }, [fetchOrders]);
 
-  const updateStatus = async (id, status) => {
-    if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
-    try {
-      const res = await fetch(`${BASE}/orders/${id}`, { method: "PUT", headers: getAuthHeaders(), body: JSON.stringify({ status }) });
-      if (res.ok) { setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o)); window.dispatchEvent(new CustomEvent("ordersUpdated", { detail: { id, status } })); }
-    } catch (e) { console.error(e); }
-  };
+   const updateStatus = async (id, status) => {
+     if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
+     try {
+       const order = orders.find(o => o.id === id);
+       // If order is already confirmed by customer, prevent status changes
+       if (order?.confirmed) {
+         setNotification({ type: 'info', message: 'Cannot modify status: delivery already confirmed by customer.' });
+         setTimeout(() => setNotification(null), 4000);
+         return;
+       }
+       const res = await fetch(`${BASE}/orders/${id}`, { method: "PUT", headers: getAuthHeaders(), body: JSON.stringify({ status }) });
+       if (res.ok) { setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o)); window.dispatchEvent(new CustomEvent("ordersUpdated", { detail: { id, status } })); }
+     } catch (e) { console.error(e); }
+   };
 
   const confirmCancel = async () => {
     const { orderId } = cancelModal;
@@ -347,7 +355,12 @@ const Order = () => {
   const handleAddOrder = async () => {
     if (!addOrderData.customer.fullName.trim() || addOrderData.items.length === 0) return;
     try {
-      const payload = { ...addOrderData, status: 'Processing', createdAt: new Date().toISOString() };
+      const payload = { 
+        ...addOrderData, 
+        status: 'Processing', 
+        createdAt: new Date().toISOString(),
+        confirmed: false
+      };
       const res = await fetch(`${BASE}/orders`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload) });
       if (res.ok) {
         const newOrder = await res.json();
@@ -447,7 +460,7 @@ const Order = () => {
                     </td>
                     <td>{isFirst && <span className="ch-order-total">₱{fmtP(order.total)}</span>}</td>
                     <td>{isFirst && <span className="ch-order-date">{fmt(order.createdAt)}</span>}</td>
-                    <td>{isFirst && <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{orderStatus}</span>}</td>
+                     <td>{isFirst && <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{order.confirmed ? 'Delivered (Confirmed)' : orderStatus}</span>}</td>
                     <td>
                       {isFirst && (
                         <span className={`ch-payment-badge ${isDigital(order.paymentMethod) ? "ch-payment-paid" : "ch-payment-unpaid"}`}>
@@ -456,18 +469,23 @@ const Order = () => {
                       )}
                     </td>
                     <td>{isFirst && <span className="ch-order-note">{order.customer?.orderNote || "—"}</span>}</td>
-                    <td>
-                      {isFirst && (orderStatus.toLowerCase() !== "cancelled" ? (
-                        <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
-                          <option value="Processing">Processing</option>
-                          <option value="Shipped">Shipped</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      ) : (
-                        <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete</button>
-                      ))}
-                    </td>
+                     <td>
+                       {isFirst && (orderStatus.toLowerCase() !== "cancelled" && !order.confirmed ? (
+                         <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
+                           <option value="Processing">Processing</option>
+                           <option value="Shipped">Shipped</option>
+                           <option value="Delivered">Delivered</option>
+                           <option value="Cancelled">Cancelled</option>
+                         </select>
+                       ) : order.confirmed ? (
+                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.73rem', color: 'var(--sage)', fontWeight: 600 }}>
+                           <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--sage)' }}></span>
+                           Confirmed
+                         </span>
+                       ) : (
+                         <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete</button>
+                       ))}
+                     </td>
                   </tr>
                 );
               })
@@ -485,15 +503,15 @@ const Order = () => {
           const orderStatus = order.status || "Processing";
           return (
             <div key={order.id} className={`ch-acc-item ${isOpen ? "open" : ""}`}>
-              <div className="ch-acc-header" onClick={() => toggleAccordion(order.id)}>
-                <span className="ch-acc-order-id">#{String(order.id).slice(-6)}</span>
-                <span className="ch-acc-customer">{order.customer?.fullName || "Unknown"}</span>
-                <div className="ch-acc-meta">
-                  <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{orderStatus}</span>
-                  <span className="ch-acc-total">₱{fmtP(order.total)}</span>
-                  <div className="ch-acc-chevron">▾</div>
-                </div>
-              </div>
+               <div className="ch-acc-header" onClick={() => toggleAccordion(order.id)}>
+                 <span className="ch-acc-order-id">#{String(order.id).slice(-6)}</span>
+                 <span className="ch-acc-customer">{order.customer?.fullName || "Unknown"}</span>
+                 <div className="ch-acc-meta">
+                   <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{order.confirmed ? 'Delivered (Confirmed)' : orderStatus}</span>
+                   <span className="ch-acc-total">₱{fmtP(order.total)}</span>
+                   <div className="ch-acc-chevron">▾</div>
+                 </div>
+               </div>
               <div className="ch-acc-body">
                 <div className="ch-acc-body-inner">
                   <div className="ch-acc-info-grid">
@@ -528,26 +546,33 @@ const Order = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="ch-acc-total-row">
-                    <span className="ch-acc-total-label">Order Total</span>
-                    <span className="ch-acc-total-value">₱{fmtP(order.total)}</span>
-                  </div>
-                  {orderStatus.toLowerCase() !== "cancelled" ? (
-                    <div className="ch-acc-actions">
-                      <span className="ch-acc-actions-label">Update Status:</span>
-                      <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
-                        <option value="Processing">Processing</option>
-                        <option value="Shipped">Shipped</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="ch-acc-actions">
-                      <span className="ch-acc-actions-label">Actions:</span>
-                      <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete</button>
-                    </div>
-                  )}
+                   <div className="ch-acc-total-row">
+                     <span className="ch-acc-total-label">Order Total</span>
+                     <span className="ch-acc-total-value">₱{fmtP(order.total)}</span>
+                   </div>
+                   {orderStatus.toLowerCase() !== "cancelled" && !order.confirmed ? (
+                     <div className="ch-acc-actions">
+                       <span className="ch-acc-actions-label">Update Status:</span>
+                       <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
+                         <option value="Processing">Processing</option>
+                         <option value="Shipped">Shipped</option>
+                         <option value="Delivered">Delivered</option>
+                         <option value="Cancelled">Cancelled</option>
+                       </select>
+                     </div>
+                   ) : order.confirmed ? (
+                     <div className="ch-acc-actions">
+                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.73rem', color: 'var(--sage)', fontWeight: 600 }}>
+                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--sage)' }}></span>
+                         Delivery Confirmed by Customer
+                       </span>
+                     </div>
+                   ) : (
+                     <div className="ch-acc-actions">
+                       <span className="ch-acc-actions-label">Actions:</span>
+                       <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete</button>
+                     </div>
+                   )}
                 </div>
               </div>
             </div>
@@ -563,10 +588,10 @@ const Order = () => {
           const orderStatus = order.status || "Processing";
           return (
             <div key={order.id} className="ch-order-card">
-              <div className="ch-order-card-head">
-                <span className="ch-order-card-id">Order #{String(order.id).slice(-6)}</span>
-                <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{orderStatus}</span>
-              </div>
+               <div className="ch-order-card-head">
+                 <span className="ch-order-card-id">Order #{String(order.id).slice(-6)}</span>
+                 <span className={`ch-status-badge ${statusClass(orderStatus)}`}>{order.confirmed ? 'Delivered (Confirmed)' : orderStatus}</span>
+               </div>
               <div className="ch-order-card-body">
                 <p><span>Customer: </span>{order.customer?.fullName || "—"}</p>
                 <p><span>Email: </span>{order.customer?.email || "—"}</p>
@@ -593,21 +618,28 @@ const Order = () => {
                   </div>
                 </div>
               </div>
-              {orderStatus.toLowerCase() !== "cancelled" ? (
-                <div className="ch-order-card-actions">
-                  <label>Update:</label>
-                  <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
-                    <option value="Processing">Processing</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              ) : (
-                <div className="ch-order-card-actions">
-                  <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete Order</button>
-                </div>
-              )}
+               {orderStatus.toLowerCase() !== "cancelled" && !order.confirmed ? (
+                 <div className="ch-order-card-actions">
+                   <label>Update:</label>
+                   <select value={orderStatus} onChange={e => updateStatus(order.id, e.target.value)} className="ch-status-select">
+                     <option value="Processing">Processing</option>
+                     <option value="Shipped">Shipped</option>
+                     <option value="Delivered">Delivered</option>
+                     <option value="Cancelled">Cancelled</option>
+                   </select>
+                 </div>
+               ) : order.confirmed ? (
+                 <div className="ch-order-card-actions">
+                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.73rem', color: 'var(--sage)', fontWeight: 600 }}>
+                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--sage)' }}></span>
+                     Delivery Confirmed
+                   </span>
+                 </div>
+               ) : (
+                 <div className="ch-order-card-actions">
+                   <button onClick={() => { setDeletingOrderId(order.id); setShowDeleteModal(true); }} className="ch-delete-btn">Delete Order</button>
+                 </div>
+               )}
             </div>
           );
         })}

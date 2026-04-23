@@ -1637,19 +1637,20 @@ const Checkout = () => {
       }
       const username = localStorage.getItem('username') || '';
 
-      const orderData = {
-        userId, username,
-        customer: formData,
-        paymentMethod: formData.paymentMethod,
-        items: safeCart.map(item => ({
-          id: item.id, name: item.name,
-          price: parseFloat(item.price),
-          quantity: item.quantity || 1,
-          selectedImage: item.selectedImage
-        })),
-        total,
-        createdAt: new Date().toISOString()
-      };
+       const orderData = {
+         userId, username,
+         customer: formData,
+         paymentMethod: formData.paymentMethod,
+         items: safeCart.map(item => ({
+           id: item.id, name: item.name,
+           price: parseFloat(item.price),
+           quantity: item.quantity || 1,
+           selectedImage: item.selectedImage
+         })),
+         total,
+         createdAt: new Date().toISOString(),
+         confirmed: false
+       };
 
       console.log('Checkout Debug - Submitting order to:', `${API_BASE_URL}/api/orders`);
       console.log('Checkout Debug - Order data:', orderData);
