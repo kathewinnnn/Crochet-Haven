@@ -262,18 +262,6 @@ const LoginSuccessOverlay = ({ username }) => (
   </div>
 );
 
-  // Auto-redirect if already logged in
-  const navigate = useNavigate()
-  useEffect(() => {
-    const token = localStorage.getItem('token') || localStorage.getItem('ch_token')
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        if (payload?.id) navigate(payload.role === 'admin' ? '/seller' : '/user')
-      } catch (e) {}
-    }
-  }, [navigate])
-
 const Login = () => {
   const [username,          setUsername]          = useState('');
   const [password,          setPassword]          = useState('');
@@ -286,7 +274,18 @@ const Login = () => {
   const [loggedInUser,      setLoggedInUser]      = useState('');
   const navigate = useNavigate();
 
-   const handleLogin = async (e) => {
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('ch_token')
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (payload?.id) navigate(payload.role === 'admin' ? '/seller' : '/user')
+      } catch (e) {}
+    }
+  }, [navigate])
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
