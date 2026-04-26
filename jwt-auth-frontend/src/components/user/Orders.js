@@ -324,82 +324,83 @@ const AUTO_RESPONSES = {
   "can i change my address": "We can update your address if the order hasn't shipped yet! Please share your new address and we'll do our best to accommodate you. 🏠",
   "is this item still available": "Great taste! 🧶 Our crochet items are handmade, so availability can change. Let me check on that for you — it may take a moment!",
 };
-const getAutoResponse = (msg) => {
-  const lower = msg.toLowerCase();
-  for (const key of Object.keys(AUTO_RESPONSES)) {
-    if (lower.includes(key.split(' ')[0]) || lower === key) return AUTO_RESPONSES[key];
-  }
-  return "Thank you for reaching out! 💕 Our team will get back to you shortly. We usually respond within a few hours during business hours (9am–6pm).";
-};
 
-const ContactSellerModal = ({ order, onClose }) => {
-  const [messages, setMessages] = useState([{ type: 'seller', text: `Hello! 👋 Welcome to Crochet Haven. How can I help you with your order ${order.id}?`, time: 'Just now' }]);
-  const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
-  const messagesEndRef = React.useRef(null);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, typing]);
-  const now = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  const sendMessage = (text) => {
-    const msg = text || input.trim();
-    if (!msg) return;
-    setInput('');
-    setMessages(prev => [...prev, { type: 'buyer', text: msg, time: now() }]);
-    setTyping(true);
-    setTimeout(() => { setTyping(false); setMessages(prev => [...prev, { type: 'seller', text: getAutoResponse(msg), time: now() }]); }, 1000 + Math.random() * 800);
-  };
-  return (
-    <div className="ch-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="ch-chat-modal">
-        <div className="ch-chat-header">
-          <div className="ch-chat-seller-avatar">🧶</div>
-          <div className="ch-chat-seller-info">
-            <div className="ch-chat-seller-name">{SELLER_NAME}</div>
-            <div className="ch-chat-seller-status">Active now</div>
-          </div>
-          <button className="ch-chat-close" onClick={onClose}>×</button>
-        </div>
-        <div className="ch-chat-order-ref">📦 Regarding order <strong>{order.id}</strong> · {order.items.length} item{order.items.length !== 1 ? 's' : ''}</div>
-        <div className="ch-chat-messages">
-          {messages.map((m, i) => (
-            <div key={i} className={`ch-chat-msg ${m.type}`}>
-              <div className="ch-chat-bubble">{m.text}</div>
-              <div className="ch-chat-time">{m.time}</div>
-            </div>
-          ))}
-          {typing && (
-            <div className="ch-chat-msg seller">
-              <div className="ch-chat-bubble" style={{ padding: '12px 16px' }}>
-                <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  {[0, 1, 2].map(i => <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--muted)', display: 'inline-block', animation: `bounce-dot 1s ease-in-out ${i * 0.2}s infinite` }} />)}
-                </span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-        <div className="ch-chat-quick-replies">
-          {QUICK_REPLIES.map((r, i) => <button key={i} className="ch-chat-quick-reply" onClick={() => sendMessage(r)}>{r}</button>)}
-        </div>
-        <div className="ch-chat-input-row">
-          <input className="ch-chat-input" type="text" placeholder="Type a message…" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
-          <button className="ch-chat-send" onClick={() => sendMessage()} disabled={!input.trim()}>➤</button>
-        </div>
-      </div>
-      <style>{`@keyframes bounce-dot { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-5px); opacity: 1; } }`}</style>
-    </div>
-  );
-};
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let token = localStorage.getItem('token') || localStorage.getItem('ch_token');
 
-// ─── Main Orders Component ────────────────────────────────────────────────────
-const Orders = () => {
-  const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all');
-  const [cancelModal, setCancelModal] = useState({ show: false, displayId: null, backendId: null });
-  const [buyAgainModal, setBuyAgainModal] = useState({ show: false, order: null });
+      if (!token) {
+        try {
+          const storedUser = localStorage.getItem('user') || localStorage.getItem('ch_user');
+          if (storedUser) {
+            const existingToken = localStorage.getItem('token') || localStorage.getItem('ch_token');
+            if (existingToken) token = existingToken;
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      const currentUserId = resolveUserId();
+      console.log('Orders Debug - Current User ID:', currentUserId);
+      console.log('Orders Debug - LocalStorage userId:', localStorage.getItem('userId'));
+      console.log('Orders Debug - LocalStorage user:', localStorage.getItem('user'));
+      console.log('Orders Debug - LocalStorage ch_user:', localStorage.getItem('ch_user'));
+
+      if (currentUserId) localStorage.setItem('userId', currentUserId);
+
+      if (!currentUserId) {
+        console.log('Orders Debug - No currentUserId, returning empty orders');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      const data = await getOrdersWithCache(token);
+      console.log('Orders Debug - All orders from API:', data);
+
+      // Ensure data is an array before filtering
+      const ordersArray = Array.isArray(data) ? data : [];
+      console.log('Orders Debug - Orders array length:', ordersArray.length);
+
+      const mapped = ordersArray
+        // ── Show ONLY orders belonging to the currently logged-in user ───────────────
+        .filter(order => {
+          const matches = order.userId && currentUserId && String(order.userId) === String(currentUserId);
+          console.log('Orders Debug - Order:', order.id, 'userId:', order.userId, 'matches:', matches);
+          return matches;
+        })
+        .map(order => {
+          const uiStatus = order.tracking?.status === 'out_for_delivery'
+            ? 'out_for_delivery'
+            : mapStatus(order.status);
+          let eta = order.estimatedDelivery || null;
+          if (!eta && uiStatus === 'to_receive') { const d = new Date(order.createdAt); d.setDate(d.getDate() + 5); eta = d.toISOString(); }
+          if (!eta && uiStatus === 'out_for_delivery') eta = new Date().toISOString();
+          return {
+            id: `ORD-${new Date(order.createdAt).getFullYear()}-${order.id.slice(-3).padStart(3, '0')}`,
+            backendId: order.id,
+            date: order.createdAt.split('T')[0],
+            createdAt: order.createdAt,
+            status: uiStatus,
+            confirmed: order.confirmed || false,
+            tracking: order.tracking || null,
+            estimatedDelivery: eta,
+            paymentMethod: order.paymentMethod,
+            total: order.total,
+            items: order.items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, selectedImage: i.selectedImage || null, image: i.selectedImage || null }))
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      setOrders(mapped);
+    } catch (err) {
+      console.error('Failed to load orders:', err);
+      setError('Failed to load orders. Please try again. ' + (err.message || ''));
+    } finally {
+      setLoading(false);
+    }
+  }, [mapStatus]);
   const [contactModal, setContactModal] = useState({ show: false, order: null });
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
   const [productsMap, setProductsMap] = useState({});
@@ -523,7 +524,7 @@ const Orders = () => {
         fetchOrders();
       }
     }
-  }, []);
+  }, [fetchOrders]);
 
 
    // Refresh orders when tab/window becomes visible or focused
@@ -804,6 +805,5 @@ const Orders = () => {
       </div>
     </>
   );
-};
 
 export default Orders;
