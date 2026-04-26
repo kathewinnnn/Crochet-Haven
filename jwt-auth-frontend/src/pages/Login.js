@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
@@ -261,6 +261,18 @@ const LoginSuccessOverlay = ({ username }) => (
     </div>
   </div>
 );
+
+  // Auto-redirect if already logged in
+  const navigate = useNavigate()
+  useEffect(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('ch_token')
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (payload?.id) navigate(payload.role === 'admin' ? '/seller' : '/user')
+      } catch (e) {}
+    }
+  }, [navigate])
 
 const Login = () => {
   const [username,          setUsername]          = useState('');

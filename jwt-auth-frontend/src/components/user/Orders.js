@@ -497,7 +497,13 @@ const Orders = () => {
      // Auto-refresh orders every 10 seconds
      const autoRefresh = setInterval(fetchOrders, 10000);
      const onUpdate = () => fetchOrders();
-     const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
+     const onStorage = (e) => { 
+      if (e.key === 'ordersUpdatedAt') {
+        fetchOrders();
+        // Also sync to ensure all tabs have latest timestamp
+        try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
+      }
+    };
      window.addEventListener('ordersUpdated', onUpdate);
      window.addEventListener('storage', onStorage);
      return () => {
@@ -506,6 +512,19 @@ const Orders = () => {
        window.removeEventListener('storage', onStorage);
      };
    }, [fetchOrders, fetchProductsMap]);
+  // On mount, ensure orders are fresh
+  useEffect(() => {
+    const lastUpdate = localStorage.getItem('ordersUpdatedAt');
+    if (!lastUpdate) {
+      fetchOrders();
+    } else {
+      const age = Date.now() - parseInt(lastUpdate);
+      if (age > 30000) {
+        fetchOrders();
+      }
+    }
+  }, []);
+
 
    // Refresh orders when tab/window becomes visible or focused
    useEffect(() => {

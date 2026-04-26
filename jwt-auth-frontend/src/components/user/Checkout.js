@@ -1682,6 +1682,8 @@ const Checkout = () => {
       }
     } catch (error) {
       alert('Error placing order: ' + error.message);
+      try { localStorage.setItem('ordersUpdatedAt', String(Date.now())); } catch {}
+      window.dispatchEvent(new CustomEvent('ordersUpdated'));
     } finally {
       setIsLoading(false);
     }

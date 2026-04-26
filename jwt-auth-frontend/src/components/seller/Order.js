@@ -266,7 +266,7 @@ const Order = () => {
 
    useEffect(() => {
      fetchOrders();
-     const poll = setInterval(fetchOrders, 10000); // refresh every 10s
+     const poll = setInterval(fetchOrders, 3000); // refresh every 3s for instant updates
      const onUpdate = () => fetchOrders();
      const onStorage = e => { if (e.key === "ordersUpdatedAt") fetchOrders(); };
      window.addEventListener("ordersUpdated", onUpdate);
@@ -286,6 +286,13 @@ const Order = () => {
        document.removeEventListener('visibilitychange', handleRefresh);
      };
    }, [fetchOrders]);
+
+  // On mount, ensure orders are fresh
+  useEffect(() => {
+    const lastUpdate = localStorage.getItem('ordersUpdatedAt')
+    if (!lastUpdate) fetchOrders()
+    else if (Date.now() - parseInt(lastUpdate) > 30000) fetchOrders()
+  }, [])
 
    const updateStatus = async (id, status) => {
      if (status === "Cancelled") { setCancelModal({ show: true, orderId: id }); return; }
