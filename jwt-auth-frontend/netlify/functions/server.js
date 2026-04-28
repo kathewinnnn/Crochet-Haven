@@ -179,10 +179,104 @@ const loadFromFirestore = async () => {
   }
 };
 
+
+// -- Incremental Firestore order operations ---------------------------------
+const addOrderToFirestore = async (order) => {
+  if (!db || !firebaseInitialized) return;
+  try {
+    await db.collection('orders').doc(order.id || Date.now().toString()).set(order);
+    console.log('Serverless Debug - Added order to Firestore:', order.id);
+  } catch (err) {
+    console.error('Firestore add error:', err);
+  }
+};
+
+const updateOrderInFirestore = async (id, data) => {
+  if (!db || !firebaseInitialized) return;
+  try {
+    await db.collection('orders').doc(id).update(data);
+    console.log('Serverless Debug - Updated order in Firestore:', id);
+  } catch (err) {
+    console.error('Firestore update error:', err);
+  }
+};
+
+const deleteOrderFromFirestore = async (id) => {
+  if (!db || !firebaseInitialized) return;
+  try {
+    await db.collection('orders').doc(id).delete();
+    console.log('Serverless Debug - Deleted order from Firestore:', id);
+  } catch (err) {
+    console.error('Firestore delete error:', err);
+  }
+};
+
+// -- Cart Firestore operations ---------------------------------------------
+const getUserCartRef = (userId) => db.collection('carts').doc(userId);
+
+const getCartFromFirestore = async (userId) => {
+  if (!db || !firebaseInitialized) return null;
+  try {
+    const doc = await getUserCartRef(userId).get();
+    if (doc.exists) {
+      const data = doc.data();
+      return Array.isArray(data.items) ? data.items : [];
+    }
+    return [];
+  } catch (err) {
+    console.error('Firestore get cart error:', err);
+    return null;
+  }
+};
+
+const setCartToFirestore = async (userId, items) => {
+  if (!db || !firebaseInitialized) return;
+  try {
+    await getUserCartRef(userId).set({
+      items,
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Saved cart to Firestore:', userId, items.length, 'items');
+  } catch (err) {
+    console.error('Firestore save cart error:', err);
+  }
+};
+
+// -- Cart Firestore operations ---------------------------------------------
+const getUserCartRef = (userId) => db.collection('carts').doc(userId);
+
+const getCartFromFirestore = async (userId) => {
+  if (!db || !firebaseInitialized) return null;
+  try {
+    const doc = await getUserCartRef(userId).get();
+    if (doc.exists) {
+      const data = doc.data();
+      return Array.isArray(data.items) ? data.items : [];
+    }
+    return [];
+  } catch (err) {
+    console.error('Firestore get cart error:', err);
+    return null;
+  }
+};
+
+const setCartToFirestore = async (userId, items) => {
+  if (!db || !firebaseInitialized) return;
+  try {
+    await getUserCartRef(userId).set({
+      items,
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Saved cart to Firestore:', userId, items.length, 'items');
+  } catch (err) {
+    console.error('Firestore save cart error:', err);
+  }
+};
+
 const saveToAll = async (data) => {
   cache = data;
 
-  console.log('Serverless Debug - Saving data, Firestore initialized:', firebaseInitialized);
+  console.log('Serverless Debug - Saving data to local file');
 
   // Always save to the local db.json file (best effort)
   try {
@@ -195,11 +289,7 @@ const saveToAll = async (data) => {
     console.warn('Failed to save local file:', e.message);
   }
 
-  // If Firebase is initialized, sync to Firestore and WAIT for it to complete
-  if (db && firebaseInitialized) {
-    await syncToFirestore(data);
-    console.log('Data synced to Firestore successfully');
-  }
+  // Firestore writes are now handled incrementally by specific handlers
 };
 
 const syncToFirestore = async (data) => {
@@ -363,6 +453,17 @@ exports.handler = async (event, context) => {
         responseData = { message: "Username required" };
       } else {
         const taken = cache.users.some(u => u.username.toLowerCase() === username.toLowerCase());
+        responseData = { available: !taken };
+      }
+    }
+    else if (path.includes('/api/auth/check-email') && method === 'GET') {
+      const params = event.queryStringParameters || {};
+      const email = params.email;
+      if (!email) {
+        statusCode = 400;
+        responseData = { message: 'Email required' };
+      } else {
+        const taken = cache.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase());
         responseData = { available: !taken };
       }
     }
@@ -550,49 +651,63 @@ exports.handler = async (event, context) => {
         statusCode = 401;
         responseData = { error: "Authentication required" };
       } else {
-        const allOrders = cache.orders || [];
-        // Admin/seller users can see all orders, regular users only see their own
-        let ordersToReturn;
-        if (decoded.role === 'admin' || decoded.role === 'seller') {
-          ordersToReturn = allOrders; // Return all orders for admin/seller
-          console.log(`Serverless Debug - Returning ${ordersToReturn.length} orders for admin/seller user ${decoded.id}`);
-        } else {
-          ordersToReturn = allOrders.filter(order => order.userId === decoded.id); // Regular users only see their orders
-          console.log(`Serverless Debug - Returning ${ordersToReturn.length} orders for regular user ${decoded.id}`);
-        }
-        responseData = ordersToReturn;
+         let allOrders = [];
+         // If Firestore is available, read directly from Firestore to get latest data
+         if (db && firebaseInitialized) {
+           try {
+             const snapshot = await db.collection('orders').get();
+             allOrders = snapshot.docs.map(doc => doc.data());
+             console.log('Serverless Debug - Fetched orders from Firestore:', allOrders.length);
+           } catch (err) {
+             console.error('Firestore read error, falling back to cache:', err);
+             allOrders = cache.orders || [];
+           }
+         } else {
+           allOrders = cache.orders || [];
+         }
+         // Admin/seller users can see all orders, regular users only see their own
+         let ordersToReturn;
+         if (decoded.role === 'admin' || decoded.role === 'seller') {
+           ordersToReturn = allOrders;
+           console.log(Serverless Debug - Returning  orders for admin/seller user );
+         } else {
+           ordersToReturn = allOrders.filter(order => order.userId === decoded.id);
+           console.log(Serverless Debug - Returning  orders for regular user );
+         }
+         responseData = ordersToReturn;
       }
       console.log('Serverless Debug - Returning orders data:', responseData);
     }
 
 
 
-      else if (path.includes('/api/orders') && method === 'POST') {
-       console.log('Serverless Debug - Processing order POST request');
-       console.log('Serverless Debug - Auth header present:', !!authHeader);
-       const decoded = decodeToken(authHeader);
-       console.log('Serverless Debug - Decoded token:', decoded ? { id: decoded.id, username: decoded.username } : 'No token');
-       console.log('Serverless Debug - Request body:', body);
+       else if (path.includes('/api/orders') && method === 'POST') {
+        console.log('Serverless Debug - Processing order POST request');
+        console.log('Serverless Debug - Auth header present:', !!authHeader);
+        const decoded = decodeToken(authHeader);
+        console.log('Serverless Debug - Decoded token:', decoded ? { id: decoded.id, username: decoded.username } : 'No token');
+        console.log('Serverless Debug - Request body:', body);
 
-       // Build order with client data but override critical fields from token
-       const order = {
-         ...body,           // client data (items, total, paymentMethod, customer, etc.)
-         id: Date.now().toString(), // server-generated ID
-         userId: decoded?.id || null,
-         username: decoded?.username || null,
-         createdAt: new Date().toISOString(),
-         status: "Processing" // always set by server
-       };
+        // Build order with client data but override critical fields from token
+        const order = {
+          ...body,           // client data (items, total, paymentMethod, customer, etc.)
+          id: Date.now().toString(), // server-generated ID
+          userId: decoded?.id || null,
+          username: decoded?.username || null,
+          createdAt: new Date().toISOString(),
+          status: "Processing" // always set by server
+        };
 
-       console.log('Serverless Debug - Created order:', { id: order.id, userId: order.userId, total: order.total });
+        console.log('Serverless Debug - Created order:', { id: order.id, userId: order.userId, total: order.total });
 
-       if (!cache.orders) cache.orders = [];
-       cache.orders.push(order);
-       await saveToAll(cache);
-       statusCode = 201;
-       responseData = order;
-       console.log('Serverless Debug - Order saved successfully');
-     }
+        if (!cache.orders) cache.orders = [];
+        cache.orders.push(order);
+        await saveToAll(cache);
+        await addOrderToFirestore(order);
+        statusCode = 201;
+        responseData = order;
+        console.log('Serverless Debug - Order saved successfully');
+      }
 
      else if (path.includes('/api/orders/') && path.includes('/cancel') && method === 'POST') {
        const id = path.split('/api/orders/')[1].split('/cancel')[0];
@@ -621,6 +736,7 @@ exports.handler = async (event, context) => {
              } else {
                cache.orders[index] = { ...cache.orders[index], status: "Cancelled" };
                await saveToAll(cache);
+                await updateOrderInFirestore(id, { status: 'Cancelled' });
                responseData = cache.orders[index];
              }
            }
@@ -657,6 +773,7 @@ exports.handler = async (event, context) => {
             } else {
               cache.orders[index] = { ...cache.orders[index], ...body };
               await saveToAll(cache);
+        await updateOrderInFirestore(id, body);
               responseData = cache.orders[index];
             }
           }
@@ -690,6 +807,7 @@ exports.handler = async (event, context) => {
             } else {
               cache.orders.splice(index, 1);
               await saveToAll(cache);
+                await deleteOrderFromFirestore(id);
               responseData = { success: true, message: "Order deleted" };
             }
           }

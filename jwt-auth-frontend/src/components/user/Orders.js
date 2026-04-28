@@ -4,6 +4,8 @@ import { useCart } from "../../context/CartContext";
 import { getOrdersWithCache, getProductsWithCache, API_BASE_URL } from '../../apiConfig';
 import { resolveUserId } from '../../pages/userStorage';
 
+import { db } from '../../firebase';
+import { collection, query, where, onSnapshot, orderBy, getAuth, signInAnonymously } from 'firebase/firestore';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Lato:wght@300;400;700&display=swap');
 
@@ -435,6 +437,13 @@ const Orders = () => {
         setLoading(false);
         return;
       }
+      // Ensure Firebase anonymous authentication for real-time Firestore access
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        try { await signInAnonymously(auth); }
+        catch (err) { console.error('Anon auth failed:', err); }
+      }
+
 
       const data = await getOrdersWithCache(token);
       console.log('Orders Debug - All orders from API:', data);
@@ -491,34 +500,87 @@ const Orders = () => {
     } catch { /* non-critical */ }
   }, []);
 
-   useEffect(() => {
-     fetchOrders();
-     fetchProductsMap();
-     // Auto-refresh orders every 10 seconds
-     const autoRefresh = setInterval(fetchOrders, 10000);
-     const onUpdate = () => fetchOrders();
-     const onStorage = (e) => { if (e.key === 'ordersUpdatedAt') fetchOrders(); };
-     window.addEventListener('ordersUpdated', onUpdate);
-     window.addEventListener('storage', onStorage);
-     return () => {
-       clearInterval(autoRefresh);
-       window.removeEventListener('ordersUpdated', onUpdate);
-       window.removeEventListener('storage', onStorage);
-     };
-   }, [fetchOrders, fetchProductsMap]);
+    useEffect(() => {
+      let unsubscribe = null;
 
-   // Refresh orders when tab/window becomes visible or focused
-   useEffect(() => {
-     const handleRefresh = () => {
-       fetchOrders();
-     };
-     window.addEventListener('focus', handleRefresh);
-     document.addEventListener('visibilitychange', handleRefresh);
-     return () => {
-       window.removeEventListener('focus', handleRefresh);
-       document.removeEventListener('visibilitychange', handleRefresh);
-     };
-   }, [fetchOrders]);
+      // Handlers (defined once)
+      const onUpdate = () => { fetchOrders(); };
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') { fetchOrders(); }
+      };
+      const handleFocus = () => { fetchOrders(); };
+
+      // Async initialization
+      (async () => {
+        const currentUserId = resolveUserId();
+        if (!currentUserId) {
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
+        // Ensure Firebase anonymous authentication for real-time access
+        const auth = getAuth();
+        if (!auth.currentUser) {
+          try { await signInAnonymously(auth); }
+          catch (err) { console.error('Anon auth failed, using REST fallback:', err); }
+        }
+
+        // Set up Firestore real-time listener for this user's orders
+        const userOrdersQuery = query(
+          collection(db, 'orders'),
+          where('userId', '==', currentUserId),
+          orderBy('createdAt', 'desc')
+        );
+
+        unsubscribe = onSnapshot(userOrdersQuery, (snapshot) => {
+          const ordersFromFirestore = snapshot.docs.map(doc => {
+            const raw = doc.data();
+            const uiStatus = raw.tracking?.status === 'out_for_delivery' ? 'out_for_delivery' : mapStatus(raw.status);
+            let eta = raw.estimatedDelivery || null;
+            if (!eta && uiStatus === 'to_receive') {
+              const d = new Date(raw.createdAt); d.setDate(d.getDate() + 5); eta = d.toISOString();
+            }
+            if (!eta && uiStatus === 'out_for_delivery') eta = new Date().toISOString();
+            return {
+              id: `ORD-${new Date(raw.createdAt).getFullYear()}-${doc.id.slice(-3).padStart(3, '0')}`,
+              backendId: doc.id,
+              ...raw,
+              status: uiStatus,
+              confirmed: raw.confirmed || false,
+              tracking: raw.tracking || null,
+              estimatedDelivery: eta,
+              date: raw.createdAt?.split('T')[0] || '',
+              createdAt: raw.createdAt || new Date().toISOString(),
+              items: (raw.items || []).map(i => ({
+                id: i.id, name: i.name, price: i.price, quantity: i.quantity || 1,
+                selectedImage: i.selectedImage || null,
+                image: i.selectedImage || null
+              }))
+            };
+          });
+          setOrders(ordersFromFirestore);
+          setLoading(false);
+          setError(null);
+        }, (error) => {
+          console.error('Firestore listener error:', error);
+          // Fall back to REST API on error
+          fetchOrders();
+        });
+
+        // Attach event listeners after listener is set
+        window.addEventListener('ordersUpdated', onUpdate);
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('focus', handleFocus);
+      })();
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+        window.removeEventListener('ordersUpdated', onUpdate);
+        document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('focus', handleFocus);
+      };
+    }, []);
 
 
   const mapStatus = (s) => ({ Processing: 'to_ship', Shipped: 'to_receive', Delivered: 'completed', Cancelled: 'cancelled' }[s] || 'to_ship');
@@ -788,3 +850,4 @@ const Orders = () => {
 };
 
 export default Orders;
+
